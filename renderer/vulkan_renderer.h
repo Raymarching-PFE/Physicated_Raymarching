@@ -1,19 +1,19 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtx/hash.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <array>
 #include <optional>
 #include <fstream>
 #include <vector>
+
+#define GLFW_INCLUDE_VULKAN
+#include "GLFW/glfw3.h"
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/glm.hpp"
+#include "glm/gtx/hash.hpp"
+
 
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
@@ -174,7 +174,7 @@ public:
     void Run();
 
 private:
-  GLFWwindow* _window = nullptr;
+    GLFWwindow* _window = nullptr;
 
     VkInstance _instance = nullptr;
     VkDebugUtilsMessengerEXT _debugMessenger = nullptr;

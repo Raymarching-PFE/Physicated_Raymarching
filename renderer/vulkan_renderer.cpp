@@ -1,6 +1,5 @@
 #include "vulkan_renderer.h"
 
-#include <algorithm>
 #include <iostream>
 #include <set>
 #include <chrono>
@@ -8,10 +7,10 @@
 #include <random>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "stb_image.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+#include "tiny_obj_loader.h"
 
 
 void VulkanRenderer::Run()
