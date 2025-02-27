@@ -11,6 +11,7 @@ find_package(Vulkan REQUIRED)
 add_executable(${PROJECT_NAME}
         main.cpp
         vulkan_renderer.cpp
+        binaryTree.cpp
 )
 
 
