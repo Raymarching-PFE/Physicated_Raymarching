@@ -20,6 +20,7 @@ target_link_libraries(${PROJECT_NAME}
         PRIVATE stb_image
         PRIVATE tinyobjloader
         PRIVATE Vulkan::Vulkan
+        PRIVATE imgui
 )
 
 
