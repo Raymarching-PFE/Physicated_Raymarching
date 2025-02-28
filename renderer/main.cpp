@@ -8,13 +8,6 @@ int main()
 {
     BinaryTree binary_tree;
 
-
-    // BinaryTree binary_tree(7);
-    std::cout << "Goodbye World!" << std::endl;
-
-
-
-
     return EXIT_SUCCESS;
 
     // VulkanRenderer app;

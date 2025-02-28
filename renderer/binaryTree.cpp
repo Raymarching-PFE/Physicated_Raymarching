@@ -5,98 +5,129 @@
 
 BinaryTree::BinaryTree()
 {
-    std::vector<glm::vec3> sample =
+    // Generate fake data
+    std::vector<glm::vec3> fakeData =
     {
-        glm::vec3(0.83f, 0.47f, 0.1f),
-        glm::vec3(0.65f, -0.48f, 0.2f),
-        glm::vec3(0.11f, 0.96f, 0.3f),
-        glm::vec3(0.042f, -0.03f, 0.4f),
-        glm::vec3(-0.13f, -0.98f, 0.5f),
-        glm::vec3(-0.64f, 0.74f, 0.6f),
-        glm::vec3(-0.77f, -0.62f, 0.7f),
-        glm::vec3(-0.72f, 0.06f, 0.8f)
+        glm::vec3(0.1f, 0.0f, 0.0f),
+        glm::vec3(0.5f, 1.0f, 1.0f),
+        glm::vec3(0.3f, 2.0f, 2.0f)
     };
 
-    // get how many generations
-    int gen = 0;
-    while (pow(2, gen) < sample.size())
-    {
-        gen++;
-    }
+    for (int i = 0; i < fakeData.size(); i++)
+        std::cout << "Data[" << i << "] : (" << fakeData[i].x << ", " << fakeData[i].y << ", " << fakeData[i].z <<")" << std::endl;
 
-    std::cout << "ELements : " << sample.size() <<  ", Gen : "<< gen << std::endl;
+    // Get generation
+    int generation = 0;
+    while (pow(2, generation) < fakeData.size())
+        generation++;
+
+    std::cout << "Elements : " << fakeData.size() << ", Gen : " << generation << std::endl;
 
     // create architecture from generation
-    Node root = {glm::vec3(0, 0, 0), nullptr, nullptr};
-    CreateStructureNodes(0, gen, root);
+    Node* root = new Node({glm::vec3(0, 0, 0), nullptr, nullptr, 0});
+    CreateStructureNodes(0, generation, root);
+
+    // Give values for structures nodes
+    root->position.x = MedianX(fakeData);
 
     // view tree
-    ViewNode(root);
-    ViewNode(root->right);
-
-
-    // create root nodes
-//    for(int i = 0; i < sample.size(); i++)
-//    {
-//        root.position = glm::vec3(sample[i].x, sample[i].y, sample[i].z);
-//
-//        // root node must be median between all x values nodes
-//
-//
-//    }
+    ViewNodeRecursive(root);
 }
 
-void BinaryTree::ViewNode(Node node)
-    {
-    bool leftExist = node.left != nullptr;
-    bool rightExist = node.right != nullptr;
-
-
-    std::cout << "node : (" << node.position.x << ", " << node.position.y << ", " << node.position.z << "), " <<
-     (leftExist?"left is true":"left is false") << ", " << (rightExist?"right is true":"right is false") << std::endl;
-
-  }
-
-void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node root)
+float BinaryTree::MedianX(std::vector<glm::vec3> data)
 {
+    // sort the x values
+    std::vector<float> vec;
+    for (int i = 0; i < data.size(); i++)
+    {
+        vec.push_back(data[i].x);
+    }
 
-  // first use case
-//  if(currGen == 0)
-//  {
-//      Node newRoot = {glm::vec3(0, 0, 0), nullptr, nullptr};
-//      root = newRoot;
-//
-//      if(currGen == maxGen)
-//          return;
-//      else
-//          CreateStructureNodes(currGen, maxGen, root);
-//  }
-// else
-// {
-     Node newRight = {glm::vec3(0, 0, 0), nullptr, nullptr};
-     Node newLeft = {glm::vec3(0, 0, 0), nullptr, nullptr};
-     root.right = &newRight;
-     root.left = &newLeft;
+    int n = vec.size();
 
-// }
+    // Calling quicksort for the vector vec
+    quickSort(vec, 0, n - 1);
 
+    return vec[(vec.size()-1)/2];
+}
+
+
+void BinaryTree::ViewNode(Node* node)
+{
+    std::cout << "Node : (" << node->position.x << ", " << node->position.y << ", " << node->position.z << "), " <<
+        (node->left != nullptr ? "TRUE" : "FALSE") << ", " << (node->right != nullptr ? "TRUE" : "FALSE") << std::endl;
+}
+
+void BinaryTree::ViewNodeRecursive(Node* node)
+{
+    ViewNode(node);
+
+    if (node->left != nullptr)
+        ViewNodeRecursive(node->left);
+    if (node->right != nullptr)
+        ViewNodeRecursive(node->right);
+}
+
+void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node* root)
+{
     CurrGen++;
 
-    if(CurrGen == maxGen)
-        return;
-    else
-      {
-        CreateStructureNodes(CurrGen, maxGen, *root.right);
-        CreateStructureNodes(CurrGen, maxGen, *root.left);
-}
+    root->left = new Node( {glm::vec3(CurrGen, 0, 0), nullptr, nullptr, CurrGen});
+    root->right = new Node({glm::vec3(CurrGen, 0, 0), nullptr, nullptr, CurrGen});
+
+    if(CurrGen != maxGen)
+    {
+        CreateStructureNodes(CurrGen, maxGen, root->right);
+        CreateStructureNodes(CurrGen, maxGen, root->left);
+    }
 }
 
 BinaryTree::~BinaryTree()
 {
-  //TODO free allocations
+    //TODO free allocations
 }
 
-//void BinaryTree::AddNode(Node* node)
-//{
-//
-//}
+// QuickSort
+
+int BinaryTree::partition(std::vector<float> &vec, int low, int high)
+{
+    // Selecting last element as the pivot
+    float pivot = vec[high];
+
+    // Index of element just before the last element
+    // It is used for swapping
+    int i = (low - 1);
+
+    for (int j = low; j <= high - 1; j++) {
+
+        // If current element is smaller than or
+        // equal to pivot
+        if (vec[j] <= pivot) {
+            i++;
+            std::swap(vec[i], vec[j]);
+        }
+    }
+
+    // Put pivot to its position
+    std::swap(vec[i + 1], vec[high]);
+
+    // Return the point of partition
+    return (i + 1);
+}
+
+void BinaryTree::quickSort(std::vector<float> &vec, int low, int high)
+{
+    // Base case: This part will be executed till the starting
+    // index low is lesser than the ending index high
+    if (low < high) {
+
+        // pi is Partitioning Index, arr[p] is now at
+        // right place
+        int pi = partition(vec, low, high);
+
+        // Separately sort elements before and after the
+        // Partition Index pi
+        quickSort(vec, low, pi - 1);
+        quickSort(vec, pi + 1, high);
+    }
+}
