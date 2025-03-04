@@ -3,7 +3,7 @@
 set(MY_BIN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Build/${CMAKE_CXX_COMPILER_ID}_$<CONFIG>")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${MY_BIN_OUTPUT_DIR}")
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 file(GLOB_RECURSE MY_SOURCES "source/*.cpp")
 
@@ -18,6 +18,7 @@ target_link_libraries(${PROJECT_NAME}
         PRIVATE stb_image
         PRIVATE tinyobjloader
         PRIVATE Vulkan::Vulkan
+        PRIVATE Vulkan::shaderc_combined
         PRIVATE imgui
 )
 
