@@ -32,3 +32,21 @@ target_sources(imgui INTERFACE
         "imgui/backends/imgui_impl_vulkan.cpp"
 )
 target_include_directories(imgui INTERFACE imgui)
+
+
+########## TRACY
+if(NOT EXISTS ${CMAKE_SOURCE_DIR}/extern/tracy_executable)
+    file(ARCHIVE_EXTRACT INPUT ${CMAKE_SOURCE_DIR}/extern/tracy_executable.7z
+            DESTINATION ${CMAKE_SOURCE_DIR}/extern
+    )
+endif()
+
+include(FetchContent)
+FetchContent_Declare(
+        Tracy
+        GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+        GIT_TAG v0.11.0
+)
+FetchContent_MakeAvailable(Tracy)
+
+set(TRACY_ENABLE ON CACHE BOOL "" FORCE)

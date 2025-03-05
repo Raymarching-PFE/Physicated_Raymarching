@@ -12,6 +12,14 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
+#if defined(__clang__) || defined(__GNUC__)
+    #define TracyFunction __PRETTY_FUNCTION__
+#elif defined(_MSC_VER)
+    #define TracyFunction __FUNCSIG__
+    #define TRACY_IMPORTS
+#endif
+#include <tracy/Tracy.hpp>
+
 
 void VulkanRenderer::Run()
 {

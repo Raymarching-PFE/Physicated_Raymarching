@@ -11,6 +11,7 @@ add_executable(${PROJECT_NAME}
         ${MY_SOURCES}
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE ${tracy_SOURCE_DIR})
 
 target_link_libraries(${PROJECT_NAME}
         PRIVATE glfw
@@ -20,10 +21,13 @@ target_link_libraries(${PROJECT_NAME}
         PRIVATE Vulkan::Vulkan
         PRIVATE Vulkan::shaderc_combined
         PRIVATE imgui
+        PRIVATE Tracy::TracyClient
 )
 
-target_compile_features(${PROJECT_NAME} PRIVATE c_std_11)
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+target_compile_features(${PROJECT_NAME}
+        PRIVATE c_std_11
+        PRIVATE cxx_std_20
+)
 
 add_custom_command(
         TARGET ${PROJECT_NAME}
