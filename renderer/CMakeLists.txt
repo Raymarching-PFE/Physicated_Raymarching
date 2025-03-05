@@ -44,4 +44,8 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/textures
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/textures
+
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/point_clouds
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/point_clouds
 )
