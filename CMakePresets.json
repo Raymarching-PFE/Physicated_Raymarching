@@ -2,114 +2,91 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "VS_2022",
-      "displayName": "Visual Studio 2022",
-      "description": "MSVC Compiler",
-      "generator": "Visual Studio 17 2022",
-      "architecture": "x64",
+      "name": "VS_2022_Clang",
+      "displayName": "Visual Studio 2022 - Clang",
+      "description": "Clang Compiler",
+      "hidden": true,
+      "generator": "Ninja",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       },
-      "binaryDir": "${sourceDir}/Build/${presetName}",
+      "binaryDir": "${sourceDir}/Out/${presetName}",
       "cacheVariables": {
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/Install/${presetName}"
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/Install/${presetName}",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
       }
     },
     {
-      "name": "VS_2022_Clang",
-      "displayName": "Visual Studio 2022 - Clang",
-      "description": "Clang Compiler on Windows",
-      "generator": "Ninja",
-      "architecture": "x64",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      },
-      "binaryDir": "${sourceDir}/Build/${presetName}",
+      "name": "Clang_Debug",
+      "displayName": "Clang Debug",
+      "description": "Sets debug build type",
+      "inherits": "VS_2022_Clang",
       "cacheVariables": {
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/Install/${presetName}",
-        "CMAKE_CXX_COMPILER": "clang++"
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "Clang_Release",
+      "displayName": "Clang Release",
+      "description": "Sets release build type",
+      "inherits": "VS_2022_Clang",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
       "name": "Linux",
       "displayName": "Linux - Clang",
-      "description": "Clang compiler on Linux",
+      "description": "Clang compiler",
+      "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/Build/${presetName}",
-      "cacheVariables": {
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/Install/${presetName}",
-        "CMAKE_CXX_COMPILER": "clang++"
-      },
+      "binaryDir": "${sourceDir}/Out/${presetName}",
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/Install/${presetName}",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "Linux_Debug",
+      "displayName": "Linux Debug",
+      "description": "Sets debug build type",
+      "inherits": "Linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "Linux_Release",
+      "displayName": "Linux Release",
+      "description": "Sets release build type",
+      "inherits": "Linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "VS_2022 Debug",
-      "description": "Visual Studio Debug preset",
-      "targets": [
-        "Vulkan_Renderer"
-      ],
-      "configurePreset": "VS_2022",
-      "configuration": "Debug",
-      "verbose": true
-    },
-    {
-      "name": "VS_2022 Release",
-      "description": "Visual Studio Release preset",
-      "targets": [
-        "Vulkan_Renderer"
-      ],
-      "configurePreset": "VS_2022",
-      "configuration": "Release",
-      "verbose": true
-    },
-    {
-      "name": "VS_2022_Clang Debug",
-      "description": "Visual Studio Clang Debug preset",
-      "targets": [
-        "Vulkan_Renderer"
-      ],
+      "name": "Windows build",
+      "displayName": "Windows build",
       "configurePreset": "VS_2022_Clang",
-      "configuration": "Debug",
+      "description": "Windows build",
       "verbose": true
     },
     {
-      "name": "VS_2022_Clang Release",
-      "description": "Visual Studio Clang Release preset",
-      "targets": [
-        "Vulkan_Renderer"
-      ],
-      "configurePreset": "VS_2022_Clang",
-      "configuration": "Release",
-      "verbose": true
-    },
-    {
-      "name": "Linux Debug",
-      "description": "Linux Debug preset",
-      "targets": [
-        "Vulkan_Renderer"
-      ],
+      "name": "Linux build",
+      "displayName": "Linux build",
       "configurePreset": "Linux",
-      "configuration": "Debug",
-      "verbose": true
-    },
-    {
-      "name": "Linux Release",
-      "description": "Linux Release preset",
-      "targets": [
-        "Vulkan_Renderer"
-      ],
-      "configurePreset": "Linux",
-      "configuration": "Release",
+      "description": "Linux build",
       "verbose": true
     }
   ]
