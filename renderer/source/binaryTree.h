@@ -27,10 +27,8 @@ private:
 
     float MedianX(std::vector<glm::vec3> data);
 
-
-   Node* root;
+    Node* root;
 
     int partition(std::vector<float> &vec, int low, int high);
     void quickSort(std::vector<float> &vec, int low, int high);
-
 };

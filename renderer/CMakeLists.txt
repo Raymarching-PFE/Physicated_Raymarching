@@ -1,19 +1,17 @@
-﻿project(Vulkan_Renderer
-        LANGUAGES CXX C
-        VERSION 1.0
-        DESCRIPTION "Vulkan_Renderer"
-)
+﻿project(Vulkan_Renderer)
 
+set(MY_BIN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Build/${CMAKE_CXX_COMPILER_ID}_$<CONFIG>")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${MY_BIN_OUTPUT_DIR}")
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
+file(GLOB_RECURSE MY_SOURCES "source/*.cpp")
 
 add_executable(${PROJECT_NAME}
-        main.cpp
-        vulkan_renderer.cpp
-        binaryTree.cpp
+        ${MY_SOURCES}
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE ${tracy_SOURCE_DIR})
 
 target_link_libraries(${PROJECT_NAME}
         PRIVATE glfw
@@ -21,50 +19,33 @@ target_link_libraries(${PROJECT_NAME}
         PRIVATE stb_image
         PRIVATE tinyobjloader
         PRIVATE Vulkan::Vulkan
+        PRIVATE Vulkan::shaderc_combined
+        PRIVATE imgui
+        PRIVATE Tracy::TracyClient
 )
 
-
-set_target_properties(${PROJECT_NAME} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/Build/Debug
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/Build/Release
-        VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+target_compile_features(${PROJECT_NAME}
+        PRIVATE c_std_11
+        PRIVATE cxx_std_20
 )
 
+add_custom_command(
+        TARGET ${PROJECT_NAME}
+        POST_BUILD
 
-if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    add_custom_target(copy_assets
-            COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_SOURCE_DIR}/Build/Debug/models
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/renderer/models
-            ${CMAKE_SOURCE_DIR}/Build/Debug/models
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/models
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/models
 
-            COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_SOURCE_DIR}/Build/Debug/shaders
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/renderer/shaders
-            ${CMAKE_SOURCE_DIR}/Build/Debug/shaders
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders
 
-            COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_SOURCE_DIR}/Build/Debug/textures
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/renderer/textures
-            ${CMAKE_SOURCE_DIR}/Build/Debug/textures
-    )
-elseif(${CMAKE_BUILD_TYPE} MATCHES "Release")
-    add_custom_target(copy_assets
-            COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_SOURCE_DIR}/Build/Release/models
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/renderer/models
-            ${CMAKE_SOURCE_DIR}/Build/Release/models
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/textures
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/textures
 
-            COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_SOURCE_DIR}/Build/Release/shaders
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/renderer/shaders
-            ${CMAKE_SOURCE_DIR}/Build/Release/shaders
-
-            COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_SOURCE_DIR}/Build/Release/textures
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/renderer/textures
-            ${CMAKE_SOURCE_DIR}/Build/Release/textures
-    )
-endif()
-
-add_dependencies(${PROJECT_NAME} copy_assets)
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/point_clouds
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/point_clouds
+)

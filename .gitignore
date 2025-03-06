@@ -74,5 +74,6 @@ fabric.properties
 *.manifest
 **/.vs
 *.json
+!CMakePresets.json
 default.profraw
 sh.exe.stackdump

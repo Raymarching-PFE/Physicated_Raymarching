@@ -1,0 +1,93 @@
+﻿{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "VS_2022_Clang",
+      "displayName": "Visual Studio 2022 - Clang",
+      "description": "Clang Compiler",
+      "hidden": true,
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "binaryDir": "${sourceDir}/Out/${presetName}",
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/Install/${presetName}",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "Clang_Debug",
+      "displayName": "Clang Debug",
+      "description": "Sets debug build type",
+      "inherits": "VS_2022_Clang",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "Clang_Release",
+      "displayName": "Clang Release",
+      "description": "Sets release build type",
+      "inherits": "VS_2022_Clang",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "Linux",
+      "displayName": "Linux - Clang",
+      "description": "Clang compiler",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/Out/${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/Install/${presetName}",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "Linux_Debug",
+      "displayName": "Linux Debug",
+      "description": "Sets debug build type",
+      "inherits": "Linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "Linux_Release",
+      "displayName": "Linux Release",
+      "description": "Sets release build type",
+      "inherits": "Linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "Windows build",
+      "displayName": "Windows build",
+      "configurePreset": "VS_2022_Clang",
+      "description": "Windows build",
+      "verbose": true
+    },
+    {
+      "name": "Linux build",
+      "displayName": "Linux build",
+      "configurePreset": "Linux",
+      "description": "Linux build",
+      "verbose": true
+    }
+  ]
+}
