@@ -21,6 +21,11 @@ target_include_directories(stb_image INTERFACE stb_image)
 add_subdirectory(tinyobjloader)
 
 
+########## MINIPLY
+add_library(miniply INTERFACE)
+target_include_directories(miniply INTERFACE miniply)
+
+
 ########## IMGUI
 add_library(imgui INTERFACE)
 target_sources(imgui INTERFACE
