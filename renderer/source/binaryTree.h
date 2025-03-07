@@ -4,7 +4,10 @@
 
 struct Node
 {
-   glm::vec3 position = glm::vec3(-1, -1, -1);
+   float slice = -1;
+
+   glm::vec3 boxPos = glm::vec3(-1, -1, -1);
+   glm::vec3 boxSize = glm::vec3(-1, -1, -1);
 
    // Children
    Node *left = nullptr;
@@ -22,9 +25,9 @@ public:
    ~BinaryTree();
 
 private:
-   std::vector<std::vector<glm::vec3> > SplitListFromStructureNode(const std::vector<glm::vec3> &data, Node *root, int deepness);
+   std::vector<std::vector<glm::vec3> > FillUpTree(const std::vector<glm::vec3> &data, Node *root, int deepness);
 
-   void SplitListFromStructureNodeRecursive(const std::vector<glm::vec3> &data, Node *root, int deepness);
+   void FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *root, int deepness);
 
    void CreateStructureNodes(int CurrGen, int maxGen, Node *root);
 

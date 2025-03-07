@@ -9,7 +9,7 @@ main()
 {
    BinaryTree binary_tree;
 
-   //return EXIT_SUCCESS;
+   return EXIT_SUCCESS;
 
    VulkanRenderer app;
 

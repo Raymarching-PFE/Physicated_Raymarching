@@ -34,17 +34,44 @@ BinaryTree::BinaryTree()
    std::cout << "Elements : " << fakeData.size() << ", Gen : " << generation << std::endl;
 
    // create architecture from generation
-   Node *root = new Node({glm::vec3(0, 0, 0), nullptr, nullptr, 0});
+   Node* root = new Node();
+   root->slice = 0;
+   root->boxPos = glm::vec3(0, 0, 0);
+   root->boxSize = glm::vec3(0, 0, 0);
+   root->left = nullptr;
+   root->right = nullptr;
+   root->generation = 0;
    CreateStructureNodes(0, generation, root);
 
-   // Give values for structures nodes
-   SplitListFromStructureNodeRecursive(fakeData, root, 0);
+
+   // Get root box
+   std::vector<float> min = {fakeData[0].x, fakeData[0].y, fakeData[0].z};
+   std::vector<float> max = {fakeData[0].x, fakeData[0].y, fakeData[0].z};
+
+   for (int i = 1; i < fakeData.size(); i++)
+   {
+      for (int j = 0; j < 3; j++)
+      {
+         if (fakeData[i][j] < min[j])
+            min[j] = fakeData[i][j];
+         if (fakeData[i][j] > max[j])
+            max[j] = fakeData[i][j];
+      }
+   }
+   root->boxPos = glm::vec3(min[0], min[1], min[2]);
+   root->boxSize = glm::vec3(max[0]-min[0], max[1]-min[1], max[2]-min[2]);
+
+   std::cout << "Box corner : [" << root->boxPos[0] << ", " << root->boxPos[1] << ", " << root->boxPos[2] << "], size : [" <<
+      root->boxSize[0] << ", " << root->boxSize[1] << ", " << root->boxSize[2] << "]" << std::endl;
+
+   // Give values for structure nodes
+   FillUpTreeRecursive(fakeData, root, 0);
 
    // view tree
    ViewNodeRecursive(root);
 }
 
-void BinaryTree::SplitListFromStructureNodeRecursive(const std::vector<glm::vec3> &data, Node *root, int deepness = 0)
+void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *root, int deepness = 0)
 {
    if (root == nullptr)
       return;
@@ -52,36 +79,48 @@ void BinaryTree::SplitListFromStructureNodeRecursive(const std::vector<glm::vec3
       return;
    if (data.size() == 1)
    {
-      root->position = data[0];
+      root->boxPos = data[0];
       root->right = nullptr;
       root->left = nullptr;
       return;
    }
 
-   std::vector<std::vector<glm::vec3> > result = SplitListFromStructureNode(data, root, deepness);
+   std::vector<std::vector<glm::vec3> > result = FillUpTree(data, root, deepness);
    const std::vector<glm::vec3> leftNodes = result[0];
    const std::vector<glm::vec3> rightNodes = result[1];
 
    if (root->left != nullptr)
-      SplitListFromStructureNodeRecursive(leftNodes, root->left, deepness + 1);
+   {
+      FillUpTreeRecursive(leftNodes, root->left, deepness + 1);
+      // Fill up box
+      root->left->boxPos = root->boxPos;
+      root->left->boxSize = root->boxSize;
+      root->left->boxSize[deepness % 3] = root->boxSize[deepness % 3] - root->slice;
+   }
    if (root->right != nullptr)
-      SplitListFromStructureNodeRecursive(rightNodes, root->right, deepness + 1);
+   {
+      FillUpTreeRecursive(rightNodes, root->right, deepness + 1);
+
+      root->right->boxPos = root->boxPos;
+      root->right->boxPos[deepness % 3] = root->boxPos[deepness % 3] + root->slice;
+      root->right->boxSize = root->boxSize;
+      root->right->boxSize[deepness % 3] = root->boxSize[deepness % 3] - root->slice;
+   }
 }
 
-std::vector<std::vector<glm::vec3> > BinaryTree::SplitListFromStructureNode(
+std::vector<std::vector<glm::vec3> > BinaryTree::FillUpTree(
    const std::vector<glm::vec3> &data, Node *root, int deepness = 0)
 {
    std::vector<std::vector<glm::vec3> > results;
 
-   // root->position.x = MedianX(data);
-   root->position[deepness % 3] = Median(data, deepness);
+   root->slice = Median(data, deepness);
 
    std::vector<glm::vec3> leftNodes;
    std::vector<glm::vec3> rightNodes;
 
    for (int i = 0; i < data.size(); i++)
    {
-      if (data[i][deepness % 3] <= root->position[deepness % 3])
+      if (data[i][deepness % 3] <= root->slice)
       {
          leftNodes.push_back(data[i]);
       }
@@ -95,23 +134,6 @@ std::vector<std::vector<glm::vec3> > BinaryTree::SplitListFromStructureNode(
    results.push_back(rightNodes);
 
    return results;
-}
-
-float BinaryTree::MedianX(std::vector<glm::vec3> data)
-{
-   // sort the x values
-   std::vector<float> vec;
-   for (int i = 0; i < data.size(); i++)
-   {
-      vec.push_back(data[i].x);
-   }
-
-   int n = vec.size();
-
-   // Calling quicksort for the vector vec
-   quickSort(vec, 0, n - 1);
-
-   return vec[(vec.size() - 1) / 2];
 }
 
 float BinaryTree::Median(std::vector<glm::vec3> data, int deepness = 0)
@@ -138,8 +160,13 @@ float BinaryTree::Median(std::vector<glm::vec3> data, int deepness = 0)
 
 void BinaryTree::ViewNode(Node *node)
 {
-   std::cout << "Node : (" << node->position.x << ", " << node->position.y << ", " << node->position.z << "), " <<
-         (node->left != nullptr ? "TRUE" : "FALSE") << ", " << (node->right != nullptr ? "TRUE" : "FALSE") << std::endl;
+   std::cout << "Node : Slice : " << node->slice <<
+      ", BoxPos : (" << node->boxPos[0] << ", " << node->boxPos[1] << ", " << node->boxPos[2] <<
+         "), BoxSize : (" << node->boxSize[0] << ", " << node->boxSize[1] << ", " << node->boxSize[2] << "), "<<
+         (node->left != nullptr ? "TRUE" : "FALSE") <<
+            ", " << (node->right != nullptr ? "TRUE" : "FALSE") <<
+               ", generation : " << node->generation <<
+                  std::endl;
 }
 
 void BinaryTree::ViewNodeRecursive(Node *node)
@@ -156,8 +183,10 @@ void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node *root)
 {
    CurrGen++;
 
-   root->left = new Node({glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen});
-   root->right = new Node({glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen});
+   root->left = new Node({0, glm::vec3(0, 0, 0),
+      glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen});
+   root->right = new Node({0, glm::vec3(0, 0, 0),
+   glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen});
 
    if (CurrGen != maxGen)
    {
