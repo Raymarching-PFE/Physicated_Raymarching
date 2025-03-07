@@ -112,6 +112,8 @@ struct Vertex
     glm::vec3 color;
     glm::vec2 texCoord;
 
+    glm::vec2 fragUV;
+
     static VkVertexInputBindingDescription GetBindingDescription()
     {
         VkVertexInputBindingDescription bindingDescription{};
@@ -223,7 +225,9 @@ private:
     VkBuffer _vertexBuffer = nullptr;
     VkDeviceMemory _vertexBufferMemory = nullptr;
     VkBuffer _indexBuffer = nullptr;
+    VkBuffer _QuadIndexBuffer = nullptr;
     VkDeviceMemory _indexBufferMemory = nullptr;
+    VkDeviceMemory _QuadindexBufferMemory = nullptr;
 
     std::vector<VkBuffer> _uniformBuffers;
     std::vector<VkDeviceMemory> _uniformBuffersMemory;
@@ -254,7 +258,6 @@ private:
 
     float _lastFrameTime = 0.0f;
     double _lastTime = 0.0f;
-
 
     void InitWindow();
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);

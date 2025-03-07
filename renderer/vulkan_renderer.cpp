@@ -148,6 +148,9 @@ void VulkanRenderer::Cleanup() const
     vkDestroyBuffer(_device, _indexBuffer, nullptr);
     vkFreeMemory(_device, _indexBufferMemory, nullptr);
 
+    vkDestroyBuffer(_device, _QuadIndexBuffer, nullptr);
+    vkFreeMemory(_device, _QuadindexBufferMemory, nullptr);
+
     vkDestroyBuffer(_device, _vertexBuffer, nullptr);
     vkFreeMemory(_device, _vertexBufferMemory, nullptr);
 
@@ -554,8 +557,8 @@ void VulkanRenderer::CreateComputeDescriptorSetLayout()
 
 void VulkanRenderer::CreateGraphicsPipeline()
 {
-    const std::vector<char> vertShaderCode = ReadFile("shaders/depth_vert.spv");
-    const std::vector<char> fragShaderCode = ReadFile("shaders/depth_frag.spv");
+    const std::vector<char> vertShaderCode = ReadFile("shaders/basic_Raymarching_vert.spv");
+    const std::vector<char> fragShaderCode = ReadFile("shaders/basic_Raymarching_frag.spv");
 
     VkShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
@@ -574,16 +577,24 @@ void VulkanRenderer::CreateGraphicsPipeline()
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    /*VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
     VkVertexInputBindingDescription bindingDescription = Vertex::GetBindingDescription();
     std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::GetAttributeDescriptions();
 
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();*/
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.pVertexBindingDescriptions = nullptr;
+    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputInfo.pVertexAttributeDescriptions = nullptr;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -601,7 +612,7 @@ void VulkanRenderer::CreateGraphicsPipeline()
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -1379,23 +1390,44 @@ void VulkanRenderer::CreateVertexBuffer()
 
 void VulkanRenderer::CreateIndexBuffer()
 {
+    std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
+
     const VkDeviceSize bufferSize = sizeof(_indices[0]) * _indices.size();
+    const VkDeviceSize QuadBufferSize = sizeof(uint32_t) * quadIndices.size();
+
+    std::cout << "Index buffer size: " << bufferSize << std::endl;
+    std::cout << "Index buffer size: " << QuadBufferSize << std::endl;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    VkBuffer QuadstagingBuffer;
+    VkDeviceMemory QuadstagingBufferMemory;
+    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, QuadstagingBuffer, QuadstagingBufferMemory);
 
     void* data;
     vkMapMemory(_device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, _indices.data(), (size_t) bufferSize);
     vkUnmapMemory(_device, stagingBufferMemory);
 
+    // Copie des indices dans le buffer
+    void* quadData;
+    vkMapMemory(_device, QuadstagingBufferMemory, 0, QuadBufferSize, 0, &quadData);
+    memcpy(quadData, quadIndices.data(), QuadBufferSize);
+    vkUnmapMemory(_device, QuadstagingBufferMemory);
+
     CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _indexBuffer, _indexBufferMemory);
+    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, _QuadIndexBuffer, _QuadindexBufferMemory);
 
     CopyBuffer(stagingBuffer, _indexBuffer, bufferSize);
+    CopyBuffer(QuadstagingBuffer, _QuadIndexBuffer, QuadBufferSize);
 
     vkDestroyBuffer(_device, stagingBuffer, nullptr);
     vkFreeMemory(_device, stagingBufferMemory, nullptr);
+
+    vkDestroyBuffer(_device, QuadstagingBuffer, nullptr);
+    vkFreeMemory(_device, QuadstagingBufferMemory, nullptr);
 }
 
 void VulkanRenderer::CreateUniformBuffers()
@@ -1669,32 +1701,30 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = static_cast<float>(_swapChainExtent.width);
-        viewport.height = static_cast<float>(_swapChainExtent.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(_swapChainExtent.width);
+    viewport.height = static_cast<float>(_swapChainExtent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-        VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = _swapChainExtent;
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = _swapChainExtent;
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        VkDeviceSize offsets[] = {0};
+    VkDeviceSize offsets[] = {0};
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 1, &_descriptorSets[_currentFrame], 0, nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 1, &_descriptorSets[_currentFrame], 0, nullptr);
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
-        vkCmdBindIndexBuffer(commandBuffer, _indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &_vertexBuffer, offsets);
-        vkCmdDrawIndexed(commandBuffer, _indices.size(), 1, 0, 0, 0);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
+    vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsComputePipeline);
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &_shaderStorageBuffers[_currentFrame], offsets);
-        vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
+    /*vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsComputePipeline);
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &_shaderStorageBuffers[_currentFrame], offsets);
+    vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);*/
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -1775,7 +1805,7 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 
     UniformBufferObject ubo{};
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f), _swapChainExtent.width / static_cast<float>(_swapChainExtent.height), 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
 
