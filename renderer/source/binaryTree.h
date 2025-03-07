@@ -21,6 +21,10 @@ public:
     ~BinaryTree();
 
 private:
+
+    std::vector<std::vector<glm::vec3>> SplitListFromStructureNode(const std::vector<glm::vec3>& data, Node* root);
+    void SplitListFromStructureNodeRecursive(const std::vector<glm::vec3>& data, Node* root);
+
     void CreateStructureNodes(int CurrGen, int maxGen, Node* root);
     void ViewNode(Node* node);
     void ViewNodeRecursive(Node* node);
@@ -29,6 +33,7 @@ private:
 
     Node* root;
 
+    // Quick sort algorythme
     int partition(std::vector<float> &vec, int low, int high);
     void quickSort(std::vector<float> &vec, int low, int high);
 };

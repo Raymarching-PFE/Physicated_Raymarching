@@ -3,15 +3,24 @@
 #include <vector>
 #include <iostream>
 
+#include "tiny_obj_loader.h"
+
+std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 1, int max = 100)
+{
+    std::vector<glm::vec3> toReturn;
+
+    for (int i = 0; i < numberOfValues; i++)
+    {
+        toReturn.push_back(glm::vec3(min + rand() % (max-min),0, 0));
+    }
+
+    return toReturn;
+}
+
 BinaryTree::BinaryTree()
 {
     // Generate fake data
-    std::vector<glm::vec3> fakeData =
-    {
-        glm::vec3(0.1f, 0.0f, 0.0f),
-        glm::vec3(0.5f, 1.0f, 1.0f),
-        glm::vec3(0.3f, 2.0f, 2.0f)
-    };
+    const std::vector<glm::vec3> fakeData = FakeDataGenerator(5);
 
     for (int i = 0; i < fakeData.size(); i++)
         std::cout << "Data[" << i << "] : (" << fakeData[i].x << ", " << fakeData[i].y << ", " << fakeData[i].z <<")" << std::endl;
@@ -28,10 +37,67 @@ BinaryTree::BinaryTree()
     CreateStructureNodes(0, generation, root);
 
     // Give values for structures nodes
-    root->position.x = MedianX(fakeData);
+    SplitListFromStructureNodeRecursive(fakeData, root);
 
     // view tree
     ViewNodeRecursive(root);
+}
+
+void BinaryTree::SplitListFromStructureNodeRecursive(const std::vector<glm::vec3>& data, Node* root)
+{
+    if (root == nullptr)
+        return;
+    if (data.size() < 1)
+        return;
+    if (data.size() == 1)
+    {
+        root->position.x = data[0].x;
+        root->right = nullptr;
+        root->left = nullptr;
+        return;
+    }
+
+    std::vector<std::vector<glm::vec3>> result = SplitListFromStructureNode(data, root);
+    const std::vector<glm::vec3> leftNodes = result[0];
+    const std::vector<glm::vec3> rightNodes = result[1];
+
+    if (root->left != nullptr)
+        SplitListFromStructureNodeRecursive(leftNodes, root->left);
+    if (root->right != nullptr)
+        SplitListFromStructureNodeRecursive(rightNodes, root->right);
+}
+
+std::vector<std::vector<glm::vec3>> BinaryTree::SplitListFromStructureNode(const std::vector<glm::vec3>& data, Node* root)
+{
+    std::vector<std::vector<glm::vec3>> results;
+
+    // if (data.size() == 1)
+    // {
+    //     root->position.x = data[0].x;
+    //     return results;
+    // }
+
+    root->position.x = MedianX(data);
+
+    std::vector<glm::vec3> leftNodes;
+    std::vector<glm::vec3> rightNodes;
+
+    for (int i = 0; i < data.size(); i++)
+    {
+        if (data[i].x <= root->position.x)
+        {
+            leftNodes.push_back(data[i]);
+        }
+        else
+        {
+            rightNodes.push_back(data[i]);
+        }
+    }
+
+    results.push_back(leftNodes);
+    results.push_back(rightNodes);
+
+    return results;
 }
 
 float BinaryTree::MedianX(std::vector<glm::vec3> data)
@@ -50,7 +116,6 @@ float BinaryTree::MedianX(std::vector<glm::vec3> data)
 
     return vec[(vec.size()-1)/2];
 }
-
 
 void BinaryTree::ViewNode(Node* node)
 {
@@ -77,8 +142,8 @@ void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node* root)
 
     if(CurrGen != maxGen)
     {
-        CreateStructureNodes(CurrGen, maxGen, root->right);
         CreateStructureNodes(CurrGen, maxGen, root->left);
+        CreateStructureNodes(CurrGen, maxGen, root->right);
     }
 }
 
