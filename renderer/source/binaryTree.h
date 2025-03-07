@@ -22,14 +22,14 @@ public:
 
 private:
 
-    std::vector<std::vector<glm::vec3>> SplitListFromStructureNode(const std::vector<glm::vec3>& data, Node* root);
-    void SplitListFromStructureNodeRecursive(const std::vector<glm::vec3>& data, Node* root);
+    std::vector<std::vector<glm::vec3>> SplitListFromStructureNode(const std::vector<glm::vec3>& data, Node* root, int deepness);
+    void SplitListFromStructureNodeRecursive(const std::vector<glm::vec3>& data, Node* root, int deepness);
 
     void CreateStructureNodes(int CurrGen, int maxGen, Node* root);
     void ViewNode(Node* node);
     void ViewNodeRecursive(Node* node);
 
-    float MedianX(std::vector<glm::vec3> data);
+    float Median(std::vector<glm::vec3> data, int deepness);
 
     Node* root;
 
