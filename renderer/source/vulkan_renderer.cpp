@@ -1,6 +1,5 @@
 #include "vulkan_renderer.h"
 
-#include <algorithm>
 #include <iostream>
 #include <set>
 #include <chrono>
@@ -8,10 +7,18 @@
 #include <random>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "stb_image.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+#include "tiny_obj_loader.h"
+
+#if defined(__clang__) || defined(__GNUC__)
+    #define TracyFunction __PRETTY_FUNCTION__
+#elif defined(_MSC_VER)
+    #define TracyFunction __FUNCSIG__
+    #define TRACY_IMPORTS
+#endif
+#include <tracy/Tracy.hpp>
 
 
 void VulkanRenderer::Run()

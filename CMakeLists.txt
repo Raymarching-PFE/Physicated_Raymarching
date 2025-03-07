@@ -1,12 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.20...3.31)
-
-if(${CMAKE_VERSION} VERSION_LESS 3.25)
-    cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-endif()
-
-set(CMAKE_CXX_STANDARD 20 CACHE STRING "Language standard" FORCE)
-set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE BOOL "Use the C++ standard" FORCE)
-set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "" FORCE)
+﻿cmake_minimum_required(VERSION 3.20)
 
 
 find_package(Git QUIET)
@@ -30,12 +22,7 @@ if(NOT EXISTS "${CMAKE_SOURCE_DIR}/extern/CMakeLists.txt")
 endif()
 
 
-project(Physicated_Raymarching
-        LANGUAGES CXX C
-        VERSION 1.0
-        DESCRIPTION "Physicated_Raymarching"
-)
-
+project(Physicated_Raymarching)
 
 add_subdirectory(extern) # EXTERNALS LIBRARIES
 add_subdirectory(renderer)
