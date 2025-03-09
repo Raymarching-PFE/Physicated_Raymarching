@@ -1,10 +1,10 @@
 #include "vulkan_renderer.h"
 
-#include <iostream>
 #include <set>
 #include <chrono>
 #include <unordered_map>
 #include <random>
+#include <glm/gtx/string_cast.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -20,6 +20,19 @@
 #endif
 #include <tracy/Tracy.hpp>
 
+float VulkanRenderer::GetDeltaTime()
+{
+    // Obtenir le temps actuel
+    std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+
+    // Calculer la différence de temps entre la frame actuelle et la précédente
+    std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - lastTime);
+
+    // Mettre à jour lastTime pour la prochaine frame
+    lastTime = currentTime;
+
+    return deltaTime.count(); // Retourner le deltaTime en secondes
+}
 
 void VulkanRenderer::Run()
 {
@@ -79,6 +92,56 @@ void VulkanRenderer::InitVulkan()
     CreateCommandBuffers();
     CreateComputeCommandBuffers();
     CreateSyncObjects();
+
+    glfwSetCursorPosCallback(_window, MouseCallback);
+    glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+}
+
+void VulkanRenderer::ProcessInput(GLFWwindow* window)
+{
+    float cameraSpeed = 2.5f * GetDeltaTime();
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
+void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    VulkanRenderer* app = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+    if (app->firstMouse)
+    {
+        app->lastX = xpos;
+        app->lastY = ypos;
+        app->firstMouse = false;
+    }
+
+    float xoffset = xpos - app->lastX;
+    float yoffset = app->lastY - ypos; // inversé car y va de bas en haut
+    app->lastX = xpos;
+    app->lastY = ypos;
+
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    app->yaw += xoffset;
+    app->pitch -= yoffset;
+
+    if (app->pitch > 89.0f) app->pitch = 89.0f;
+    if (app->pitch < -89.0f) app->pitch = -89.0f;
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(app->yaw)) * cos(glm::radians(app->pitch));
+    front.y = sin(glm::radians(app->pitch));
+    front.z = sin(glm::radians(app->yaw)) * cos(glm::radians(app->pitch));
+    app->cameraFront = glm::normalize(front);
+
+    //std::cout << "Camera Front: " << glm::to_string(app->cameraFront) << std::endl;
 }
 
 void VulkanRenderer::MainLoop()
@@ -86,6 +149,7 @@ void VulkanRenderer::MainLoop()
     while (!glfwWindowShouldClose(_window))
     {
         glfwPollEvents();
+        ProcessInput(_window);
         BeginFrame();
         DrawFrame();
         EndFrame();
@@ -1805,16 +1869,10 @@ void VulkanRenderer::CreateSyncObjects()
 
 void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
     UniformBufferObject ubo{};
-    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), _swapChainExtent.width / static_cast<float>(_swapChainExtent.height), 0.1f, 10.0f);
-    ubo.proj[1][1] *= -1;
+    ubo.cameraPos = cameraPos;
+    ubo.cameraFront = cameraFront;
+    ubo.cameraUp = cameraUp;
 
     memcpy(_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

@@ -4,6 +4,8 @@
 #include <optional>
 #include <fstream>
 #include <vector>
+#include <iostream>
+#include <chrono>
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
@@ -154,9 +156,13 @@ struct Vertex
 
 struct UniformBufferObject
 {
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
+    //alignas(16) glm::mat4 model;
+    //alignas(16) glm::mat4 view;
+    //alignas(16) glm::mat4 proj;
+
+    alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
+    alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    alignas(16) glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 };
 
 namespace std
@@ -176,6 +182,25 @@ public:
     void Run();
 
 private:
+
+    glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
+    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    float yaw = -90.0f;
+    float pitch = 0.0f;
+    float lastX, lastY;
+    bool firstMouse = true;
+
+    float deltaTime = 0.0f;
+    float lastFrame = 0.0f;
+
+	std::chrono::high_resolution_clock::time_point lastTime;
+
+    float GetDeltaTime();
+    void ProcessInput(GLFWwindow* window);
+    static void MouseCallback(GLFWwindow* window, double xpos, double ypos);
+
     GLFWwindow* _window = nullptr;
 
     VkInstance _instance = nullptr;
