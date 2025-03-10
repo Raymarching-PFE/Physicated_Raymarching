@@ -105,5 +105,6 @@ void main()
         outColor = vec4(1.0 - dist * 0.02, 0.3, 0.5, 1.0);
     else
         outColor = vec4(0.0, 0.0, 0.0, 1.0);
-    //outColor = vec4(ubo.cameraPos.x, 0.0, 0.0, 1.0);
+    //outColor = vec4(ubo.cameraFront.x, 0.0, 0.0, 1.0);
+    //outColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

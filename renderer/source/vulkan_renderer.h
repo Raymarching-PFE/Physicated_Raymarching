@@ -25,9 +25,9 @@ constexpr uint32_t PARTICLE_COUNT = 8192;
 const std::string MODEL_PATH = "models/viking_room.obj";
 const std::string TEXTURE_PATH = "textures/viking_room.png";
 
-constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+constexpr int MAX_FRAMES_IN_FLIGHT = 1;
 
-constexpr uint32_t NUMBER_OF_UBO = 2;
+constexpr uint32_t NUMBER_OF_UBO = 1;
 
 const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};

@@ -22,16 +22,13 @@
 
 float VulkanRenderer::GetDeltaTime()
 {
-    // Obtenir le temps actuel
     std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
 
-    // Calculer la différence de temps entre la frame actuelle et la précédente
     std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - lastTime);
 
-    // Mettre à jour lastTime pour la prochaine frame
     lastTime = currentTime;
 
-    return deltaTime.count(); // Retourner le deltaTime en secondes
+    return deltaTime.count();
 }
 
 void VulkanRenderer::Run()
@@ -108,6 +105,8 @@ void VulkanRenderer::ProcessInput(GLFWwindow* window)
         cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
 }
 
 void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
@@ -121,7 +120,7 @@ void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
     }
 
     float xoffset = xpos - app->lastX;
-    float yoffset = app->lastY - ypos; // inversé car y va de bas en haut
+    float yoffset = app->lastY - ypos;
     app->lastX = xpos;
     app->lastY = ypos;
 
@@ -1555,7 +1554,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         VkDescriptorBufferInfo uniformBufferInfo{};
-        uniformBufferInfo.buffer = _uniformBuffers[i * NUMBER_OF_UBO + 1];
+        uniformBufferInfo.buffer = _uniformBuffers[i * NUMBER_OF_UBO]; //+ 1];
         uniformBufferInfo.offset = 0;
         uniformBufferInfo.range = sizeof(UniformBufferObject);
 
