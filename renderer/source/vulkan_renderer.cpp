@@ -148,15 +148,11 @@ void VulkanRenderer::MainLoop()
     while (!glfwWindowShouldClose(_window))
     {
         glfwPollEvents();
+        glfwPostEmptyEvent();
         ProcessInput(_window);
         BeginFrame();
         DrawFrame();
         EndFrame();
-
-        // We want to animate the particle system using the last frames time to get smooth, frame-rate independent animation
-        double currentTime = glfwGetTime();
-        _lastFrameTime = (currentTime - _lastTime) * 1000.0;
-        _lastTime = currentTime;
     }
 }
 
@@ -767,7 +763,6 @@ void VulkanRenderer::CreateGraphicsPipeline()
     vkDestroyShaderModule(_device, fragShaderModule, nullptr);
     vkDestroyShaderModule(_device, vertShaderModule, nullptr);
 }
-
 
 void VulkanRenderer::CreateGraphicsComputePipeline()
 {
@@ -1871,12 +1866,15 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     UniformBufferObject ubo{};
     ubo.cameraPos = cameraPos;
     ubo.cameraFront = cameraFront;
-    ubo.cameraUp = cameraUp;
+	ubo.time = static_cast<float>(glfwGetTime());
+    //ubo.cameraUp = cameraUp;
+
+	//std::cout << "Time: " << ubo.time << std::endl;
+	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
+    std::cout << "Frame: " << _currentFrame << ", Time: " << ubo.time << std::endl;
 
     memcpy(_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
-
-
 
 void VulkanRenderer::BeginFrame()
 {
