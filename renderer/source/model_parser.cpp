@@ -66,30 +66,31 @@ std::vector<double> ModelParser::GetPlyProperty(happly::PLYData* plyObj, const s
 
 void ModelParser::LoadPlyModel(happly::PLYData* plyObj)
 {
-	std::vector<std::array<double, 3>> tmp = GetPlyVertexPos(plyObj);
+	std::vector<std::array<double, 3>> vertexPos= GetPlyVertexPos(plyObj);
+	std::vector<std::vector<size_t>> faceIndices = plyObj->getFaceIndices();
 
-	for (std::array<double, 3> pos : tmp)
+	std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
+	for (const auto& face : faceIndices)
 	{
-		Vertex vertex{};
-
-		vertex.pos.x = static_cast<float>(pos[0]);
-		vertex.pos.y = static_cast<float>(pos[1]);
-		vertex.pos.z = static_cast<float>(pos[2]);
-
-		vertex.texCoord = {0.f, 0.f};
-
-		vertex.color = {1.0f, 1.0f, 1.0f};
-
-		_vertices.push_back(vertex);
-
-		std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-
-		if (uniqueVertices.count(vertex) == 0)
+		for (size_t index : face)
 		{
-			uniqueVertices[vertex] = static_cast<uint32_t>(_vertices.size());
-			_vertices.push_back(vertex);
-		}
+			Vertex vertex{};
 
-		_indices.push_back(uniqueVertices[vertex]);
+			vertex.pos.x = static_cast<float>(vertexPos[index][0]);
+			vertex.pos.y = static_cast<float>(vertexPos[index][1]);
+			vertex.pos.z = static_cast<float>(vertexPos[index][2]);
+
+			vertex.texCoord = {0.f, 0.f};
+			vertex.color = {1.0f, 1.0f, 1.0f};
+
+			if (uniqueVertices.count(vertex) == 0)
+			{
+				uniqueVertices[vertex] = static_cast<uint32_t>(_vertices.size());
+				_vertices.push_back(vertex);
+			}
+
+			_indices.push_back(uniqueVertices[vertex]);
+		}
 	}
 }
