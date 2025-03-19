@@ -43,4 +43,8 @@ private:
    int partition(std::vector<float> &vec, int low, int high);
 
    void quickSort(std::vector<float> &vec, int low, int high);
+
+public:
+   std::vector<glm::vec3> generatedPoints;
+   
 };

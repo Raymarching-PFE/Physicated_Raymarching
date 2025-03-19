@@ -295,6 +295,8 @@ private:
     void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) const;
     void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
     void LoadModel();
+    void LoadGeneratedPoint();
+
     void CreateVertexBuffer();
     void CreateIndexBuffer();
     void CreateUniformBuffers();

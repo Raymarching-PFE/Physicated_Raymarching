@@ -20,11 +20,13 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 1, in
 BinaryTree::BinaryTree()
 {
    // Generate fake data
-   const std::vector<glm::vec3> fakeData = FakeDataGenerator(4);
+   const std::vector<glm::vec3> fakeData = FakeDataGenerator(3);
 
    for (int i = 0; i < fakeData.size(); i++)
       std::cout << "Data[" << i << "] : (" << fakeData[i].x << ", " << fakeData[i].y << ", " << fakeData[i].z << ")" <<
             std::endl;
+
+   generatedPoints = fakeData;
 
    // Get generation
    int generation = 0;

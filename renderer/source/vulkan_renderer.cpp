@@ -20,6 +20,7 @@
 #endif
 #include <tracy/Tracy.hpp>
 
+#include "binaryTree.h"
 
 void VulkanRenderer::Run()
 {
@@ -69,7 +70,8 @@ void VulkanRenderer::InitVulkan()
     CreateTextureImage();
     CreateTextureImageView();
     CreateTextureSampler();
-    LoadModel();
+    // LoadModel();
+    LoadGeneratedPoint();
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
@@ -79,6 +81,29 @@ void VulkanRenderer::InitVulkan()
     CreateCommandBuffers();
     CreateComputeCommandBuffers();
     CreateSyncObjects();
+}
+
+void VulkanRenderer::LoadGeneratedPoint()
+{
+    BinaryTree binary_tree;
+
+    for (int i = 0; i < binary_tree.generatedPoints.size(); i++)
+    {
+        Vertex vertex{};
+
+        vertex.pos = binary_tree.generatedPoints[i];
+
+        vertex.texCoord =
+        {
+            0,
+            1
+        };
+
+        vertex.color = {1.0f, 1.0f, 1.0f};
+        _vertices.push_back(vertex);
+
+        _indices.push_back(i);
+    }
 }
 
 void VulkanRenderer::MainLoop()
