@@ -95,16 +95,16 @@ void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *r
       // Fill up box
       root->left->boxPos = root->boxPos;
       root->left->boxSize = root->boxSize;
-      root->left->boxSize[deepness % 3] = root->boxSize[deepness % 3] - root->slice;
+      root->left->boxSize[deepness % 3] = root->slice - root->boxPos[deepness % 3];
    }
    if (root->right != nullptr)
    {
       FillUpTreeRecursive(rightNodes, root->right, deepness + 1);
 
       root->right->boxPos = root->boxPos;
-      root->right->boxPos[deepness % 3] = root->boxPos[deepness % 3] + root->slice;
+      root->right->boxPos[deepness % 3] = root->slice;
       root->right->boxSize = root->boxSize;
-      root->right->boxSize[deepness % 3] = root->boxSize[deepness % 3] - root->slice;
+      root->right->boxSize[deepness % 3] = root->slice - root->boxPos[deepness % 3];
    }
 }
 
@@ -155,7 +155,7 @@ float BinaryTree::Median(std::vector<glm::vec3> data, int deepness = 0)
    // Calling quicksort for the vector vec
    quickSort(vec, 0, n - 1);
 
-   return vec[(vec.size() - 1) / 2];
+   return (vec[(vec.size() - 1) / 2] +vec[(vec.size() - 1) / 2 + 1])/2 ;
 }
 
 void BinaryTree::ViewNode(Node *node)
