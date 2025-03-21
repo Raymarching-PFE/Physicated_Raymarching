@@ -620,22 +620,64 @@ void VulkanRenderer::CreateComputeDescriptorSetLayout()
 
 void VulkanRenderer::CreateGraphicsPipeline()
 {
-    const std::vector<char> vertShaderCode = ReadFile("shaders/basic_Raymarching_vert.spv");
-    const std::vector<char> fragShaderCode = ReadFile("shaders/basic_Raymarching_frag.spv");
+    // Vertex Shader
+    {
+        std::vector<uint32_t> shCode;
 
-    VkShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
-    VkShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
+        CompileShaderFromFile("shaders/basic_Raymarching.vert", shaderc_vertex_shader, shCode);
+
+        const VkShaderModuleCreateInfo createInfo{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0u,
+            .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
+            .pCode = shCode.data(),
+        };
+
+        const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_vertexShader);
+        if (vrShaderCompile != VK_SUCCESS)
+        {
+            std::cerr << "\033[31m" << "Create Vertex Shader failed!" << "\033[0m" << '\n'; // Red
+            std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
+        }
+        else
+            std::cerr << "\033[32m" << "Create Vertex Shader success" << "\033[0m" << '\n'; // Green
+    }
+
+    // Fragment Shader
+    {
+        std::vector<uint32_t> shCode;
+
+        CompileShaderFromFile("shaders/basic_Raymarching.frag", shaderc_fragment_shader, shCode);
+
+        const VkShaderModuleCreateInfo createInfo{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0u,
+            .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
+            .pCode = shCode.data(),
+        };
+
+        const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_fragmentShader);
+        if (vrShaderCompile != VK_SUCCESS)
+        {
+            std::cerr << "\033[31m" << "Create Vertex Shader failed!" << "\033[0m" << '\n'; // Red
+            std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
+        }
+        else
+            std::cerr << "\033[32m" << "Create Vertex Shader success" << "\033[0m" << '\n'; // Green
+    }
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.module = m_vertexShader;
     vertShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.module = m_fragmentShader;
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
@@ -757,28 +799,70 @@ void VulkanRenderer::CreateGraphicsPipeline()
     if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS)
         throw std::runtime_error("Failed to create graphics pipeline!");
 
-    vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(m_device, vertShaderModule, nullptr);
+    vkDestroyShaderModule(m_device, m_vertexShader, nullptr);
+    vkDestroyShaderModule(m_device, m_fragmentShader, nullptr);
 }
 
 void VulkanRenderer::CreateGraphicsComputePipeline()
 {
-    const std::vector<char> vertShaderCode = ReadFile("shaders/compute_vert.spv");
-    const std::vector<char> fragShaderCode = ReadFile("shaders/compute_frag.spv");
+    // Vertex Shader
+    {
+        std::vector<uint32_t> shCode;
 
-    VkShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
-    VkShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
+        CompileShaderFromFile("shaders/shader_compute.vert", shaderc_vertex_shader, shCode);
+
+        const VkShaderModuleCreateInfo createInfo{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0u,
+            .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
+            .pCode = shCode.data(),
+        };
+
+        const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_vertexShader);
+        if (vrShaderCompile != VK_SUCCESS)
+        {
+            std::cerr << "\033[31m" << "Create Vertex Shader failed!" << "\033[0m" << '\n'; // Red
+            std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
+        }
+        else
+            std::cerr << "\033[32m" << "Create Vertex Shader success" << "\033[0m" << '\n'; // Green
+    }
+
+    // Fragment Shader
+    {
+        std::vector<uint32_t> shCode;
+
+        CompileShaderFromFile("shaders/shader_compute.frag", shaderc_fragment_shader, shCode);
+
+        const VkShaderModuleCreateInfo createInfo{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0u,
+            .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
+            .pCode = shCode.data(),
+        };
+
+        const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_fragmentShader);
+        if (vrShaderCompile != VK_SUCCESS)
+        {
+            std::cerr << "\033[31m" << "Create Vertex Shader failed!" << "\033[0m" << '\n'; // Red
+            std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
+        }
+        else
+            std::cerr << "\033[32m" << "Create Vertex Shader success" << "\033[0m" << '\n'; // Green
+    }
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.module = m_vertexShader;
     vertShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.module = m_fragmentShader;
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
@@ -892,20 +976,40 @@ void VulkanRenderer::CreateGraphicsComputePipeline()
     if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsComputePipeline) != VK_SUCCESS)
         throw std::runtime_error("Failed to create graphics pipeline!");
 
-    vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(m_device, vertShaderModule, nullptr);
+    vkDestroyShaderModule(m_device, m_vertexShader, nullptr);
+    vkDestroyShaderModule(m_device, m_fragmentShader, nullptr);
 }
 
 void VulkanRenderer::CreateComputePipeline()
 {
-    std::vector<char> computeShaderCode = ReadFile("shaders/comp.spv");
+    // Compute Shader
+    {
+        std::vector<uint32_t> shCode;
 
-    VkShaderModule computeShaderModule = CreateShaderModule(computeShaderCode);
+        CompileShaderFromFile("shaders/shader_compute.comp", shaderc_compute_shader, shCode);
+
+        const VkShaderModuleCreateInfo createInfo{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0u,
+            .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
+            .pCode = shCode.data(),
+        };
+
+        const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_computeShader);
+        if (vrShaderCompile != VK_SUCCESS)
+        {
+            std::cerr << "\033[31m" << "Create Compute Shader failed!" << "\033[0m" << '\n'; // Red
+            std::cerr << "\033[31m" << "Error code: " <<  vrShaderCompile << "\033[0m" << '\n'; // Red
+        }
+        else
+            std::cerr << "\033[32m" << "Create Compute Shader success" << "\033[0m" << '\n'; // Green
+    }
 
     VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
     computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     computeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    computeShaderStageInfo.module = computeShaderModule;
+    computeShaderStageInfo.module = m_computeShader;
     computeShaderStageInfo.pName = "main";
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -924,7 +1028,7 @@ void VulkanRenderer::CreateComputePipeline()
     if (vkCreateComputePipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_computePipeline) != VK_SUCCESS)
         throw std::runtime_error("Failed to create compute pipeline!");
 
-    vkDestroyShaderModule(m_device, computeShaderModule, nullptr);
+    vkDestroyShaderModule(m_device, m_computeShader, nullptr);
 }
 
 void VulkanRenderer::CreateFramebuffers()
@@ -1422,8 +1526,8 @@ void VulkanRenderer::CreateIndexBuffer()
     const VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
     const VkDeviceSize QuadBufferSize = sizeof(uint32_t) * quadIndices.size();
 
-    std::cout << "Index buffer size: " << bufferSize << std::endl;
-    std::cout << "Index buffer size: " << QuadBufferSize << std::endl;
+    std::cerr << "Index buffer size: " << bufferSize << std::endl;
+    std::cerr << "Index buffer size: " << QuadBufferSize << std::endl;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1833,7 +1937,7 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 
 	//std::cout << "Time: " << ubo.time << std::endl;
 	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
-    std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
+    // std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

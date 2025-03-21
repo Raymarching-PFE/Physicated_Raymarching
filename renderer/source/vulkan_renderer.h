@@ -3,8 +3,8 @@
 #include <array>
 #include <optional>
 #include <vector>
-#include <iostream>
 #include <chrono>
+#include <shaderc/shaderc.hpp>
 
 #include "model_parser.h"
 
@@ -47,6 +47,60 @@ inline void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
         func(instance, debugMessenger, pAllocator);
 }
 
+inline bool CompileShaderFromFile(const std::string& _path, shaderc_shader_kind _stage, std::vector<uint32_t>& _out)
+{
+    // Read File
+    std::string code;
+    {
+        std::fstream fStream(_path, std::ios_base::in);
+
+        if (!fStream.is_open())
+        {
+            std::cerr << "\033[31m" << "Failed to open shader file " << _path << "\033[0m" << '\n'; // Red
+            return false;
+        }
+
+
+        std::stringstream sstream;
+        sstream << fStream.rdbuf();
+
+        fStream.close();
+
+        code = sstream.str();
+    }
+
+    // Compile
+    static shaderc::Compiler compiler;
+
+    shaderc::CompileOptions options;
+
+#if NDEBUG
+    options.SetOptimizationLevel(shaderc_optimization_level_zero);
+#else
+    options.SetOptimizationLevel(shaderc_optimization_level_performance);
+#endif
+
+    const shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(code, _stage, _path.c_str(), options);
+
+    if (result.GetCompilationStatus() != shaderc_compilation_status_success)
+    {
+        std::cerr << "\033[31m" << "Compile Shader " << _path << " failed!" << "\033[0m" << '\n'; // Red
+        std::cerr << "\033[31m" << "Errors: " << result.GetNumErrors() + '\t' << "Warnings: " << result.GetNumWarnings() << "\033[0m" << '\n'; // Red
+        std::cerr << "\033[31m" << result.GetErrorMessage() << '\n'; // Red
+        return false;
+    }
+    else if (result.GetNumWarnings())
+    {
+        std::cerr << "\033[33m" << "Compile Shader " << _path << " success with " << result.GetNumWarnings() << " warnings" << "\033[0m" << '\n'; // Yellow
+        std::cerr << "\033[33m" << result.GetErrorMessage() << '\n'; // Yellow
+    }
+    else
+        std::cerr << "\033[32m" << "Compile Shader " << _path << " success" << "\033[0m" << '\n'; // Green
+
+    _out = { result.cbegin(), result.cend() };
+
+    return true;
+}
 
 struct QueueFamilyIndices
 {
@@ -166,6 +220,10 @@ private:
     VkPipeline m_graphicsPipeline = nullptr;
     VkPipeline m_graphicsComputePipeline = nullptr;
     VkPipelineLayout m_graphicsComputePipelineLayout = nullptr;
+
+    VkShaderModule m_vertexShader = VK_NULL_HANDLE;
+    VkShaderModule m_fragmentShader = VK_NULL_HANDLE;
+    VkShaderModule m_computeShader = VK_NULL_HANDLE;
 
     VkCommandPool m_commandPool = nullptr;
 
