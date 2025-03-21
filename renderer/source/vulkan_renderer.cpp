@@ -85,7 +85,7 @@ void VulkanRenderer::InitVulkan()
 
 void VulkanRenderer::LoadGeneratedPoint()
 {
-    BinaryTree binary_tree(10);
+    BinaryTree binary_tree(3);
 
     for (int i = 0; i < binary_tree.generatedPoints.size(); i++)
     {

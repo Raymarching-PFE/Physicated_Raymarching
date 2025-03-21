@@ -68,6 +68,22 @@ BinaryTree::BinaryTree(int pointsNumber)
 
    // view tree
    PrintNodeRecursive(root);
+
+   //Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
+
+   glm::vec3 nearestPoint = GetNearestPointRecursive(glm::vec3(50, 50, 50), 1, 0, root);
+
+   std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
+
+}
+
+glm::vec3 BinaryTree::GetNearestPointRecursive(glm::vec3 point, float radius, int deepness, Node* node)
+{
+   Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
+
+   // check next boxes 6, then 3 best then depanding on the distances
+
+   return nearestBox->boxPos;
 }
 
 void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *root, int deepness = 0)
@@ -192,6 +208,25 @@ void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node *node)
 BinaryTree::~BinaryTree()
 {
    //TODO free allocations
+}
+
+Node* BinaryTree::GetNearestBoxRecursive(glm::vec3 point, float radius, int deepness, Node* node)
+{
+   // if a leaf, return the leaf point
+   if (node->left == nullptr && node->right == nullptr)
+      return node;
+
+   // if only one child remaining : return it
+   if (node->left == nullptr)
+      return node->right;
+   else if (node->right == nullptr)
+      return node->left;
+
+   // Get the best child branch depending on the slice
+   if (point[deepness % 3] < node->slice)
+      return GetNearestBoxRecursive(point, radius, deepness + 1, node->left);
+   else
+      return GetNearestBoxRecursive(point, radius, deepness + 1, node->right);
 }
 
 int BinaryTree::Partition(std::vector<float> &vec, int low, int high)

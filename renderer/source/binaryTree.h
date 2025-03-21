@@ -39,6 +39,10 @@ private:
 
    Node *root;
 
+   Node* GetNearestBoxRecursive(glm::vec3 point, float radius, int deepness, Node* node);
+
+   glm::vec3 GetNearestPointRecursive(glm::vec3 point, float radius, int deepness, Node* node);
+
    // Quick sort algorythm
    int Partition(std::vector<float> &vec, int low, int high);
 
