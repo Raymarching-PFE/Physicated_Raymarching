@@ -43,7 +43,6 @@ BinaryTree::BinaryTree(int pointsNumber)
    root->generation = 0;
    CreateStructureNodes(0, generation, root);
 
-
    // Get root box
    std::vector<float> min = {fakeData[0].x, fakeData[0].y, fakeData[0].z};
    std::vector<float> max = {fakeData[0].x, fakeData[0].y, fakeData[0].z};
@@ -109,18 +108,18 @@ void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *r
 }
 
 std::vector<std::vector<glm::vec3> > BinaryTree::FillUpTree(
-   const std::vector<glm::vec3> &data, Node *root, int deepness = 0)
+   const std::vector<glm::vec3> &data, Node *node, int deepness = 0)
 {
    std::vector<std::vector<glm::vec3> > results;
 
-   root->slice = FindOptimalSlice(data, deepness);
+   node->slice = FindOptimalSlice(data, deepness);
 
    std::vector<glm::vec3> leftNodes;
    std::vector<glm::vec3> rightNodes;
 
    for (int i = 0; i < data.size(); i++)
    {
-      if (data[i][deepness % 3] <= root->slice)
+      if (data[i][deepness % 3] <= node->slice)
       {
          leftNodes.push_back(data[i]);
       }
@@ -174,19 +173,19 @@ void BinaryTree::PrintNodeRecursive(Node *node)
       PrintNodeRecursive(node->right);
 }
 
-void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node *root)
+void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node *node)
 {
    CurrGen++;
 
-   root->left = new Node({0, glm::vec3(0, 0, 0),
+   node->left = new Node({0, glm::vec3(0, 0, 0),
       glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen});
-   root->right = new Node({0, glm::vec3(0, 0, 0),
+   node->right = new Node({0, glm::vec3(0, 0, 0),
    glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen});
 
    if (CurrGen != maxGen)
    {
-      CreateStructureNodes(CurrGen, maxGen, root->left);
-      CreateStructureNodes(CurrGen, maxGen, root->right);
+      CreateStructureNodes(CurrGen, maxGen, node->left);
+      CreateStructureNodes(CurrGen, maxGen, node->right);
    }
 }
 

@@ -27,10 +27,10 @@ public:
    std::vector<glm::vec3> generatedPoints;
 
 private:
-   std::vector<std::vector<glm::vec3> > FillUpTree(const std::vector<glm::vec3> &data, Node *root, int deepness);
-   void FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *root, int deepness);
+   std::vector<std::vector<glm::vec3> > FillUpTree(const std::vector<glm::vec3> &data, Node *node, int deepness);
+   void FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *node, int deepness);
 
-   void CreateStructureNodes(int CurrGen, int maxGen, Node *root);
+   void CreateStructureNodes(int CurrGen, int maxGen, Node *node);
 
    void PrintNode(Node *node);
    void PrintNodeRecursive(Node *node);
