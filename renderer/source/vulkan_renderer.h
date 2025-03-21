@@ -2,19 +2,11 @@
 
 #include <array>
 #include <optional>
-#include <fstream>
 #include <vector>
 #include <iostream>
 #include <chrono>
 
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/glm.hpp"
-#include "glm/gtx/hash.hpp"
+#include "model_parser.h"
 
 
 constexpr uint32_t WIDTH = 800;
@@ -22,8 +14,8 @@ constexpr uint32_t HEIGHT = 600;
 
 constexpr uint32_t PARTICLE_COUNT = 8192;
 
-const std::string MODEL_PATH = "models/viking_room.obj";
-const std::string TEXTURE_PATH = "textures/viking_room.png";
+// const std::string TEXTURE_PATH = "textures/viking_room.png";
+const std::string TEXTURE_PATH = "textures/red.png";
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 1;
 
@@ -108,52 +100,6 @@ struct Particle
     }
 };
 
-struct Vertex
-{
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-
-    glm::vec2 fragUV;
-
-    static VkVertexInputBindingDescription GetBindingDescription()
-    {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> GetAttributeDescriptions()
-    {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-        return attributeDescriptions;
-    }
-
-    bool operator==(const Vertex& other) const
-    {
-        return pos == other.pos && color == other.color && texCoord == other.texCoord;
-    }
-};
-
 struct UniformBufferObject
 {
     //alignas(16) glm::mat4 model;
@@ -166,17 +112,6 @@ struct UniformBufferObject
     //alignas(16) glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 };
-
-namespace std
-{
-    template<> struct hash<Vertex>
-    {
-        size_t operator()(Vertex const& vertex) const
-        {
-            return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
-        }
-    };
-}
 
 class VulkanRenderer
 {
@@ -247,8 +182,6 @@ private:
     VkImageView _textureImageView = nullptr;
     VkSampler _textureSampler = nullptr;
 
-    std::vector<Vertex> _vertices;
-    std::vector<uint32_t> _indices;
     VkBuffer _vertexBuffer = nullptr;
     VkDeviceMemory _vertexBufferMemory = nullptr;
     VkBuffer _indexBuffer = nullptr;
@@ -324,7 +257,7 @@ private:
     void CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
     void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) const;
     void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
-    void LoadModel();
+    static void LoadModel();
     void CreateVertexBuffer();
     void CreateIndexBuffer();
     void CreateUniformBuffers();

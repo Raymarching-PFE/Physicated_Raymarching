@@ -3,16 +3,18 @@
 
 #include "vulkan_renderer.h"
 
+#include "model_parser.h"
+
 
 int main() 
 {
     VulkanRenderer app;
 
-    try 
+    try
     {
         app.Run();
     }
-    catch (const std::exception& e) 
+    catch (const std::exception& e)
     {
         std::cerr << e.what() << '\n';
         return EXIT_FAILURE;
