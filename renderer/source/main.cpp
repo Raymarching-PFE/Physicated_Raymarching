@@ -7,10 +7,6 @@
 int
 main()
 {
-   // BinaryTree binary_tree;
-
-   // return EXIT_SUCCESS;
-
    VulkanRenderer app;
 
    try

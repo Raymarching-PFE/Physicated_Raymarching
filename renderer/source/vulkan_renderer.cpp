@@ -85,24 +85,32 @@ void VulkanRenderer::InitVulkan()
 
 void VulkanRenderer::LoadGeneratedPoint()
 {
-    BinaryTree binary_tree;
+    BinaryTree binary_tree(10);
 
     for (int i = 0; i < binary_tree.generatedPoints.size(); i++)
     {
-        Vertex vertex{};
+        Vertex vertexA{};
+        Vertex vertexB{};
+        Vertex vertexC{};
 
-        vertex.pos = binary_tree.generatedPoints[i];
+        vertexA.pos = binary_tree.generatedPoints[i] + glm::vec3(0.5, 0, 0);
+        vertexB.pos = binary_tree.generatedPoints[i] + glm::vec3(-0.5, 0, 0);
+        vertexC.pos = binary_tree.generatedPoints[i] + glm::vec3(0.0, 0.5, 0);
 
-        vertex.texCoord =
+        vertexA.texCoord = vertexB.texCoord = vertexC.texCoord =
         {
             0,
             1
         };
 
-        vertex.color = {1.0f, 1.0f, 1.0f};
-        _vertices.push_back(vertex);
+        vertexA.color = vertexB.color = vertexC.color ={1.0f, 1.0f, 1.0f};
+        _vertices.push_back(vertexA);
+        _vertices.push_back(vertexB);
+        _vertices.push_back(vertexC);
 
-        _indices.push_back(i);
+        _indices.push_back(3 * i);
+        _indices.push_back(3 * i + 1);
+        _indices.push_back(3 * i + 2);
     }
 }
 

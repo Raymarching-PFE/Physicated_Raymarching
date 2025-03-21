@@ -3,8 +3,6 @@
 #include <vector>
 #include <iostream>
 
-#include "tiny_obj_loader.h"
-
 std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 1, int max = 100)
 {
    std::vector<glm::vec3> toReturn;
@@ -17,10 +15,10 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 1, in
    return toReturn;
 }
 
-BinaryTree::BinaryTree()
+BinaryTree::BinaryTree(int pointsNumber)
 {
    // Generate fake data
-   const std::vector<glm::vec3> fakeData = FakeDataGenerator(3);
+   const std::vector<glm::vec3> fakeData = FakeDataGenerator(pointsNumber);
 
    for (int i = 0; i < fakeData.size(); i++)
       std::cout << "Data[" << i << "] : (" << fakeData[i].x << ", " << fakeData[i].y << ", " << fakeData[i].z << ")" <<
@@ -70,7 +68,7 @@ BinaryTree::BinaryTree()
    FillUpTreeRecursive(fakeData, root, 0);
 
    // view tree
-   ViewNodeRecursive(root);
+   PrintNodeRecursive(root);
 }
 
 void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *root, int deepness = 0)
@@ -115,7 +113,7 @@ std::vector<std::vector<glm::vec3> > BinaryTree::FillUpTree(
 {
    std::vector<std::vector<glm::vec3> > results;
 
-   root->slice = Median(data, deepness);
+   root->slice = FindOptimalSlice(data, deepness);
 
    std::vector<glm::vec3> leftNodes;
    std::vector<glm::vec3> rightNodes;
@@ -138,29 +136,24 @@ std::vector<std::vector<glm::vec3> > BinaryTree::FillUpTree(
    return results;
 }
 
-float BinaryTree::Median(std::vector<glm::vec3> data, int deepness = 0)
+float BinaryTree::FindOptimalSlice(std::vector<glm::vec3> data, int deepness = 0)
 {
-   // sort the x values
    std::vector<float> vec;
    for (int i = 0; i < data.size(); i++)
    {
-      if (deepness % 3 == 0)
-         vec.push_back(data[i].x);
-      if (deepness % 3 == 1)
-         vec.push_back(data[i].y);
-      if (deepness % 3 == 2)
-         vec.push_back(data[i].z);
+      vec.push_back(data[i][deepness % 3]);
    }
 
    int n = vec.size();
 
    // Calling quicksort for the vector vec
-   quickSort(vec, 0, n - 1);
+   QuickSort(vec, 0, n - 1);
 
-   return (vec[(vec.size() - 1) / 2] +vec[(vec.size() - 1) / 2 + 1])/2 ;
+   // Return median
+   return (vec[(vec.size() - 1) / 2] + vec[(vec.size() - 1) / 2 + 1]) / 2 ;
 }
 
-void BinaryTree::ViewNode(Node *node)
+void BinaryTree::PrintNode(Node *node)
 {
    std::cout << "Node : Slice : " << node->slice <<
       ", BoxPos : (" << node->boxPos[0] << ", " << node->boxPos[1] << ", " << node->boxPos[2] <<
@@ -171,14 +164,14 @@ void BinaryTree::ViewNode(Node *node)
                   std::endl;
 }
 
-void BinaryTree::ViewNodeRecursive(Node *node)
+void BinaryTree::PrintNodeRecursive(Node *node)
 {
-   ViewNode(node);
+   PrintNode(node);
 
    if (node->left != nullptr)
-      ViewNodeRecursive(node->left);
+      PrintNodeRecursive(node->left);
    if (node->right != nullptr)
-      ViewNodeRecursive(node->right);
+      PrintNodeRecursive(node->right);
 }
 
 void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node *root)
@@ -202,9 +195,7 @@ BinaryTree::~BinaryTree()
    //TODO free allocations
 }
 
-// QuickSort
-
-int BinaryTree::partition(std::vector<float> &vec, int low, int high)
+int BinaryTree::Partition(std::vector<float> &vec, int low, int high)
 {
    // Selecting last element as the pivot
    float pivot = vec[high];
@@ -231,7 +222,7 @@ int BinaryTree::partition(std::vector<float> &vec, int low, int high)
    return (i + 1);
 }
 
-void BinaryTree::quickSort(std::vector<float> &vec, int low, int high)
+void BinaryTree::QuickSort(std::vector<float> &vec, int low, int high)
 {
    // Base case: This part will be executed till the starting
    // index low is lesser than the ending index high
@@ -239,11 +230,11 @@ void BinaryTree::quickSort(std::vector<float> &vec, int low, int high)
    {
       // pi is Partitioning Index, arr[p] is now at
       // right place
-      int pi = partition(vec, low, high);
+      int pi = Partition(vec, low, high);
 
       // Separately sort elements before and after the
       // Partition Index pi
-      quickSort(vec, low, pi - 1);
-      quickSort(vec, pi + 1, high);
+      QuickSort(vec, low, pi - 1);
+      QuickSort(vec, pi + 1, high);
    }
 }

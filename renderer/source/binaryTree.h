@@ -20,31 +20,27 @@ struct Node
 class BinaryTree
 {
 public:
-   BinaryTree();
+   BinaryTree(int pointsNumber);
 
    ~BinaryTree();
 
+   std::vector<glm::vec3> generatedPoints;
+
 private:
    std::vector<std::vector<glm::vec3> > FillUpTree(const std::vector<glm::vec3> &data, Node *root, int deepness);
-
    void FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *root, int deepness);
 
    void CreateStructureNodes(int CurrGen, int maxGen, Node *root);
 
-   void ViewNode(Node *node);
+   void PrintNode(Node *node);
+   void PrintNodeRecursive(Node *node);
 
-   void ViewNodeRecursive(Node *node);
-
-   float Median(std::vector<glm::vec3> data, int deepness);
+   float FindOptimalSlice(std::vector<glm::vec3> data, int deepness);
 
    Node *root;
 
-   // Quick sort algorythme
-   int partition(std::vector<float> &vec, int low, int high);
+   // Quick sort algorythm
+   int Partition(std::vector<float> &vec, int low, int high);
 
-   void quickSort(std::vector<float> &vec, int low, int high);
-
-public:
-   std::vector<glm::vec3> generatedPoints;
-   
+   void QuickSort(std::vector<float> &vec, int low, int high);
 };
