@@ -21,6 +21,11 @@ target_include_directories(stb_image INTERFACE stb_image)
 add_subdirectory(tinyobjloader)
 
 
+########## HAPPLY
+add_library(happly INTERFACE)
+target_include_directories(happly INTERFACE happly)
+
+
 ########## IMGUI
 add_library(imgui INTERFACE)
 target_sources(imgui INTERFACE

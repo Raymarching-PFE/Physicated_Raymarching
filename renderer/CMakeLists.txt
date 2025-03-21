@@ -18,6 +18,7 @@ target_link_libraries(${PROJECT_NAME}
         PRIVATE glm
         PRIVATE stb_image
         PRIVATE tinyobjloader
+        PRIVATE happly
         PRIVATE Vulkan::Vulkan
         PRIVATE Vulkan::shaderc_combined
         PRIVATE imgui
