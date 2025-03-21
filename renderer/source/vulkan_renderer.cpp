@@ -15,6 +15,7 @@
     #define TracyFunction __FUNCSIG__
     #define TRACY_IMPORTS
 #endif
+
 #include "tracy/Tracy.hpp"
 
 float VulkanRenderer::GetDeltaTime()

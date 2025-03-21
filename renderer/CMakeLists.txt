@@ -3,6 +3,8 @@
 set(MY_BIN_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/Build/${CMAKE_CXX_COMPILER_ID}_$<CONFIG>")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${MY_BIN_OUTPUT_DIR}")
 
+option(COMPUTE "Use Compute pipeline" ON)
+
 find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 file(GLOB_RECURSE MY_SOURCES "source/*.cpp")
@@ -10,6 +12,11 @@ file(GLOB_RECURSE MY_SOURCES "source/*.cpp")
 add_executable(${PROJECT_NAME}
         ${MY_SOURCES}
 )
+
+if (COMPUTE)
+    MESSAGE(STATUS "COMPUTE: ON")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE COMPUTE)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${tracy_SOURCE_DIR})
 
