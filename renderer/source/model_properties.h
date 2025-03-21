@@ -65,5 +65,5 @@ template<> struct std::hash<Vertex>
 };
 
 
-inline std::vector<Vertex> _vertices;
-inline std::vector<uint32_t> _indices;
+inline std::vector<Vertex> m_vertices;
+inline std::vector<uint32_t> m_indices;

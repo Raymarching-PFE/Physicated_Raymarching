@@ -44,11 +44,11 @@ void ModelParser::LoadObjModel()
 
 			if (uniqueVertices.count(vertex) == 0)
 			{
-				uniqueVertices[vertex] = static_cast<uint32_t>(_vertices.size());
-				_vertices.push_back(vertex);
+				uniqueVertices[vertex] = static_cast<uint32_t>(m_vertices.size());
+				m_vertices.push_back(vertex);
 			}
 
-			_indices.push_back(uniqueVertices[vertex]);
+			m_indices.push_back(uniqueVertices[vertex]);
 		}
 	}
 }
@@ -86,11 +86,11 @@ void ModelParser::LoadPlyModel(happly::PLYData* plyObj)
 
 			if (uniqueVertices.count(vertex) == 0)
 			{
-				uniqueVertices[vertex] = static_cast<uint32_t>(_vertices.size());
-				_vertices.push_back(vertex);
+				uniqueVertices[vertex] = static_cast<uint32_t>(m_vertices.size());
+				m_vertices.push_back(vertex);
 			}
 
-			_indices.push_back(uniqueVertices[vertex]);
+			m_indices.push_back(uniqueVertices[vertex]);
 		}
 	}
 }

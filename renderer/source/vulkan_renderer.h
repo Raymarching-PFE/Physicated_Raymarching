@@ -120,17 +120,18 @@ public:
 
 private:
 
-    glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
-    glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
+    glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    float yaw = -90.0f;
-    float pitch = 0.0f;
-    float lastX, lastY;
-    bool firstMouse = true;
+    float m_yaw = -90.0f;
+    float m_pitch = 0.0f;
+    float m_lastX = 0.0f;
+    float m_lastY = 0.0f;
+    bool m_firstMouse = true;
 
-    float deltaTime = 0.0f;
-    float lastFrame = 0.0f;
+    float m_deltaTime = 0.0f;
+    float m_lastFrame = 0.0f;
 
 	std::chrono::high_resolution_clock::time_point lastTime;
 
@@ -138,86 +139,86 @@ private:
     void ProcessInput(GLFWwindow* window);
     static void MouseCallback(GLFWwindow* window, double xpos, double ypos);
 
-    GLFWwindow* _window = nullptr;
+    GLFWwindow* m_window = nullptr;
 
-    VkInstance _instance = nullptr;
-    VkDebugUtilsMessengerEXT _debugMessenger = nullptr;
-    VkSurfaceKHR _surface = nullptr;
+    VkInstance m_instance = nullptr;
+    VkDebugUtilsMessengerEXT m_debugMessenger = nullptr;
+    VkSurfaceKHR m_surface = nullptr;
 
-    VkPhysicalDevice _physicalDevice = VK_NULL_HANDLE;
-    VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-    VkDevice _device = nullptr;
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+    VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkDevice m_device = nullptr;
 
-    VkQueue _graphicsQueue = nullptr;
-    VkQueue _computeQueue = nullptr;
-    VkQueue _presentQueue = nullptr;
+    VkQueue m_graphicsQueue = nullptr;
+    VkQueue m_computeQueue = nullptr;
+    VkQueue m_presentQueue = nullptr;
 
-    VkSwapchainKHR _swapChain = nullptr;
-    std::vector<VkImage> _swapChainImages;
-    VkFormat _swapChainImageFormat = {};
-    VkExtent2D _swapChainExtent = {};
-    std::vector<VkImageView> _swapChainImageViews;
-    std::vector<VkFramebuffer> _swapChainFramebuffers;
+    VkSwapchainKHR m_swapChain = nullptr;
+    std::vector<VkImage> m_swapChainImages;
+    VkFormat m_swapChainImageFormat = {};
+    VkExtent2D m_swapChainExtent = {};
+    std::vector<VkImageView> m_swapChainImageViews;
+    std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
-    VkRenderPass _renderPass = nullptr;
-    VkDescriptorSetLayout _descriptorSetLayout = nullptr;
-    VkPipelineLayout _pipelineLayout = nullptr;
-    VkPipeline _graphicsPipeline = nullptr;
-    VkPipeline _graphicsComputePipeline = nullptr;
-    VkPipelineLayout _graphicsComputePipelineLayout = nullptr;
+    VkRenderPass m_renderPass = nullptr;
+    VkDescriptorSetLayout m_descriptorSetLayout = nullptr;
+    VkPipelineLayout m_pipelineLayout = nullptr;
+    VkPipeline m_graphicsPipeline = nullptr;
+    VkPipeline m_graphicsComputePipeline = nullptr;
+    VkPipelineLayout m_graphicsComputePipelineLayout = nullptr;
 
-    VkCommandPool _commandPool = nullptr;
+    VkCommandPool m_commandPool = nullptr;
 
-    VkImage _colorImage = nullptr;
-    VkDeviceMemory _colorImageMemory = nullptr;
-    VkImageView _colorImageView = nullptr;
+    VkImage m_colorImage = nullptr;
+    VkDeviceMemory m_colorImageMemory = nullptr;
+    VkImageView m_colorImageView = nullptr;
 
-    VkImage _depthImage = nullptr;
-    VkDeviceMemory _depthImageMemory = nullptr;
-    VkImageView _depthImageView = nullptr;
+    VkImage m_depthImage = nullptr;
+    VkDeviceMemory m_depthImageMemory = nullptr;
+    VkImageView m_depthImageView = nullptr;
 
-    uint32_t _mipLevels = 0;
-    VkImage _textureImage = nullptr;
-    VkDeviceMemory _textureImageMemory = nullptr;
-    VkImageView _textureImageView = nullptr;
-    VkSampler _textureSampler = nullptr;
+    uint32_t m_mipLevels = 0;
+    VkImage m_textureImage = nullptr;
+    VkDeviceMemory m_textureImageMemory = nullptr;
+    VkImageView m_textureImageView = nullptr;
+    VkSampler m_textureSampler = nullptr;
 
-    VkBuffer _vertexBuffer = nullptr;
-    VkDeviceMemory _vertexBufferMemory = nullptr;
-    VkBuffer _indexBuffer = nullptr;
-    VkBuffer _QuadIndexBuffer = nullptr;
-    VkDeviceMemory _indexBufferMemory = nullptr;
-    VkDeviceMemory _QuadindexBufferMemory = nullptr;
+    VkBuffer m_vertexBuffer = nullptr;
+    VkDeviceMemory m_vertexBufferMemory = nullptr;
+    VkBuffer m_indexBuffer = nullptr;
+    VkBuffer m_QuadIndexBuffer = nullptr;
+    VkDeviceMemory m_indexBufferMemory = nullptr;
+    VkDeviceMemory m_QuadindexBufferMemory = nullptr;
 
-    std::vector<VkBuffer> _uniformBuffers;
-    std::vector<VkDeviceMemory> _uniformBuffersMemory;
-    std::vector<void*> _uniformBuffersMapped;
+    std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+    std::vector<void*> m_uniformBuffersMapped;
 
-    VkDescriptorPool _descriptorPool = nullptr;
-    std::vector<VkDescriptorSet> _descriptorSets;
-    std::vector<VkDescriptorSet> _computeDescriptorSets;
-    VkDescriptorSetLayout _computeDescriptorSetLayout = nullptr;
-    VkPipeline _computePipeline = nullptr;
-    VkPipelineLayout _computePipelineLayout = nullptr;
+    VkDescriptorPool m_descriptorPool = nullptr;
+    std::vector<VkDescriptorSet> m_descriptorSets;
+    std::vector<VkDescriptorSet> m_computeDescriptorSets;
+    VkDescriptorSetLayout m_computeDescriptorSetLayout = nullptr;
+    VkPipeline m_computePipeline = nullptr;
+    VkPipelineLayout m_computePipelineLayout = nullptr;
 
-    std::vector<VkCommandBuffer> _commandBuffers;
-    std::vector<VkCommandBuffer> _computeCommandBuffers;
+    std::vector<VkCommandBuffer> m_commandBuffers;
+    std::vector<VkCommandBuffer> m_computeCommandBuffers;
 
-    std::vector<VkBuffer> _shaderStorageBuffers;
-    std::vector<VkDeviceMemory> _shaderStorageBuffersMemory;
+    std::vector<VkBuffer> m_shaderStorageBuffers;
+    std::vector<VkDeviceMemory> m_shaderStorageBuffersMemory;
 
-    std::vector<VkSemaphore> _imageAvailableSemaphores;
-    std::vector<VkSemaphore> _renderFinishedSemaphores;
-    std::vector<VkSemaphore> _computeFinishedSemaphores;
-    std::vector<VkFence> _inFlightFences;
-    std::vector<VkFence> _computeInFlightFences;
-    uint32_t _currentFrame = 0;
-    uint32_t _imageIndex = 0;
+    std::vector<VkSemaphore> m_imageAvailableSemaphores;
+    std::vector<VkSemaphore> m_renderFinishedSemaphores;
+    std::vector<VkSemaphore> m_computeFinishedSemaphores;
+    std::vector<VkFence> m_inFlightFences;
+    std::vector<VkFence> m_computeInFlightFences;
+    uint32_t m_currentFrame = 0;
+    uint32_t m_imageIndex = 0;
 
-    bool _framebufferResized = false;
+    bool m_framebufferResized = false;
 
-    float _lastFrameTime = 0.0f;
-    double _lastTime = 0.0f;
+    float m_lastFrameTime = 0.0f;
+    double m_lastTime = 0.0f;
 
     void InitWindow();
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
