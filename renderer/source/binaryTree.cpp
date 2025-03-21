@@ -90,20 +90,20 @@ void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *r
 
    if (root->left != nullptr)
    {
-      FillUpTreeRecursive(leftNodes, root->left, deepness + 1);
       // Fill up box
       root->left->boxPos = root->boxPos;
       root->left->boxSize = root->boxSize;
       root->left->boxSize[deepness % 3] = root->slice - root->boxPos[deepness % 3];
+      FillUpTreeRecursive(leftNodes, root->left, deepness + 1);
    }
    if (root->right != nullptr)
    {
-      FillUpTreeRecursive(rightNodes, root->right, deepness + 1);
 
       root->right->boxPos = root->boxPos;
       root->right->boxPos[deepness % 3] = root->slice;
       root->right->boxSize = root->boxSize;
       root->right->boxSize[deepness % 3] = root->slice - root->boxPos[deepness % 3];
+      FillUpTreeRecursive(rightNodes, root->right, deepness + 1);
    }
 }
 
