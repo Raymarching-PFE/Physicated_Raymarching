@@ -14,6 +14,7 @@ const int MAX_STEPS = 128;
 const float MAX_DIST = 5.0;
 const float EPSILON = 0.001;
 const int MAX_RECURSION_DEPTH = 3;
+float spheresArray[4];
 
 struct Ray 
 {
@@ -51,10 +52,10 @@ Ray generateRay(vec2 uv)
     return Ray(ubo.cameraPos, rayDir);
 }
 
-float smoothMin(float a, float b, float k) 
+float smoothMin(float torus, float b, float k) 
 {
-    float h = max(k - abs(a - b), 0.0) / k;
-    return min(a, b) - h * h * h * k * (1.0 / 6.0);
+    float h = max(k - abs(torus - b), 0.0) / k;
+    return min(torus, b) - h * h * h * k * (1.0 / 6.0);
 }
 
 float sphereSDF(vec3 p, vec3 center, float radius)
@@ -73,21 +74,38 @@ float sceneSDF(vec3 p, out Material material)
     vec3 torusPos = vec3(0.0, 0.0, -7.0);
     vec3 spherePos = vec3(2.5 + 2.5 * sin(ubo.time), 0.0, -7.0);
 
+    vec3 sphere2Pos = vec3(0.0, 0.0, -8.0);
+
     float torusDist = torusSDF(p - torusPos, vec2(1.0, 0.3));
+
     float sphereDist = sphereSDF(p, spherePos, 0.5);
+    float sphere2Dist = sphereSDF(p, sphere2Pos, 0.5);
+
 
     float k = 0.5; // Constante de lissage
-    float dist = smoothMin(torusDist, sphereDist, k);
 
-    if (dist == torusDist)
+    float dist[4];
+
+    for (int i = 0; i < 4; i++ )
     {
-        material.color = vec3(1.0, 0.0, 0.0);
-        material.reflectivity = 0.5;
+        for (int j = i + 1; j < 4; j++ )
+        {
+            float dist = smoothMin(spheresArray[i], spheresArray[j], k);
+        }
     }
-    else
+
+    for(int i =0; i < 4; i++)
     {
-        material.color = vec3(0.0, 0.0, 1.0);
-        material.reflectivity = 0.8;
+        if (dist == torusDist)
+        {
+            material.color = vec3(1.0, 0.0, 0.0);
+            material.reflectivity = 0.5;
+        }
+        else
+        {
+            material.color = vec3(0.0, 0.0, 1.0);
+            material.reflectivity = 0.8;
+        }
     }
 
     return dist;

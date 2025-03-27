@@ -3,7 +3,7 @@
 #include <vector>
 #include <iostream>
 
-std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 1, int max = 100)
+std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 0, int max = 10)
 {
    std::vector<glm::vec3> toReturn;
 
@@ -71,9 +71,9 @@ BinaryTree::BinaryTree(int pointsNumber)
 
    //Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
 
-   glm::vec3 nearestPoint = GetNearestPointRecursive(glm::vec3(50, 50, 50), 1, 0, root);
+   //glm::vec3 nearestPoint = GetNearestPointRecursive(glm::vec3(50, 50, 50), 1, 0, root);
 
-   std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
+   //std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
 
 }
 

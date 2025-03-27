@@ -78,10 +78,13 @@ void VulkanRenderer::InitVulkan()
     CreateTextureImageView();
     CreateTextureSampler();
     LoadModel();
-    //LoadGeneratedPoint();
+    
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
+
+    LoadGeneratedPoint();
+
     CreateDescriptorPool();
     CreateDescriptorSets();
     CreateComputeDescriptorSets();
@@ -142,9 +145,11 @@ void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
     //std::cout << "Camera Front: " << glm::to_string(app->cameraFront) << std::endl;
 }
 
+std::vector<glm::vec3> myPoints;
+
 void VulkanRenderer::LoadGeneratedPoint()
 {
-    BinaryTree binary_tree(3);
+    BinaryTree binary_tree(10);
 
     for (int i = 0; i < binary_tree.generatedPoints.size(); i++)
     {
@@ -163,13 +168,6 @@ void VulkanRenderer::LoadGeneratedPoint()
         };
 
         vertexA.color = vertexB.color = vertexC.color ={1.0f, 1.0f, 1.0f};
-        // _vertices.push_back(vertexA);
-        // _vertices.push_back(vertexB);
-        // _vertices.push_back(vertexC);
-        //
-        // _indices.push_back(3 * i);
-        // _indices.push_back(3 * i + 1);
-        // _indices.push_back(3 * i + 2);
     }
 }
 
@@ -1965,12 +1963,8 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     UniformBufferObject ubo{};
     ubo.cameraPos = m_cameraPos;
     ubo.cameraFront = m_cameraFront;
-	ubo.time = static_cast<float>(glfwGetTime());
+    ubo.time = static_cast<float>(glfwGetTime());
     //ubo.cameraUp = cameraUp;
-
-	//std::cout << "Time: " << ubo.time << std::endl;
-	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
-    // std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
