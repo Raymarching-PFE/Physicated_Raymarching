@@ -64,13 +64,23 @@ void VulkanRenderer::InitVulkan()
     CreateSwapChain();
     CreateImageViews();
     CreateRenderPass();
+
+#if !COMPUTE
     CreateDescriptorSetLayout();
+#else
     CreateComputeDescriptorSetLayout();
+#endif
+#if !COMPUTE
     CreateGraphicsPipeline();
+#else
     CreateGraphicsComputePipeline();
     CreateComputePipeline();
+#endif
+
     CreateCommandPool();
+#if COMPUTE
     CreateShaderStorageBuffers();
+#endif
     CreateColorResources();
     CreateDepthResources();
     CreateFramebuffers();
@@ -82,10 +92,18 @@ void VulkanRenderer::InitVulkan()
     CreateIndexBuffer();
     CreateUniformBuffers();
     CreateDescriptorPool();
+
+#if !COMPUTE
     CreateDescriptorSets();
+#else
     CreateComputeDescriptorSets();
+#endif
+#if !COMPUTE
     CreateCommandBuffers();
+#else
     CreateComputeCommandBuffers();
+#endif
+
     CreateSyncObjects();
 
     glfwSetCursorPosCallback(m_window, MouseCallback);
@@ -406,8 +424,12 @@ void VulkanRenderer::CreateLogicalDevice()
     if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
         throw std::runtime_error("Failed to create logical device!");
 
-    vkGetDeviceQueue(m_device, indices.graphicsAndComputeFamily.value(), 0, &m_graphicsQueue);
+#if COMPUTE
     vkGetDeviceQueue(m_device, indices.graphicsAndComputeFamily.value(), 0, &m_computeQueue);
+#else
+    vkGetDeviceQueue(m_device, indices.graphicsAndComputeFamily.value(), 0, &m_graphicsQueue);
+#endif
+
     vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
 }
 
@@ -1527,9 +1549,6 @@ void VulkanRenderer::CreateIndexBuffer()
     const VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
     const VkDeviceSize QuadBufferSize = sizeof(uint32_t) * quadIndices.size();
 
-    std::cerr << "Index buffer size: " << bufferSize << std::endl;
-    std::cerr << "Index buffer size: " << QuadBufferSize << std::endl;
-
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
@@ -1851,12 +1870,15 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
 
+#if !COMPUTE
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
     vkCmdDraw(commandBuffer, 6, 1, 0, 0);
 
-    /*vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsComputePipeline);
+#else
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsComputePipeline);
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_shaderStorageBuffers[m_currentFrame], offsets);
-    vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);*/
+    vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);
+#endif
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -1900,9 +1922,14 @@ void VulkanRenderer::CreateSyncObjects()
 {
     m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+#if COMPUTE
     m_computeFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+#else
     m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+#endif
+#if COMPUTE
     m_computeInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+#endif
 
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1913,18 +1940,20 @@ void VulkanRenderer::CreateSyncObjects()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
+#if !COMPUTE
         if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
             vkCreateFence(m_device, &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create synchronization objects for a frame!");
         }
-
+#else
         if (vkCreateSemaphore(m_device, &semaphoreInfo, nullptr, &m_computeFinishedSemaphores[i]) != VK_SUCCESS ||
             vkCreateFence(m_device, &fenceInfo, nullptr, &m_computeInFlightFences[i]) != VK_SUCCESS)
         {
             throw std::runtime_error("Failed to create compute synchronization objects for a frame!");
         }
+#endif
     }
 }
 
@@ -1954,12 +1983,14 @@ void VulkanRenderer::BeginFrame()
 
     VkResult result = vkAcquireNextImageKHR(m_device, m_swapChain, UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &m_imageIndex);
 
+#if COMPUTE
     // Compute submission
     vkWaitForFences(m_device, 1, &m_computeInFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
     vkResetFences(m_device, 1, &m_computeInFlightFences[m_currentFrame]);
 
     vkResetCommandBuffer(m_computeCommandBuffers[m_currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+#endif
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -1975,6 +2006,7 @@ void VulkanRenderer::DrawFrame() const
 {
     UpdateUniformBuffer(m_currentFrame);
 
+#if COMPUTE
     RecordComputeCommandBuffer(m_computeCommandBuffers[m_currentFrame]);
 
     VkSubmitInfo submitInfo{};
@@ -1987,15 +2019,27 @@ void VulkanRenderer::DrawFrame() const
     if (vkQueueSubmit(m_computeQueue, 1, &submitInfo, m_computeInFlightFences[m_currentFrame]) != VK_SUCCESS)
         throw std::runtime_error("Failed to submit compute command buffer!");
 
+#else
+    VkSubmitInfo submitInfo{};
+#endif
+
     RecordCommandBuffer(m_commandBuffers[m_currentFrame], m_imageIndex);
 
+#if COMPUTE
     VkSemaphore waitSemaphores[] = { m_computeFinishedSemaphores[m_currentFrame], m_imageAvailableSemaphores[m_currentFrame] };
+#endif
+
     VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
     submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
+    // submitInfo.waitSemaphoreCount = 0;
+
+#if COMPUTE
     submitInfo.waitSemaphoreCount = 2;
     submitInfo.pWaitSemaphores = waitSemaphores;
+#endif
+
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_commandBuffers[m_currentFrame];
