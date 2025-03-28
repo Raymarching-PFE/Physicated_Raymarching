@@ -1,10 +1,15 @@
 #version 450
 
+const int MAX_SPHERE_NUMBER = 4;
+
 layout(set = 0, binding = 0) uniform UniformBufferObject 
 {
     float time;
     vec3 cameraPos;
     vec3 cameraFront;
+    vec4 spheresArray[MAX_SPHERE_NUMBER];
+    int sphereNumber;
+
 } ubo;
 
 layout(location = 0) out vec4 outColor;
@@ -14,7 +19,6 @@ const int MAX_STEPS = 128;
 const float MAX_DIST = 5.0;
 const float EPSILON = 0.001;
 const int MAX_RECURSION_DEPTH = 3;
-float spheresArray[4];
 
 struct Ray 
 {
@@ -69,46 +73,36 @@ float torusSDF(vec3 p, vec2 t)
     return length(q) - t.y;
 }
 
+
 float sceneSDF(vec3 p, out Material material) 
 {
-    vec3 torusPos = vec3(0.0, 0.0, -7.0);
-    vec3 spherePos = vec3(2.5 + 2.5 * sin(ubo.time), 0.0, -7.0);
-
-    vec3 sphere2Pos = vec3(0.0, 0.0, -8.0);
-
-    float torusDist = torusSDF(p - torusPos, vec2(1.0, 0.3));
-
-    float sphereDist = sphereSDF(p, spherePos, 0.5);
-    float sphere2Dist = sphereSDF(p, sphere2Pos, 0.5);
-
-
+    float spheresDistArray[MAX_SPHERE_NUMBER];
+    for(int i = 0; i < ubo.sphereNumber; i++)
+    {
+        spheresDistArray[i] = sphereSDF(p, vec3(ubo.spheresArray[i].xyz), 0.5);
+    }
+    
     float k = 0.5; // Constante de lissage
-
-    float dist[4];
-
-    for (int i = 0; i < 4; i++ )
+    
+    float dist[MAX_SPHERE_NUMBER];
+    
+    for (int i = 0; i < ubo.sphereNumber; i++)
     {
-        for (int j = i + 1; j < 4; j++ )
+        for (int j = i + 1; j < ubo.sphereNumber; j++)
         {
-            float dist = smoothMin(spheresArray[i], spheresArray[j], k);
+            dist[i] = smoothMin(spheresDistArray[i], spheresDistArray[j], k);
         }
     }
 
-    for(int i =0; i < 4; i++)
-    {
-        if (dist == torusDist)
-        {
-            material.color = vec3(1.0, 0.0, 0.0);
-            material.reflectivity = 0.5;
-        }
-        else
-        {
-            material.color = vec3(0.0, 0.0, 1.0);
-            material.reflectivity = 0.8;
-        }
-    }
+    material.color = vec3(1.0, 1.0, 1.0);
+    material.reflectivity = 0;
 
-    return dist;
+    float minValue = dist[0];
+    for (int i = 1; i < ubo.sphereNumber; i++)
+    {
+        minValue = min(minValue, dist[i]);
+    }
+    return minValue;
 }
 
 float rayMarch(Ray ray, out Material material) 

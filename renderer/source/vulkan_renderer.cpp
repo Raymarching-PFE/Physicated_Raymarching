@@ -1961,10 +1961,15 @@ void VulkanRenderer::CreateSyncObjects()
 void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 {
     UniformBufferObject ubo{};
+    ubo.time = static_cast<float>(glfwGetTime());
     ubo.cameraPos = m_cameraPos;
     ubo.cameraFront = m_cameraFront;
-    ubo.time = static_cast<float>(glfwGetTime());
-    //ubo.cameraUp = cameraUp;
+
+    ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.0f);
+    ubo.spheresArray[1] = glm::vec4(0.0f, 0.0f, -8.0f, 0.0f);
+    ubo.spheresArray[2] = glm::vec4(0.0f, 0.0f, -9.0f, 0.0f);
+    ubo.spheresArray[3] = glm::vec4(0.0f, 0.0f, -10.0f, 0.0f);
+    ubo.sphereNumber = 4;
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
