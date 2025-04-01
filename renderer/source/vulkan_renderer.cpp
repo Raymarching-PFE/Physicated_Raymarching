@@ -149,7 +149,7 @@ std::vector<glm::vec3> GeneratedPoint;
 
 void VulkanRenderer::LoadGeneratedPoint()
 {
-    BinaryTree binary_tree(4);
+    BinaryTree binary_tree(8);
     GeneratedPoint = binary_tree.generatedPoints;
 }
 
@@ -1947,16 +1947,25 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     ubo.cameraPos = m_cameraPos;
     ubo.cameraFront = m_cameraFront;
 
-    ubo.spheresArray[0] = glm::vec4(GeneratedPoint[0].x, GeneratedPoint[0].y, GeneratedPoint[0].z, 0.0f);
-    ubo.spheresArray[1] = glm::vec4(GeneratedPoint[1].x, GeneratedPoint[1].y, GeneratedPoint[1].z, 0.0f);
-    ubo.spheresArray[2] = glm::vec4(GeneratedPoint[2].x, GeneratedPoint[2].y, GeneratedPoint[2].z, 0.0f);
-    ubo.spheresArray[3] = glm::vec4(GeneratedPoint[3].x, GeneratedPoint[3].y, GeneratedPoint[3].z, 0.0f);
+    // ubo.spheresArray[0] = glm::vec4(GeneratedPoint[0].x, GeneratedPoint[0].y, GeneratedPoint[0].z, 0.0f);
+    // ubo.spheresArray[1] = glm::vec4(GeneratedPoint[1].x, GeneratedPoint[1].y, GeneratedPoint[1].z, 0.0f);
+    // ubo.spheresArray[2] = glm::vec4(GeneratedPoint[2].x, GeneratedPoint[2].y, GeneratedPoint[2].z, 0.0f);
+    // ubo.spheresArray[3] = glm::vec4(GeneratedPoint[3].x, GeneratedPoint[3].y, GeneratedPoint[3].z, 0.0f);
+    // ubo.spheresArray[4] = glm::vec4(GeneratedPoint[4].x, GeneratedPoint[4].y, GeneratedPoint[4].z, 0.0f);
+    // ubo.spheresArray[5] = glm::vec4(GeneratedPoint[5].x, GeneratedPoint[5].y, GeneratedPoint[5].z, 0.0f);
+    // ubo.spheresArray[6] = glm::vec4(GeneratedPoint[6].x, GeneratedPoint[6].y, GeneratedPoint[6].z, 0.0f);
+    // ubo.spheresArray[7] = glm::vec4(GeneratedPoint[7].x, GeneratedPoint[7].y, GeneratedPoint[7].z, 0.0f);
 
-    // ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.0f);
-    // ubo.spheresArray[1] = glm::vec4(0.0f, 0.0f, -8.0f, 0.0f);
-    // ubo.spheresArray[2] = glm::vec4(0.0f, 0.0f, -9.0f, 0.0f);
-    // ubo.spheresArray[3] = glm::vec4(0.0f, 0.0f, -10.0f, 0.0f);
-    ubo.sphereNumber = 4;
+    ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.0f);
+    ubo.spheresArray[1] = glm::vec4(1.0f, 0.0f, -7.0f, 0.0f);
+    ubo.spheresArray[2] = glm::vec4(2.0f, 0.0f, -7.0f, 0.0f);
+    ubo.spheresArray[3] = glm::vec4(3.0f, 0.0f, -7.0f, 0.0f);
+    ubo.spheresArray[4] = glm::vec4(-1.0f, 0.0f, -7.0f, 0.0f);
+    ubo.spheresArray[5] = glm::vec4(-2.0f, 0.0f, -7.0f, 0.0f);
+    ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.0f);
+    ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.0f);
+
+    ubo.sphereNumber = 6;
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

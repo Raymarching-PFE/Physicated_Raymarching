@@ -1,6 +1,6 @@
 #version 450
 
-const int MAX_SPHERE_NUMBER = 4;
+const int MAX_SPHERE_NUMBER = 8;
 
 layout(set = 0, binding = 0) uniform UniformBufferObject 
 {
