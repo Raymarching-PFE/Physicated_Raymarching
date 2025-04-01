@@ -1,0 +1,74 @@
+#version 450
+
+layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform UniformBufferObject 
+{
+    float time;
+    vec3 cameraPos;
+    vec3 cameraFront;
+} ubo;
+
+layout(set = 0, binding = 1, rgba32f) uniform image2D outputImage;
+
+const int MAX_STEPS = 128;
+const float MAX_DIST = 5.0;
+const float EPSILON = 0.001;
+
+struct Ray 
+{
+    vec3 origin;
+    vec3 direction;
+};
+
+Ray generateRay(vec2 uv) 
+{
+    vec3 right = normalize(cross(ubo.cameraFront, vec3(0.0, 1.0, 0.0)));
+    vec3 up = normalize(cross(right, ubo.cameraFront));
+    
+    float fov = radians(90.0);
+    float aspectRatio = 16.0 / 9.0;
+    
+    vec3 rayDir = normalize(ubo.cameraFront + uv.x * right * aspectRatio + uv.y * up);
+    
+    return Ray(ubo.cameraPos, rayDir);
+}
+
+float sphereSDF(vec3 p, vec3 center, float radius)
+{
+    return length(p - center) - radius;
+}
+
+float sceneSDF(vec3 p)
+{
+    vec3 spherePos = vec3(0.0, 0.0, -7.0);
+    return sphereSDF(p, spherePos, 0.5);
+}
+
+float rayMarch(Ray ray) 
+{
+    float distance = 0.0;
+    for (int i = 0; i < MAX_STEPS; i++) 
+    {
+        vec3 p = ray.origin + ray.direction * distance;
+        float d = sceneSDF(p);
+        if (d < EPSILON) 
+            return distance;
+        distance += d;
+        if (distance > MAX_DIST) 
+            break;
+    }
+    return -1.0;
+}
+
+void main() 
+{
+    ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    vec2 uv = (vec2(pixelCoords) / imageSize(outputImage)) * 2.0 - 1.0;
+    
+    Ray ray = generateRay(uv);
+    float dist = rayMarch(ray);
+    
+    vec4 color = (dist > 0.0) ? vec4(1.0, 0.0, 0.0, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
+    imageStore(outputImage, pixelCoords, color);
+}

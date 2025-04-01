@@ -291,4 +291,14 @@ private:
     
     VKAPI_ATTR static VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+
+    void CreateStorageImage();
+    void CreateComputeResources();
+    void UpdateFrame();
+
+    VkImage _storageImage;
+    VkDeviceMemory _storageImageMemory;
+    VkImageView _storageImageView;
+	VkSubmitInfo _computeSubmitInfo;
+    VkDescriptorPool _computeDescriptorPool;
 };
