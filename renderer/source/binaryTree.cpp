@@ -3,7 +3,7 @@
 #include <vector>
 #include <iostream>
 
-std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 0, int max = 10)
+std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = -7, int max = -1)
 {
    std::vector<glm::vec3> toReturn;
 
