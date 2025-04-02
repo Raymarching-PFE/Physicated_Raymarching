@@ -7,7 +7,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject
     float time;
     vec3 cameraPos;
     vec3 cameraFront;
-    vec4 spheresArray[MAX_SPHERE_NUMBER];
+    vec4 spheresArray[MAX_SPHERE_NUMBER];// w values are for sizes
     int sphereNumber;
 
 } ubo;
@@ -73,13 +73,12 @@ float torusSDF(vec3 p, vec2 t)
     return length(q) - t.y;
 }
 
-
 float sceneSDF(vec3 p, out Material material) 
 {
     float spheresDistArray[MAX_SPHERE_NUMBER];
     for(int i = 0; i < ubo.sphereNumber; i++)
     {
-        spheresDistArray[i] = sphereSDF(p, vec3(ubo.spheresArray[i].xyz), 0.5);
+        spheresDistArray[i] = sphereSDF(p, vec3(ubo.spheresArray[i].xyz), ubo.spheresArray[i].w);
     }
     
     float k = 0.5; // Constante de lissage
