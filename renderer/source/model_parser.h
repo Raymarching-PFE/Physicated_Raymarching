@@ -5,7 +5,6 @@
 
 
 const std::string OBJ_PATH = "point_clouds/bunny.obj";
-// const std::string OBJ_PATH = "models/viking_room.obj";
 const std::string PLY_PATH = "point_clouds/bunny.ply";
 
 
