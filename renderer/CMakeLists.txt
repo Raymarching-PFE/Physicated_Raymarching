@@ -42,16 +42,8 @@ add_custom_command(
         POST_BUILD
 
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/models
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/models
-
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/shaders
         $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders
-
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_CURRENT_SOURCE_DIR}/textures
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>/textures
 
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/point_clouds

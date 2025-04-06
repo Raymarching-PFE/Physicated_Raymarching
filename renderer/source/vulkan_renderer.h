@@ -11,7 +11,13 @@
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
 
-constexpr int MAX_FRAMES_IN_FLIGHT = 1;
+#if COMPUTE
+    constexpr uint32_t PARTICLE_COUNT = 8192;
+    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+#else
+    constexpr int MAX_FRAMES_IN_FLIGHT = 1;
+#endif
+
 
 const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -119,6 +125,42 @@ struct UniformBufferObject
     alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 };
 
+#if COMPUTE
+struct Particle
+{
+    glm::vec2 position;
+    glm::vec2 velocity;
+    glm::vec4 color;
+
+    static VkVertexInputBindingDescription GetBindingDescription()
+    {
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Particle);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    }
+
+    static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions()
+    {
+        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Particle, position);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Particle, color);
+
+        return attributeDescriptions;
+    }
+};
+#endif
+
 class VulkanRenderer
 {
 public:
@@ -135,9 +177,6 @@ private:
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
     bool m_firstMouse = true;
-
-    float m_deltaTime = 0.0f;
-    float m_lastFrame = 0.0f;
 
 	std::chrono::high_resolution_clock::time_point lastTime;
 
@@ -169,9 +208,6 @@ private:
     VkPipelineLayout m_pipelineLayout = nullptr;
     VkPipeline m_graphicsPipeline = nullptr;
 
-    VkShaderModule m_vertexShader = VK_NULL_HANDLE;
-    VkShaderModule m_fragmentShader = VK_NULL_HANDLE;
-
     VkDescriptorPool m_descriptorPool = nullptr;
     std::vector<VkDescriptorSet> m_descriptorSets;
 
@@ -186,19 +222,41 @@ private:
 
     bool m_framebufferResized = false;
 
+    std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+    std::vector<void*> m_uniformBuffersMapped;
+
+    VkShaderModule m_vertexShader = VK_NULL_HANDLE;
+    VkShaderModule m_fragmentShader = VK_NULL_HANDLE;
+
+#if COMPUTE
+    VkShaderModule m_computeShader = VK_NULL_HANDLE;
+
+    VkQueue m_computeQueue = nullptr;
+
+    VkDescriptorSetLayout m_computeDescriptorSetLayout = nullptr;
+    VkPipelineLayout m_computePipelineLayout = nullptr;
+    VkPipeline m_computePipeline = nullptr;
+
+    std::vector<VkBuffer> m_shaderStorageBuffers;
+    std::vector<VkDeviceMemory> m_shaderStorageBuffersMemory;
+
+    std::vector<VkDescriptorSet> m_computeDescriptorSets;
+    std::vector<VkCommandBuffer> m_computeCommandBuffers;
+
+    std::vector<VkSemaphore> m_computeFinishedSemaphores;
+    std::vector<VkFence> m_computeInFlightFences;
+
+    float m_lastFrameTime = 0.0f;
+    double m_lastTime = 0.0f;
+#else
     VkBuffer m_vertexBuffer = nullptr;
     VkDeviceMemory m_vertexBufferMemory = nullptr;
     VkBuffer m_indexBuffer = nullptr;
     VkDeviceMemory m_indexBufferMemory = nullptr;
     VkBuffer m_quadIndexBuffer = nullptr;
     VkDeviceMemory m_quadindexBufferMemory = nullptr;
-
-    std::vector<VkBuffer> m_uniformBuffers;
-    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
-    std::vector<void*> m_uniformBuffersMapped;
-
-    float m_lastFrameTime = 0.0f;
-    double m_lastTime = 0.0f;
+#endif
 
     void InitWindow();
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
@@ -216,19 +274,12 @@ private:
     void CreateSwapChain();
     void CreateImageViews();
     void CreateRenderPass();
-    void CreateDescriptorSetLayout();
     void CreateGraphicsPipeline();
     void CreateFramebuffers();
     void CreateCommandPool();
-    VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
-    static bool HasStencilComponent(VkFormat format);
     VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const;
-    static void LoadModel();
-    void CreateVertexBuffer();
-    void CreateIndexBuffer();
     void CreateUniformBuffers();
     void CreateDescriptorPool();
-    void CreateDescriptorSets();
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
     VkCommandBuffer BeginSingleTimeCommands() const;
     void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
@@ -252,6 +303,23 @@ private:
     static std::vector<const char*> GetRequiredExtensions();
     static bool CheckValidationLayerSupport();
     static std::vector<char> ReadFile(const std::string& filename);
+
+#if COMPUTE
+    void CreateShaderStorageBuffers();
+    void CreateComputePipeline();
+    void CreateComputeDescriptorSetLayout();
+    void CreateComputeDescriptorSets();
+    void CreateComputeCommandBuffers();
+    void RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const;
+#else
+    void CreateDescriptorSetLayout();
+    VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+    static bool HasStencilComponent(VkFormat format);
+    static void LoadModel();
+    void CreateVertexBuffer();
+    void CreateIndexBuffer();
+    void CreateDescriptorSets();
+#endif
     
     VKAPI_ATTR static VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
