@@ -168,7 +168,6 @@ public:
     void Run();
 
 private:
-
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -231,6 +230,14 @@ private:
     uint32_t                  m_imageCount = 0;
     uint32_t                  m_queueFamily = (uint32_t)-1;
 
+    size_t m_vertexNb = 0;
+
+    VkBuffer        m_vertexBuffer = nullptr;
+    VkDeviceMemory  m_vertexBufferMemory = nullptr;
+    VkBuffer        m_indexBuffer = nullptr;
+    VkDeviceMemory  m_indexBufferMemory = nullptr;
+    VkBuffer        m_quadIndexBuffer = nullptr;
+    VkDeviceMemory  m_quadindexBufferMemory = nullptr;
 #if COMPUTE
     VkShaderModule m_computeShader = VK_NULL_HANDLE;
 
@@ -251,13 +258,6 @@ private:
 
     float  m_lastFrameTime = 0.0f;
     double m_lastTime = 0.0f;
-#else
-    VkBuffer        m_vertexBuffer = nullptr;
-    VkDeviceMemory  m_vertexBufferMemory = nullptr;
-    VkBuffer        m_indexBuffer = nullptr;
-    VkDeviceMemory  m_indexBufferMemory = nullptr;
-    VkBuffer        m_quadIndexBuffer = nullptr;
-    VkDeviceMemory  m_quadindexBufferMemory = nullptr;
 #endif
 
     float GetDeltaTime();
@@ -266,6 +266,7 @@ private:
 
     static void CheckVkResult(VkResult err);
     void InitImGui() const;
+    void MainImGui() const;
 
     void InitWindow();
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
@@ -313,6 +314,10 @@ private:
     static bool CheckValidationLayerSupport();
     static std::vector<char> ReadFile(const std::string& filename);
 
+    void LoadModel();
+    void CreateVertexBuffer();
+    void CreateIndexBuffer();
+
 #if COMPUTE
     void CreateShaderStorageBuffers();
     void CreateComputePipeline();
@@ -322,11 +327,6 @@ private:
     void RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const;
 #else
     void CreateDescriptorSetLayout();
-    VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
-    static bool HasStencilComponent(VkFormat format);
-    static void LoadModel();
-    void CreateVertexBuffer();
-    void CreateIndexBuffer();
     void CreateDescriptorSets();
 #endif
     

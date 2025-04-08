@@ -121,6 +121,9 @@ void VulkanRenderer::InitVulkan()
     CreateComputePipeline();
     CreateCommandPool();
     CreateFramebuffers();
+    LoadModel();
+    CreateVertexBuffer();
+    CreateIndexBuffer();
     CreateShaderStorageBuffers();
     CreateUniformBuffers();
     CreateDescriptorPool();
@@ -217,6 +220,26 @@ void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
     }
 }
 
+void VulkanRenderer::MainImGui() const
+{
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    {
+        ImGuiIO& io = ImGui::GetIO();
+
+        ImGui::Begin("Physicated Raymarching");
+
+        ImGui::Text("Number of points: %d", m_vertexNb);
+
+        float clampedFPS = std::min(io.Framerate, 144.0f);
+        ImGui::Text("Application average: %.3f ms/frame (%.1f FPS)", 1000.0f / clampedFPS, clampedFPS);
+        ImGui::End();
+    }
+
+    ImGui::Render();
+}
+
 void VulkanRenderer::MainLoop()
 {
     while (!glfwWindowShouldClose(m_window))
@@ -225,19 +248,7 @@ void VulkanRenderer::MainLoop()
         glfwPostEmptyEvent();
         ProcessInput(m_window);
 
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        {
-            ImGuiIO& io = ImGui::GetIO();
-
-            ImGui::Begin("Physicated Raymarching");
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            ImGui::End();
-        }
-
-        ImGui::Render();
+        MainImGui();
 
         BeginFrame();
         DrawFrame();
@@ -1474,6 +1485,76 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::DebugCallback(VkDebugUtilsMessage
     return VK_FALSE;
 }
 
+void VulkanRenderer::LoadModel()
+{
+    happly::PLYData plyObj(PLY_PATH);
+    plyObj.validate();
+    m_vertexNb = plyObj.getElement("vertex").count;
+    ModelParser::LoadPlyModel(&plyObj);
+
+    // ModelParser::LoadObjModel();
+}
+
+void VulkanRenderer::CreateVertexBuffer()
+{
+    const VkDeviceSize bufferSize = sizeof(m_vertices[0]) * m_vertices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, m_vertices.data(), (size_t) bufferSize);
+    vkUnmapMemory(m_device, stagingBufferMemory);
+
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
+
+    CopyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
+
+    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+    vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+}
+
+void VulkanRenderer::CreateIndexBuffer()
+{
+    std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
+
+    const VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
+    const VkDeviceSize QuadBufferSize = sizeof(uint32_t) * quadIndices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    VkBuffer quadstagingBuffer;
+    VkDeviceMemory quadstagingBufferMemory;
+    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, quadstagingBuffer, quadstagingBufferMemory);
+
+    void* data;
+    vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, m_indices.data(), (size_t) bufferSize);
+    vkUnmapMemory(m_device, stagingBufferMemory);
+
+    // Copie des indices dans le buffer
+    void* quadData;
+    vkMapMemory(m_device, quadstagingBufferMemory, 0, QuadBufferSize, 0, &quadData);
+    memcpy(quadData, quadIndices.data(), QuadBufferSize);
+    vkUnmapMemory(m_device, quadstagingBufferMemory);
+
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
+    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_quadIndexBuffer, m_quadindexBufferMemory);
+
+    CopyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
+    CopyBuffer(quadstagingBuffer, m_quadIndexBuffer, QuadBufferSize);
+
+    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+    vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+
+    vkDestroyBuffer(m_device, quadstagingBuffer, nullptr);
+    vkFreeMemory(m_device, quadstagingBufferMemory, nullptr);
+}
+
 #if COMPUTE
 void VulkanRenderer::CreateShaderStorageBuffers()
 {
@@ -1714,91 +1795,6 @@ void VulkanRenderer::CreateDescriptorSetLayout()
 
     if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
         throw std::runtime_error("Failed to create descriptor set layout!");
-}
-
-VkFormat VulkanRenderer::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
-{
-    for (VkFormat format : candidates)
-    {
-        VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &props);
-
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
-            return format;
-        if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
-            return format;
-    }
-
-    throw std::runtime_error("Failed to find supported format!");
-}
-
-void VulkanRenderer::LoadModel()
-{
-    // happly::PLYData plyObj(PLY_PATH);
-    // plyObj.validate();
-    // ModelParser::LoadPlyModel(&plyObj);
-
-    ModelParser::LoadObjModel();
-}
-
-void VulkanRenderer::CreateVertexBuffer()
-{
-    const VkDeviceSize bufferSize = sizeof(m_vertices[0]) * m_vertices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, m_vertices.data(), (size_t) bufferSize);
-    vkUnmapMemory(m_device, stagingBufferMemory);
-
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
-
-    CopyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
-
-    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-    vkFreeMemory(m_device, stagingBufferMemory, nullptr);
-}
-
-void VulkanRenderer::CreateIndexBuffer()
-{
-    std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
-
-    const VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
-    const VkDeviceSize QuadBufferSize = sizeof(uint32_t) * quadIndices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    VkBuffer quadstagingBuffer;
-    VkDeviceMemory quadstagingBufferMemory;
-    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, quadstagingBuffer, quadstagingBufferMemory);
-
-    void* data;
-    vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, m_indices.data(), (size_t) bufferSize);
-    vkUnmapMemory(m_device, stagingBufferMemory);
-
-    // Copie des indices dans le buffer
-    void* quadData;
-    vkMapMemory(m_device, quadstagingBufferMemory, 0, QuadBufferSize, 0, &quadData);
-    memcpy(quadData, quadIndices.data(), QuadBufferSize);
-    vkUnmapMemory(m_device, quadstagingBufferMemory);
-
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
-    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_quadIndexBuffer, m_quadindexBufferMemory);
-
-    CopyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
-    CopyBuffer(quadstagingBuffer, m_quadIndexBuffer, QuadBufferSize);
-
-    vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-    vkFreeMemory(m_device, stagingBufferMemory, nullptr);
-
-    vkDestroyBuffer(m_device, quadstagingBuffer, nullptr);
-    vkFreeMemory(m_device, quadstagingBufferMemory, nullptr);
 }
 
 void VulkanRenderer::CreateDescriptorSets()
