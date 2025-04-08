@@ -144,7 +144,7 @@ void VulkanRenderer::InitVulkan()
     CreateSyncObjects();
 
     glfwSetCursorPosCallback(m_window, MouseCallback);
-    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 void VulkanRenderer::ProcessInput(GLFWwindow* window)
@@ -158,48 +158,67 @@ void VulkanRenderer::ProcessInput(GLFWwindow* window)
         m_cameraPos -= glm::normalize(glm::cross(m_cameraFront, m_cameraUp)) * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         m_cameraPos += glm::normalize(glm::cross(m_cameraFront, m_cameraUp)) * cameraSpeed;
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        if (m_isCursorCaptured)
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            m_isCursorCaptured = false;
+        }
+    }
+
+    if (!m_isCursorCaptured)
+    {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+        {
+            if (!ImGui::IsAnyItemHovered() && !ImGui::IsWindowHovered())
+            {
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                m_isCursorCaptured = true;
+            }
+        }
+    }
 }
 
 void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
     VulkanRenderer* app = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
-    if (app->m_firstMouse)
+
+    if (app->m_isCursorCaptured)
     {
+        if (app->m_firstMouse)
+        {
+            app->m_lastX = xpos;
+            app->m_lastY = ypos;
+            app->m_firstMouse = false;
+        }
+
+        float xoffset = xpos - app->m_lastX;
+        float yoffset = app->m_lastY - ypos;
         app->m_lastX = xpos;
         app->m_lastY = ypos;
-        app->m_firstMouse = false;
+
+        float sensitivity = 0.1f;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        app->m_yaw += xoffset;
+        app->m_pitch -= yoffset;
+
+        if (app->m_pitch > 89.0f) app->m_pitch = 89.0f;
+        if (app->m_pitch < -89.0f) app->m_pitch = -89.0f;
+
+        glm::vec3 front;
+        front.x = cos(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
+        front.y = sin(glm::radians(app->m_pitch));
+        front.z = sin(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
+        app->m_cameraFront = glm::normalize(front);
     }
-
-    float xoffset = xpos - app->m_lastX;
-    float yoffset = app->m_lastY - ypos;
-    app->m_lastX = xpos;
-    app->m_lastY = ypos;
-
-    float sensitivity = 0.1f;
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-
-    app->m_yaw += xoffset;
-    app->m_pitch -= yoffset;
-
-    if (app->m_pitch > 89.0f) app->m_pitch = 89.0f;
-    if (app->m_pitch < -89.0f) app->m_pitch = -89.0f;
-
-    glm::vec3 front;
-    front.x = cos(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
-    front.y = sin(glm::radians(app->m_pitch));
-    front.z = sin(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
-    app->m_cameraFront = glm::normalize(front);
-
-    //std::cout << "Camera Front: " << glm::to_string(app->cameraFront) << std::endl;
 }
 
 void VulkanRenderer::MainLoop()
 {
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
     while (!glfwWindowShouldClose(m_window))
     {
         glfwPollEvents();
@@ -212,9 +231,7 @@ void VulkanRenderer::MainLoop()
         {
             ImGuiIO& io = ImGui::GetIO();
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+            ImGui::Begin("Physicated Raymarching");
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();

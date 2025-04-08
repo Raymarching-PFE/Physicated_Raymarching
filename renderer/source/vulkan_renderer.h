@@ -178,6 +178,7 @@ private:
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
     bool  m_firstMouse = true;
+    bool  m_isCursorCaptured = false;
 
 	std::chrono::high_resolution_clock::time_point lastTime;
 
