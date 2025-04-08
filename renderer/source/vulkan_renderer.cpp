@@ -14,6 +14,10 @@
 
 #include "tracy/Tracy.hpp"
 
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+
+
 float VulkanRenderer::GetDeltaTime()
 {
     std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
@@ -25,12 +29,62 @@ float VulkanRenderer::GetDeltaTime()
     return deltaTime.count();
 }
 
+void VulkanRenderer::CheckVkResult(VkResult err)
+{
+    if (err == 0)
+        return;
+
+    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+
+    if (err < 0)
+        abort();
+}
+
+void VulkanRenderer::InitImGui() const
+{
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+    ImGui::StyleColorsDark();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForVulkan(m_window, true);
+
+    ImGui_ImplVulkan_InitInfo initInfo = {};
+    initInfo.Instance = m_instance;
+    initInfo.PhysicalDevice = m_physicalDevice;
+    initInfo.Device = m_device;
+    initInfo.QueueFamily = m_queueFamily;
+
+#if COMPUTE
+    initInfo.Queue = m_computeQueue;
+#else
+    initInfo.Queue = m_graphicsQueue;
+#endif
+
+    initInfo.PipelineCache = VK_NULL_HANDLE;
+    initInfo.DescriptorPool = m_descriptorPool;
+    initInfo.RenderPass = m_renderPass;
+    initInfo.Subpass = 0;
+    initInfo.MinImageCount = m_minImageCount;
+    initInfo.ImageCount = m_imageCount;
+    initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    initInfo.Allocator = nullptr;
+    initInfo.CheckVkResultFn = CheckVkResult;
+
+    ImGui_ImplVulkan_Init(&initInfo);
+}
+
 void VulkanRenderer::Run()
 {
-     InitWindow();
-     InitVulkan();
-     MainLoop();
-     Cleanup();
+    InitWindow();
+    InitVulkan();
+    InitImGui();
+    MainLoop();
+    Cleanup();
 }
 
 void VulkanRenderer::InitWindow()
@@ -144,11 +198,30 @@ void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
 
 void VulkanRenderer::MainLoop()
 {
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
     while (!glfwWindowShouldClose(m_window))
     {
         glfwPollEvents();
         glfwPostEmptyEvent();
         ProcessInput(m_window);
+
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        {
+            static float f = 0.0f;
+
+            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+            // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / m_io.Framerate, m_io.Framerate);
+            ImGui::End();
+        }
+
+        ImGui::Render();
+
         BeginFrame();
         DrawFrame();
         EndFrame();
@@ -169,6 +242,10 @@ void VulkanRenderer::CleanupSwapChain() const
 void VulkanRenderer::Cleanup() const
 {
     vkDeviceWaitIdle(m_device);
+
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     CleanupSwapChain();
 
@@ -433,6 +510,9 @@ void VulkanRenderer::CreateSwapChain()
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    m_minImageCount = swapChainSupport.capabilities.minImageCount;
+    m_imageCount = imageCount;
 
     const QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice);
     const uint32_t queueFamilyIndices[] = {indices.graphicsAndComputeFamily.value(), indices.presentFamily.value()};
@@ -807,6 +887,7 @@ void VulkanRenderer::CreateDescriptorPool()
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
@@ -1214,7 +1295,7 @@ SwapChainSupportDetails VulkanRenderer::QuerySwapChainSupport(const VkPhysicalDe
     return details;
 }
 
-bool VulkanRenderer::IsDeviceSuitable(const VkPhysicalDevice device) const
+bool VulkanRenderer::IsDeviceSuitable(const VkPhysicalDevice device)
 {
     const QueueFamilyIndices indices = FindQueueFamilies(device);
 
@@ -1249,7 +1330,7 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device)
     return requiredExtensions.empty();
 }
 
-QueueFamilyIndices VulkanRenderer::FindQueueFamilies(const VkPhysicalDevice device) const
+QueueFamilyIndices VulkanRenderer::FindQueueFamilies(const VkPhysicalDevice device)
 {
     QueueFamilyIndices indices;
 
@@ -1281,6 +1362,8 @@ QueueFamilyIndices VulkanRenderer::FindQueueFamilies(const VkPhysicalDevice devi
 
         ++i;
     }
+
+    m_queueFamily = indices.graphicsAndComputeFamily.value();
 
     return indices;
 }

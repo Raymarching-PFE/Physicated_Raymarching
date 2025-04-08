@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 #include <chrono>
+#include <backends/imgui_impl_vulkan.h>
 #include <shaderc/shaderc.hpp>
 
 #include "model_parser.h"
@@ -176,13 +177,9 @@ private:
     float m_pitch = 0.0f;
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
-    bool m_firstMouse = true;
+    bool  m_firstMouse = true;
 
 	std::chrono::high_resolution_clock::time_point lastTime;
-
-    float GetDeltaTime();
-    void ProcessInput(GLFWwindow* window);
-    static void MouseCallback(GLFWwindow* window, double xpos, double ypos);
 
     GLFWwindow* m_window = nullptr;
 
@@ -222,12 +219,16 @@ private:
 
     bool m_framebufferResized = false;
 
-    std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VkBuffer>       m_uniformBuffers;
     std::vector<VkDeviceMemory> m_uniformBuffersMemory;
-    std::vector<void*> m_uniformBuffersMapped;
+    std::vector<void*>          m_uniformBuffersMapped;
 
     VkShaderModule m_vertexShader = VK_NULL_HANDLE;
     VkShaderModule m_fragmentShader = VK_NULL_HANDLE;
+
+    uint32_t                  m_minImageCount = 0;
+    uint32_t                  m_imageCount = 0;
+    uint32_t                  m_queueFamily = (uint32_t)-1;
 
 #if COMPUTE
     VkShaderModule m_computeShader = VK_NULL_HANDLE;
@@ -235,28 +236,35 @@ private:
     VkQueue m_computeQueue = nullptr;
 
     VkDescriptorSetLayout m_computeDescriptorSetLayout = nullptr;
-    VkPipelineLayout m_computePipelineLayout = nullptr;
-    VkPipeline m_computePipeline = nullptr;
+    VkPipelineLayout      m_computePipelineLayout = nullptr;
+    VkPipeline            m_computePipeline = nullptr;
 
-    std::vector<VkBuffer> m_shaderStorageBuffers;
+    std::vector<VkBuffer>       m_shaderStorageBuffers;
     std::vector<VkDeviceMemory> m_shaderStorageBuffersMemory;
 
     std::vector<VkDescriptorSet> m_computeDescriptorSets;
     std::vector<VkCommandBuffer> m_computeCommandBuffers;
 
     std::vector<VkSemaphore> m_computeFinishedSemaphores;
-    std::vector<VkFence> m_computeInFlightFences;
+    std::vector<VkFence>     m_computeInFlightFences;
 
-    float m_lastFrameTime = 0.0f;
+    float  m_lastFrameTime = 0.0f;
     double m_lastTime = 0.0f;
 #else
-    VkBuffer m_vertexBuffer = nullptr;
-    VkDeviceMemory m_vertexBufferMemory = nullptr;
-    VkBuffer m_indexBuffer = nullptr;
-    VkDeviceMemory m_indexBufferMemory = nullptr;
-    VkBuffer m_quadIndexBuffer = nullptr;
-    VkDeviceMemory m_quadindexBufferMemory = nullptr;
+    VkBuffer        m_vertexBuffer = nullptr;
+    VkDeviceMemory  m_vertexBufferMemory = nullptr;
+    VkBuffer        m_indexBuffer = nullptr;
+    VkDeviceMemory  m_indexBufferMemory = nullptr;
+    VkBuffer        m_quadIndexBuffer = nullptr;
+    VkDeviceMemory  m_quadindexBufferMemory = nullptr;
 #endif
+
+    float GetDeltaTime();
+    void ProcessInput(GLFWwindow* window);
+    static void MouseCallback(GLFWwindow* window, double xpos, double ypos);
+
+    static void CheckVkResult(VkResult err);
+    void InitImGui() const;
 
     void InitWindow();
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
@@ -297,9 +305,9 @@ private:
     static VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device) const;
-    bool IsDeviceSuitable(VkPhysicalDevice device) const;
+    bool IsDeviceSuitable(VkPhysicalDevice device);
     static bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
-    QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
+    QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
     static std::vector<const char*> GetRequiredExtensions();
     static bool CheckValidationLayerSupport();
     static std::vector<char> ReadFile(const std::string& filename);
