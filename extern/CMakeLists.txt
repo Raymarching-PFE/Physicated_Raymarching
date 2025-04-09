@@ -12,15 +12,6 @@ set(GLM_ENABLE_CXX_20 ON CACHE BOOL "" FORCE)
 add_subdirectory(glm)
 
 
-########## STB
-add_library(stb_image INTERFACE)
-target_include_directories(stb_image INTERFACE stb_image)
-
-
-########## TINYOBJ
-add_subdirectory(tinyobjloader)
-
-
 ########## HAPPLY
 add_library(happly INTERFACE)
 target_include_directories(happly INTERFACE happly)

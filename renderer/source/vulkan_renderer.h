@@ -197,44 +197,45 @@ private:
     bool  m_firstMouse = true;
     bool  m_isCursorCaptured = false;
 
-    int m_currentModelIndex = 0;
+    int                      m_currentModelIndex = 0;
     std::vector<std::string> m_modelPaths;
 
-	std::chrono::high_resolution_clock::time_point lastTime;
+	std::chrono::high_resolution_clock::time_point m_lastTime;
 
     GLFWwindow* m_window = nullptr;
 
-    VkInstance m_instance = nullptr;
+    VkInstance               m_instance = nullptr;
     VkDebugUtilsMessengerEXT m_debugMessenger = nullptr;
-    VkSurfaceKHR m_surface = nullptr;
+    VkSurfaceKHR             m_surface = nullptr;
 
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    VkDevice m_device = nullptr;
+    VkDevice         m_device = nullptr;
 
     VkQueue m_graphicsQueue = nullptr;
     VkQueue m_presentQueue = nullptr;
 
-    VkSwapchainKHR m_swapChain = nullptr;
-    std::vector<VkImage> m_swapChainImages;
-    VkFormat m_swapChainImageFormat = {};
-    VkExtent2D m_swapChainExtent = {};
-    std::vector<VkImageView> m_swapChainImageViews;
+    VkSwapchainKHR             m_swapChain = nullptr;
+    std::vector<VkImage>       m_swapChainImages;
+    VkFormat                   m_swapChainImageFormat = {};
+    VkExtent2D                 m_swapChainExtent = {};
+    std::vector<VkImageView>   m_swapChainImageViews;
     std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
-    VkRenderPass m_renderPass = nullptr;
+    VkRenderPass          m_renderPass = nullptr;
     VkDescriptorSetLayout m_descriptorSetLayout = nullptr;
-    VkPipelineLayout m_pipelineLayout = nullptr;
-    VkPipeline m_graphicsPipeline = nullptr;
+    VkPipelineLayout      m_pipelineLayout = nullptr;
+    VkPipeline            m_graphicsPipeline = nullptr;
 
-    VkDescriptorPool m_descriptorPool = nullptr;
+    VkDescriptorPool             m_descriptorPool = nullptr;
     std::vector<VkDescriptorSet> m_descriptorSets;
 
-    VkCommandPool m_commandPool = nullptr;
+    VkCommandPool                m_commandPool = nullptr;
     std::vector<VkCommandBuffer> m_commandBuffers;
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
-    std::vector<VkFence> m_inFlightFences;
+    std::vector<VkFence>     m_inFlightFences;
+
     uint32_t m_currentFrame = 0;
     uint32_t m_imageIndex = 0;
 
@@ -244,24 +245,24 @@ private:
     std::vector<VkDeviceMemory> m_uniformBuffersMemory;
     std::vector<void*>          m_uniformBuffersMapped;
 
-    VkShaderModule m_vertexShader = VK_NULL_HANDLE;
-    VkShaderModule m_fragmentShader = VK_NULL_HANDLE;
-
-    uint32_t                  m_minImageCount = 0;
-    uint32_t                  m_imageCount = 0;
-    uint32_t                  m_queueFamily = (uint32_t)-1;
-
-    ModelCache m_modelCache;
-    std::vector<Vertex> m_vertices;
-    std::vector<uint32_t> m_indices;
-    size_t m_vertexNb = 0;
-
     VkBuffer        m_vertexBuffer = nullptr;
     VkDeviceMemory  m_vertexBufferMemory = nullptr;
     VkBuffer        m_indexBuffer = nullptr;
     VkDeviceMemory  m_indexBufferMemory = nullptr;
     VkBuffer        m_quadIndexBuffer = nullptr;
     VkDeviceMemory  m_quadIndexBufferMemory = nullptr;
+
+    VkShaderModule m_vertexShader = VK_NULL_HANDLE;
+    VkShaderModule m_fragmentShader = VK_NULL_HANDLE;
+
+    uint32_t m_minImageCount = 0;
+    uint32_t m_imageCount = 0;
+    uint32_t m_queueFamily = (uint32_t)-1;
+
+    ModelCache              m_modelCache;
+    std::vector<Vertex>     m_vertices;
+    std::vector<uint32_t>   m_indices;
+    size_t                  m_vertexNb = 0;
 
 #if COMPUTE
     VkShaderModule m_computeShader = VK_NULL_HANDLE;
@@ -280,9 +281,6 @@ private:
 
     std::vector<VkSemaphore> m_computeFinishedSemaphores;
     std::vector<VkFence>     m_computeInFlightFences;
-
-    float  m_lastFrameTime = 0.0f;
-    double m_lastTime = 0.0f;
 #endif
 
     float GetDeltaTime();

@@ -2,9 +2,6 @@
 
 #include <unordered_map>
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include "tiny_obj_loader.h"
-
 
 std::vector<std::array<double, 3>> ModelParser::GetPlyVertexPos(happly::PLYData* plyObj, const std::string& vertexElementName)
 {

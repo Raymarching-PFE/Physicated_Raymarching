@@ -13,8 +13,6 @@
 
 #include "happly.h"
 
-const std::string OBJ_PATH = "point_clouds/bunny.obj";
-
 
 struct Vertex
 {

@@ -22,9 +22,9 @@ float VulkanRenderer::GetDeltaTime()
 {
     std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - lastTime);
+    std::chrono::duration<float> deltaTime = std::chrono::duration_cast<std::chrono::duration<float>>(currentTime - m_lastTime);
 
-    lastTime = currentTime;
+    m_lastTime = currentTime;
 
     return deltaTime.count();
 }

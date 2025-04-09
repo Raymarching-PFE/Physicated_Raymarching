@@ -23,8 +23,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${tracy_SOURCE_DIR})
 target_link_libraries(${PROJECT_NAME}
         PRIVATE glfw
         PRIVATE glm
-        PRIVATE stb_image
-        PRIVATE tinyobjloader
         PRIVATE happly
         PRIVATE Vulkan::Vulkan
         PRIVATE Vulkan::shaderc_combined
