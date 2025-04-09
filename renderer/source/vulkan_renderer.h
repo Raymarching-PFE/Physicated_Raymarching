@@ -197,6 +197,7 @@ private:
     bool  m_firstMouse = true;
     bool  m_isCursorCaptured = false;
 
+    int m_currentModelIndex = 0;
     std::vector<std::string> m_modelPaths;
 
 	std::chrono::high_resolution_clock::time_point lastTime;
@@ -335,9 +336,12 @@ private:
     static bool CheckValidationLayerSupport();
     static std::vector<char> ReadFile(const std::string& filename);
 
-    void LoadModel();
+    void LoadModel(const std::string& path);
     void CreateVertexBuffer();
     void CreateIndexBuffer();
+
+    void ReloadModel(const std::string& path);
+    void DestroyModelResources();
 
 #if COMPUTE
     void CreateShaderStorageBuffers();

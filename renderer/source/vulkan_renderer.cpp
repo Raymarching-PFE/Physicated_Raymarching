@@ -122,7 +122,7 @@ void VulkanRenderer::InitVulkan()
     CreateComputePipeline();
     CreateCommandPool();
     CreateFramebuffers();
-    LoadModel();
+    LoadModel(m_modelPaths[m_currentModelIndex]);
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateShaderStorageBuffers();
@@ -136,7 +136,7 @@ void VulkanRenderer::InitVulkan()
     CreateGraphicsPipeline();
     CreateCommandPool();
     CreateFramebuffers();
-    LoadModel();
+    LoadModel(m_modelPaths[m_currentModelIndex]);
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
@@ -221,6 +221,43 @@ void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
     }
 }
 
+void VulkanRenderer::DestroyModelResources()
+{
+    if (m_indexBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
+        vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
+        m_indexBuffer = VK_NULL_HANDLE;
+        m_indexBufferMemory = VK_NULL_HANDLE;
+    }
+
+    if (m_vertexBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
+        vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
+        m_vertexBuffer = VK_NULL_HANDLE;
+        m_vertexBufferMemory = VK_NULL_HANDLE;
+    }
+
+    if (m_quadIndexBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(m_device, m_quadIndexBuffer, nullptr);
+        vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
+        m_quadIndexBuffer = VK_NULL_HANDLE;
+        m_quadIndexBufferMemory = VK_NULL_HANDLE;
+    }
+}
+
+void VulkanRenderer::ReloadModel(const std::string& path)
+{
+    vkDeviceWaitIdle(m_device); // pour être sûr que tout est fini avant de modifier
+
+    DestroyModelResources();  // une fonction à créer si besoin
+    LoadModel(path);
+    CreateVertexBuffer();
+    CreateIndexBuffer();
+}
+
 void VulkanRenderer::MainImGui()
 {
     ImGui_ImplVulkan_NewFrame();
@@ -230,8 +267,25 @@ void VulkanRenderer::MainImGui()
     ImGui::Begin("Physicated Raymarching");
 
         ProcessInput(m_window);
-        // ImGui::Text("Point cloud file: %s", PLY_PATH.c_str());
-        // ImGui::Text("Number of points: %d", m_vertexNb);
+
+        if (!m_modelPaths.empty())
+        {
+            std::vector<const char*> modelNames;
+            for (const auto& path : m_modelPaths)
+                modelNames.push_back(path.c_str());
+
+            static int selectedIndex = m_currentModelIndex;
+            if (ImGui::Combo("Select .ply file", &selectedIndex, modelNames.data(), static_cast<int>(modelNames.size())))
+            {
+                if (selectedIndex != m_currentModelIndex)
+                {
+                    m_currentModelIndex = selectedIndex;
+                    ReloadModel(m_modelPaths[m_currentModelIndex]);
+                }
+            }
+        }
+
+        ImGui::Text("Number of points: %d", m_vertexNb);
 
         ImGuiIO& io = ImGui::GetIO();
         float clampedFPS = std::min(io.Framerate, 144.0f);
@@ -248,7 +302,6 @@ void VulkanRenderer::MainLoop()
     {
         glfwPollEvents();
         glfwPostEmptyEvent();
-        // ProcessInput(m_window);
 
         MainImGui();
 
@@ -1496,9 +1549,9 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::DebugCallback(VkDebugUtilsMessage
     return VK_FALSE;
 }
 
-void VulkanRenderer::LoadModel()
+void VulkanRenderer::LoadModel(const std::string& path)
 {
-    happly::PLYData plyObj(PLY_PATH);
+    happly::PLYData plyObj(path);
     plyObj.validate();
     m_vertexNb = plyObj.getElement("vertex").count;
     ModelParser::LoadPlyModel(&plyObj);
