@@ -293,10 +293,7 @@ private:
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 
     void CreateStorageImage();
-    void CreateStorageImageView();
     void CreateComputeResources();
-    void UpdateFrame();
-    void TransitionImageToGeneral(VkCommandBuffer commandBuffer);
 
     VkImage _storageImage;
     VkDeviceMemory _storageImageMemory;

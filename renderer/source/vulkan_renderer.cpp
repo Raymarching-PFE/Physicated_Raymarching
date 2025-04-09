@@ -73,16 +73,17 @@ void VulkanRenderer::InitVulkan()
     CreateColorResources();
     CreateDepthResources();
     CreateFramebuffers();
-    CreateTextureImage();
-    CreateTextureImageView();
+    //CreateTextureImage();
+    //CreateTextureImageView();
+    //CreateTextureSampler();
     CreateTextureSampler();
     LoadModel();
     CreateVertexBuffer();
     CreateIndexBuffer();
     CreateUniformBuffers();
     CreateDescriptorPool();
-    CreateDescriptorSets();
     CreateComputeResources();
+    CreateDescriptorSets();
     CreateCommandBuffers();
     CreateComputeCommandBuffers();
     CreateSyncObjects();
@@ -90,7 +91,6 @@ void VulkanRenderer::InitVulkan()
     glfwSetCursorPosCallback(_window, MouseCallback);
     glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
-
 
 void VulkanRenderer::ProcessInput(GLFWwindow* window)
 {
@@ -589,36 +589,6 @@ void VulkanRenderer::CreateDescriptorSetLayout()
         throw std::runtime_error("Failed to create descriptor set layout!");
 }
 
-//void VulkanRenderer::CreateComputeDescriptorSetLayout()
-//{
-//    std::array<VkDescriptorSetLayoutBinding, 3> layoutBindings{};
-//    layoutBindings[0].binding = 0;
-//    layoutBindings[0].descriptorCount = 1;
-//    layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-//    layoutBindings[0].pImmutableSamplers = nullptr;
-//    layoutBindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-//
-//    layoutBindings[1].binding = 1;
-//    layoutBindings[1].descriptorCount = 1;
-//    layoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-//    layoutBindings[1].pImmutableSamplers = nullptr;
-//    layoutBindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-//
-//    layoutBindings[2].binding = 2;
-//    layoutBindings[2].descriptorCount = 1;
-//    layoutBindings[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-//    layoutBindings[2].pImmutableSamplers = nullptr;
-//    layoutBindings[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-//
-//    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-//    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-//    layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-//    layoutInfo.pBindings = layoutBindings.data();
-//
-//    if (vkCreateDescriptorSetLayout(_device, &layoutInfo, nullptr, &_computeDescriptorSetLayout) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to create compute descriptor set layout!");
-//}
-
 void VulkanRenderer::CreateComputeDescriptorSetLayout()
 {
     std::array<VkDescriptorSetLayoutBinding, 2> layoutBindings{};
@@ -643,11 +613,10 @@ void VulkanRenderer::CreateComputeDescriptorSetLayout()
         throw std::runtime_error("Failed to create compute descriptor set layout!");
 }
 
-
 void VulkanRenderer::CreateGraphicsPipeline()
 {
     const std::vector<char> vertShaderCode = ReadFile("shaders/basic_Raymarching_vert.spv");
-    const std::vector<char> fragShaderCode = ReadFile("shaders/basic_Raymarching_frag.spv");
+    const std::vector<char> fragShaderCode = ReadFile("shaders/compute_Raymarching_frag.spv");
 
     VkShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
@@ -665,17 +634,6 @@ void VulkanRenderer::CreateGraphicsPipeline()
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
-    /*VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-    VkVertexInputBindingDescription bindingDescription = Vertex::GetBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::GetAttributeDescriptions();
-
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();*/
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -922,37 +880,6 @@ void VulkanRenderer::CreateGraphicsComputePipeline()
     vkDestroyShaderModule(_device, vertShaderModule, nullptr);
 }
 
-//void VulkanRenderer::CreateComputePipeline()
-//{
-//    std::vector<char> computeShaderCode = ReadFile("shaders/raymarching.spv");
-//
-//    VkShaderModule computeShaderModule = CreateShaderModule(computeShaderCode);
-//
-//    VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
-//    computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//    computeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-//    computeShaderStageInfo.module = computeShaderModule;
-//    computeShaderStageInfo.pName = "main";
-//
-//    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-//    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-//    pipelineLayoutInfo.setLayoutCount = 1;
-//    pipelineLayoutInfo.pSetLayouts = &_computeDescriptorSetLayout;
-//
-//    if (vkCreatePipelineLayout(_device, &pipelineLayoutInfo, nullptr, &_computePipelineLayout) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to create compute pipeline layout!");
-//
-//    VkComputePipelineCreateInfo pipelineInfo{};
-//    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-//    pipelineInfo.layout = _computePipelineLayout;
-//    pipelineInfo.stage = computeShaderStageInfo;
-//
-//    if (vkCreateComputePipelines(_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_computePipeline) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to create compute pipeline!");
-//
-//    vkDestroyShaderModule(_device, computeShaderModule, nullptr);
-//}
-
 void VulkanRenderer::CreateComputePipeline()
 {
     std::vector<char> computeShaderCode = ReadFile("shaders/raymarching.spv");
@@ -983,39 +910,6 @@ void VulkanRenderer::CreateComputePipeline()
 
     vkDestroyShaderModule(_device, computeShaderModule, nullptr);
 }
-
-//void VulkanRenderer::CreateComputePipeline()
-//{
-//    // Charger le shader compute
-//    //VkShaderModule computeShaderModule = LoadShader("raymarching.comp");
-//    const std::vector<char> shaderCode = ReadFile("shaders/raymarching.spv");
-//    VkShaderModule computeShaderModule = CreateShaderModule(shaderCode);
-//
-//    // Définition du pipeline
-//    VkPipelineShaderStageCreateInfo shaderStageInfo{};
-//    shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//    shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-//    shaderStageInfo.module = computeShaderModule;
-//    shaderStageInfo.pName = "main";
-//
-//    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-//    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-//    pipelineLayoutInfo.setLayoutCount = 1;
-//    pipelineLayoutInfo.pSetLayouts = &_computeDescriptorSetLayout;
-//
-//    if (vkCreatePipelineLayout(_device, &pipelineLayoutInfo, nullptr, &_computePipelineLayout) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to create compute pipeline layout!");
-//
-//    VkComputePipelineCreateInfo pipelineInfo{};
-//    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-//    pipelineInfo.stage = shaderStageInfo;
-//    pipelineInfo.layout = _computePipelineLayout;
-//
-//	if (vkCreateComputePipelines(_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_computePipeline) != VK_SUCCESS)
-//		throw std::runtime_error("Failed to create compute pipeline!");
-//
-//    vkDestroyShaderModule(_device, computeShaderModule, nullptr);
-//}
 
 void VulkanRenderer::CreateFramebuffers()
 {
@@ -1174,12 +1068,20 @@ void VulkanRenderer::CreateTextureImage()
 
     TransitionImageLayout(_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, _mipLevels);
     CopyBufferToImage(stagingBuffer, _textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+
+    TransitionImageLayout(
+        _textureImage,
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        1
+    );
     //transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
 
     vkDestroyBuffer(_device, stagingBuffer, nullptr);
     vkFreeMemory(_device, stagingBufferMemory, nullptr);
 
-    GenerateMipmaps(_textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, _mipLevels);
+    //GenerateMipmaps(_textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, _mipLevels);
 }
 
 void VulkanRenderer::GenerateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) const
@@ -1260,14 +1162,43 @@ void VulkanRenderer::GenerateMipmaps(VkImage image, VkFormat imageFormat, int32_
     barrier.subresourceRange.baseMipLevel = mipLevels - 1;
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 
-    vkCmdPipelineBarrier(commandBuffer,
-        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        0,
         0, nullptr,
         0, nullptr,
-        1, &barrier);
+        1, &barrier
+    );
+
+    /*VkImageMemoryBarrier barrier = {};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );*/
 
     EndSingleTimeCommands(commandBuffer);
 }
@@ -1304,11 +1235,35 @@ void VulkanRenderer::CreateTextureImageView()
     _textureImageView = CreateImageView(_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, _mipLevels);
 }
 
+//void VulkanRenderer::CreateTextureSampler()
+//{
+//    VkPhysicalDeviceProperties properties{};
+//    vkGetPhysicalDeviceProperties(_physicalDevice, &properties);
+//
+//    VkSamplerCreateInfo samplerInfo{};
+//    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+//    samplerInfo.magFilter = VK_FILTER_LINEAR;
+//    samplerInfo.minFilter = VK_FILTER_LINEAR;
+//    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+//    samplerInfo.anisotropyEnable = VK_TRUE;
+//    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+//    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+//    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+//    samplerInfo.compareEnable = VK_FALSE;
+//    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+//    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+//    samplerInfo.minLod = 0.0f; // static_cast<float>(mipLevels / 2);
+//    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
+//    samplerInfo.mipLodBias = 0.0f;
+//
+//    if (vkCreateSampler(_device, &samplerInfo, nullptr, &_textureSampler) != VK_SUCCESS)
+//        throw std::runtime_error("Failed to create texture sampler!");
+//}
+
 void VulkanRenderer::CreateTextureSampler()
 {
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(_physicalDevice, &properties);
-
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -1316,16 +1271,13 @@ void VulkanRenderer::CreateTextureSampler()
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    samplerInfo.anisotropyEnable = VK_FALSE;
+    samplerInfo.maxAnisotropy = 1.0f;
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     samplerInfo.unnormalizedCoordinates = VK_FALSE;
     samplerInfo.compareEnable = VK_FALSE;
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.minLod = 0.0f; // static_cast<float>(mipLevels / 2);
-    samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
-    samplerInfo.mipLodBias = 0.0f;
 
     if (vkCreateSampler(_device, &samplerInfo, nullptr, &_textureSampler) != VK_SUCCESS)
         throw std::runtime_error("Failed to create texture sampler!");
@@ -1386,83 +1338,6 @@ void VulkanRenderer::CreateImage(uint32_t width, uint32_t height, uint32_t mipLe
     vkBindImageMemory(_device, image, imageMemory, 0);
 }
 
-void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) const
-{
-    VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
-
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = oldLayout;
-    barrier.newLayout = newLayout;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = image;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = mipLevels;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-
-    VkPipelineStageFlags sourceStage;
-    VkPipelineStageFlags destinationStage;
-
-    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-    {
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-        if (HasStencilComponent(format))
-            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-    }
-    else
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-    {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    }
-    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-    {
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    }
-    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-    {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    }
-    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_GENERAL)
-    {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-    }
-    else
-        throw std::invalid_argument("Unsupported layout transition!");
-
-    vkCmdPipelineBarrier(
-        commandBuffer,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    EndSingleTimeCommands(commandBuffer);
-}
-
 //void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) const
 //{
 //    VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
@@ -1480,18 +1355,16 @@ void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkIma
 //    barrier.subresourceRange.baseArrayLayer = 0;
 //    barrier.subresourceRange.layerCount = 1;
 //
-//    VkPipelineStageFlags sourceStage;
-//    VkPipelineStageFlags destinationStage;
-//
+//    // Si c’est un format depth, on adapte le aspectMask
 //    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 //    {
 //        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-//
 //        if (HasStencilComponent(format))
 //            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 //    }
-//    else
-//        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+//
+//    VkPipelineStageFlags sourceStage;
+//    VkPipelineStageFlags destinationStage;
 //
 //    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
 //    {
@@ -1501,13 +1374,37 @@ void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkIma
 //        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 //        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 //    }
-//    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+//    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL)
 //    {
 //        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-//        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+//        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 //
 //        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+//        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+//    }
+//    else if (oldLayout == VK_IMAGE_LAYOUT_GENERAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+//    {
+//        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+//        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+//
+//        sourceStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 //        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+//    }
+//    else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL)
+//    {
+//        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+//        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+//
+//        sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+//        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+//    }
+//    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_GENERAL)
+//    {
+//        barrier.srcAccessMask = 0;
+//        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+//
+//        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+//        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 //    }
 //    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
 //    {
@@ -1517,8 +1414,24 @@ void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkIma
 //        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 //        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 //    }
+//    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+//    {
+//        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+//        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+//
+//        sourceStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+//        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+//    }
 //    else
+//    {
 //        throw std::invalid_argument("Unsupported layout transition!");
+//    }
+//
+//    /*
+//    * VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+//        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+//    */
+//
 //
 //    vkCmdPipelineBarrier(
 //        commandBuffer,
@@ -1531,6 +1444,104 @@ void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkIma
 //
 //    EndSingleTimeCommands(commandBuffer);
 //}
+
+void VulkanRenderer::TransitionImageLayout(
+    VkImage image,
+    VkFormat format,
+    VkImageLayout oldLayout,
+    VkImageLayout newLayout,
+    uint32_t mipLevels
+) const
+{
+    VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = image;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = mipLevels;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    VkPipelineStageFlags sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) 
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL) 
+{
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_GENERAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) 
+{
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) 
+{
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+
+        // S'assurer que le aspectMask est correct pour le depth (avec ou sans stencil)
+        if (HasStencilComponent(format))
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        else
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL)
+    {
+        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+    }
+    else
+        throw std::invalid_argument("Unsupported layout transition!");
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        sourceStage,
+        destinationStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+
+    EndSingleTimeCommands(commandBuffer);
+}
+
+
 
 void VulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const
 {
@@ -1662,65 +1673,6 @@ void VulkanRenderer::CreateDescriptorPool()
         throw std::runtime_error("Failed to create descriptor pool!");
 }
 
-//void VulkanRenderer::CreateComputeDescriptorSets()
-//{
-//    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, _computeDescriptorSetLayout);
-//    VkDescriptorSetAllocateInfo allocInfo{};
-//    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-//    allocInfo.descriptorPool = _descriptorPool;
-//    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-//    allocInfo.pSetLayouts = layouts.data();
-//
-//    _computeDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-//    if (vkAllocateDescriptorSets(_device, &allocInfo, _computeDescriptorSets.data()) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to allocate descriptor sets!");
-//
-//    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-//    {
-//        VkDescriptorBufferInfo uniformBufferInfo{};
-//        uniformBufferInfo.buffer = _uniformBuffers[i * NUMBER_OF_UBO]; //+ 1];
-//        uniformBufferInfo.offset = 0;
-//        uniformBufferInfo.range = sizeof(UniformBufferObject);
-//
-//        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
-//        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//        descriptorWrites[0].dstSet = _computeDescriptorSets[i];
-//        descriptorWrites[0].dstBinding = 0;
-//        descriptorWrites[0].dstArrayElement = 0;
-//        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-//        descriptorWrites[0].descriptorCount = 1;
-//        descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
-//
-//        VkDescriptorBufferInfo storageBufferInfoLastFrame{};
-//        storageBufferInfoLastFrame.buffer = _shaderStorageBuffers[(i - 1) % MAX_FRAMES_IN_FLIGHT];
-//        storageBufferInfoLastFrame.offset = 0;
-//        storageBufferInfoLastFrame.range = sizeof(Particle) * PARTICLE_COUNT;
-//
-//        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//        descriptorWrites[1].dstSet = _computeDescriptorSets[i];
-//        descriptorWrites[1].dstBinding = 1;
-//        descriptorWrites[1].dstArrayElement = 0;
-//        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-//        descriptorWrites[1].descriptorCount = 1;
-//        descriptorWrites[1].pBufferInfo = &storageBufferInfoLastFrame;
-//
-//        VkDescriptorBufferInfo storageBufferInfoCurrentFrame{};
-//        storageBufferInfoCurrentFrame.buffer = _shaderStorageBuffers[i];
-//        storageBufferInfoCurrentFrame.offset = 0;
-//        storageBufferInfoCurrentFrame.range = sizeof(Particle) * PARTICLE_COUNT;
-//
-//        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//        descriptorWrites[2].dstSet = _computeDescriptorSets[i];
-//        descriptorWrites[2].dstBinding = 2;
-//        descriptorWrites[2].dstArrayElement = 0;
-//        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-//        descriptorWrites[2].descriptorCount = 1;
-//        descriptorWrites[2].pBufferInfo = &storageBufferInfoCurrentFrame;
-//
-//        vkUpdateDescriptorSets(_device, 3, descriptorWrites.data(), 0, nullptr);
-//    }
-//}
-
 void VulkanRenderer::CreateComputeDescriptorSets()
 {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, _computeDescriptorSetLayout);
@@ -1744,6 +1696,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
         imageInfo.imageView = _storageImageView;
+        imageInfo.sampler = VK_NULL_HANDLE;
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1769,6 +1722,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
 void VulkanRenderer::CreateDescriptorSets()
 {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, _descriptorSetLayout);
+
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = _descriptorPool;
@@ -1781,18 +1735,21 @@ void VulkanRenderer::CreateDescriptorSets()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
+        // --- UBO : binding 0 ---
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = _uniformBuffers[i * NUMBER_OF_UBO];
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
+        // --- Sampler image (binding 1) — on utilise _storageImageView ---
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = _textureImageView;
+        imageInfo.imageView = _storageImageView;
         imageInfo.sampler = _textureSampler;
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
+        // Binding 0 : UBO
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = _descriptorSets[i];
         descriptorWrites[0].dstBinding = 0;
@@ -1801,6 +1758,7 @@ void VulkanRenderer::CreateDescriptorSets()
         descriptorWrites[0].descriptorCount = 1;
         descriptorWrites[0].pBufferInfo = &bufferInfo;
 
+        // Binding 1 : Combined image sampler (texture)
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = _descriptorSets[i];
         descriptorWrites[1].dstBinding = 1;
@@ -1813,59 +1771,6 @@ void VulkanRenderer::CreateDescriptorSets()
     }
 }
 
-//void VulkanRenderer::CreateDescriptorSets() 
-//{
-//    // Création du layout de descripteur
-//    VkDescriptorSetLayoutBinding storageImageBinding{};
-//    storageImageBinding.binding = 0;
-//    storageImageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-//    storageImageBinding.descriptorCount = 1;
-//    storageImageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-//
-//    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-//    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-//    layoutInfo.bindingCount = 1;
-//    layoutInfo.pBindings = &storageImageBinding;
-//
-//    vkCreateDescriptorSetLayout(_device, &layoutInfo, nullptr, &_computeDescriptorSetLayout);
-//
-//    // Création du pool de descripteurs
-//    VkDescriptorPoolSize poolSize{};
-//    poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-//    poolSize.descriptorCount = 1;
-//
-//    VkDescriptorPoolCreateInfo poolInfo{};
-//    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-//    poolInfo.poolSizeCount = 1;
-//    poolInfo.pPoolSizes = &poolSize;
-//    poolInfo.maxSets = 1;
-//
-//    vkCreateDescriptorPool(_device, &poolInfo, nullptr, &_computeDescriptorPool);
-//
-//    // Allocation et mise à jour du descripteur
-//    VkDescriptorSetAllocateInfo allocInfo{};
-//    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-//    allocInfo.descriptorPool = _computeDescriptorPool;
-//    allocInfo.descriptorSetCount = 1;
-//    allocInfo.pSetLayouts = &_computeDescriptorSetLayout;
-//
-//    _computeDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-//    vkAllocateDescriptorSets(_device, &allocInfo, &_computeDescriptorSets[_currentFrame]);
-//
-//    VkDescriptorImageInfo imageInfo{};
-//    imageInfo.imageView = _storageImageView;
-//    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-//
-//    VkWriteDescriptorSet descriptorWrite{};
-//    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//    descriptorWrite.dstSet = _computeDescriptorSets[_currentFrame];
-//    descriptorWrite.dstBinding = 0;
-//    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-//    descriptorWrite.descriptorCount = 1;
-//    descriptorWrite.pImageInfo = &imageInfo;
-//
-//    vkUpdateDescriptorSets(_device, 1, &descriptorWrite, 0, nullptr);
-//}
 
 void VulkanRenderer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
 {
@@ -1912,20 +1817,39 @@ VkCommandBuffer VulkanRenderer::BeginSingleTimeCommands() const
     return commandBuffer;
 }
 
+//void VulkanRenderer::EndSingleTimeCommands(VkCommandBuffer commandBuffer) const
+//{
+//    vkEndCommandBuffer(commandBuffer);
+//
+//    VkSubmitInfo submitInfo{};
+//    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//    submitInfo.commandBufferCount = 1;
+//    submitInfo.pCommandBuffers = &commandBuffer;
+//
+//    vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+//    vkQueueWaitIdle(_graphicsQueue);
+//
+//    vkFreeCommandBuffers(_device, _commandPool, 1, &commandBuffer);
+//}
+
 void VulkanRenderer::EndSingleTimeCommands(VkCommandBuffer commandBuffer) const
 {
-    vkEndCommandBuffer(commandBuffer);
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+        throw std::runtime_error("Failed to end command buffer!");
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    if (vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+        throw std::runtime_error("Failed to submit command buffer!");
+
     vkQueueWaitIdle(_graphicsQueue);
 
     vkFreeCommandBuffers(_device, _commandPool, 1, &commandBuffer);
 }
+
 
 void VulkanRenderer::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const
 {
@@ -1972,22 +1896,20 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0; // Optional
-    beginInfo.pInheritanceInfo = nullptr; // Optional
 
     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-        throw std::runtime_error("Failed to begin recording command buffer!");
+        throw std::runtime_error("Failed to begin recording graphics command buffer!");
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = _renderPass;
     renderPassInfo.framebuffer = _swapChainFramebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = _swapChainExtent;
 
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-    clearValues[1].depthStencil = {1.0f, 0};
+    clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+    clearValues[1].depthStencil = { 1.0f, 0 };
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
@@ -2004,20 +1926,14 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
     VkRect2D scissor{};
-    scissor.offset = {0, 0};
+    scissor.offset = { 0, 0 };
     scissor.extent = _swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkDeviceSize offsets[] = {0};
-
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 1, &_descriptorSets[_currentFrame], 0, nullptr);
-
+    // Dessin
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
-    vkCmdDraw(commandBuffer, 6, 1, 0, 0);
-
-    /*vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsComputePipeline);
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &_shaderStorageBuffers[_currentFrame], offsets);
-    vkCmdDraw(commandBuffer, PARTICLE_COUNT, 1, 0, 0);*/
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 1, &_descriptorSets[_currentFrame], 0, nullptr);
+    vkCmdDraw(commandBuffer, 6, 1, 0, 0);  // Quad complet
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -2029,52 +1945,43 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 //{
 //    VkCommandBufferBeginInfo beginInfo{};
 //    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-//    //vkBeginCommandBuffer(commandBuffer, &beginInfo);
 //
 //    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
 //        throw std::runtime_error("Failed to begin recording compute command buffer!");
 //
-//    // Lier le pipeline de compute
+//    // Dispatch du compute shader (image déjà en GENERAL grâce à init ou frame précédente)
 //    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _computePipeline);
-//    //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _computePipelineLayout,
-//    //    0, 1, &_computeDescriptorSets[_currentFrame], 0, nullptr);
-//
-//    //// Dispatch du compute shader
-//    //vkCmdDispatch(commandBuffer, WIDTH / 16, HEIGHT / 16, 1);
-//
-//    //// Barrière pour assurer que le compute shader a fini d’écrire dans l’image
-//    //VkImageMemoryBarrier barrier{};
-//    //barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-//    //barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-//    //barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-//    //barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-//    //barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-//    //barrier.image = _storageImage;
-//    //barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-//    //barrier.subresourceRange.baseMipLevel = 0;
-//    //barrier.subresourceRange.levelCount = 1;
-//    //barrier.subresourceRange.baseArrayLayer = 0;
-//    //barrier.subresourceRange.layerCount = 1;
-//
 //    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _computePipelineLayout, 0, 1, &_computeDescriptorSets[_currentFrame], 0, nullptr);
+//    vkCmdDispatch(commandBuffer, _swapChainExtent.width / 16, _swapChainExtent.height / 16, 1);
 //
-//    /*barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-//    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;*/
+//    // Transition: GENERAL to SHADER_READ_ONLY_OPTIMAL (preparation for fragment shader)
+//    VkImageMemoryBarrier barrier{};
+//    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+//    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+//    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+//    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+//    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+//    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+//    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+//    barrier.image = _storageImage;
+//    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+//    barrier.subresourceRange.baseMipLevel = 0;
+//    barrier.subresourceRange.levelCount = 1;
+//    barrier.subresourceRange.baseArrayLayer = 0;
+//    barrier.subresourceRange.layerCount = 1;
 //
-//    vkCmdDispatch(commandBuffer, PARTICLE_COUNT / 256, 1, 1);
-//
-//    //vkCmdPipelineBarrier(commandBuffer,
-//    //    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // Source : compute shader
-//    //    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Destination : fragment shader
-//    //    0,
-//    //    0, nullptr,
-//    //    0, nullptr,
-//    //    1, &barrier);
+//    vkCmdPipelineBarrier(
+//        commandBuffer,
+//        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+//        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+//        0,
+//        0, nullptr,
+//        0, nullptr,
+//        1, &barrier
+//    );
 //
 //    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 //        throw std::runtime_error("Failed to record compute command buffer!");
-//
-//    //vkEndCommandBuffer(commandBuffer);
 //}
 
 void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const
@@ -2085,13 +1992,95 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Failed to begin recording compute command buffer!");
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _computePipeline);
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _computePipelineLayout, 0, 1, &_computeDescriptorSets[_currentFrame], 0, nullptr);
-    vkCmdDispatch(commandBuffer, (_swapChainExtent.width + 15) / 16, (_swapChainExtent.height + 15) / 16, 1);
+    // 1. Transition SHADER_READ_ONLY_OPTIMAL TO GENERAL
+    VkImageMemoryBarrier barrierToGeneral{};
+    barrierToGeneral.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrierToGeneral.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrierToGeneral.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrierToGeneral.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;     // from fragment shader
+    barrierToGeneral.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;    // to compute shader
+    barrierToGeneral.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrierToGeneral.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrierToGeneral.image = _storageImage;
+    barrierToGeneral.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrierToGeneral.subresourceRange.baseMipLevel = 0;
+    barrierToGeneral.subresourceRange.levelCount = 1;
+    barrierToGeneral.subresourceRange.baseArrayLayer = 0;
+    barrierToGeneral.subresourceRange.layerCount = 1;
 
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,   // image était utilisée dans le fragment shader
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,    // on va l'utiliser dans le compute
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrierToGeneral
+    );
+
+    // 2. Bind pipeline and descriptor sets
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _computePipeline);
+
+    VkDescriptorImageInfo updatedImageInfo{};
+    updatedImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    updatedImageInfo.imageView = _storageImageView;
+    updatedImageInfo.sampler = VK_NULL_HANDLE;
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = _computeDescriptorSets[_currentFrame];
+    write.dstBinding = 1;
+    write.dstArrayElement = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    write.descriptorCount = 1;
+    write.pImageInfo = &updatedImageInfo;
+
+    vkUpdateDescriptorSets(_device, 1, &write, 0, nullptr);
+
+    vkCmdBindDescriptorSets(
+        commandBuffer,
+        VK_PIPELINE_BIND_POINT_COMPUTE,
+        _computePipelineLayout,
+        0, 1,
+        &_computeDescriptorSets[_currentFrame],
+        0, nullptr
+    );
+
+    // 3. Dispatch compute shader
+    vkCmdDispatch(commandBuffer, _swapChainExtent.width / 16, _swapChainExtent.height / 16, 1);
+
+    // 4. Transition GENERAL to SHADER_READ_ONLY_OPTIMAL
+    VkImageMemoryBarrier barrierToShaderRead{};
+    barrierToShaderRead.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrierToShaderRead.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+    barrierToShaderRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrierToShaderRead.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    barrierToShaderRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrierToShaderRead.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrierToShaderRead.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrierToShaderRead.image = _storageImage;
+    barrierToShaderRead.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrierToShaderRead.subresourceRange.baseMipLevel = 0;
+    barrierToShaderRead.subresourceRange.levelCount = 1;
+    barrierToShaderRead.subresourceRange.baseArrayLayer = 0;
+    barrierToShaderRead.subresourceRange.layerCount = 1;
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrierToShaderRead
+    );
+
+    // 5. end of command buffer
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
         throw std::runtime_error("Failed to record compute command buffer!");
 }
+
+
 
 
 void VulkanRenderer::CreateComputeCommandBuffers()
@@ -2146,10 +2135,7 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     ubo.cameraPos = cameraPos;
     ubo.cameraFront = cameraFront;
 	ubo.time = static_cast<float>(glfwGetTime());
-    //ubo.cameraUp = cameraUp;
 
-	//std::cout << "Time: " << ubo.time << std::endl;
-	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
     std::cout << "Frame: " << _currentFrame << ", Time: " << ubo.time << std::endl;
 
     memcpy(_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -2187,36 +2173,119 @@ void VulkanRenderer::DrawFrame() const
 {
     UpdateUniformBuffer(_currentFrame);
 
+    // 1. Enregistre le command buffer de compute
     RecordComputeCommandBuffer(_computeCommandBuffers[_currentFrame]);
 
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &_computeCommandBuffers[_currentFrame];
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &_computeFinishedSemaphores[_currentFrame];
+    // 2. Submit du compute
+    VkSubmitInfo computeSubmitInfo{};
+    computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    computeSubmitInfo.commandBufferCount = 1;
+    computeSubmitInfo.pCommandBuffers = &_computeCommandBuffers[_currentFrame];
+    computeSubmitInfo.signalSemaphoreCount = 1;
+    computeSubmitInfo.pSignalSemaphores = &_computeFinishedSemaphores[_currentFrame];
 
-    if (vkQueueSubmit(_computeQueue, 1, &submitInfo, _computeInFlightFences[_currentFrame]) != VK_SUCCESS)
+    TransitionImageLayout(
+        _storageImage,
+        VK_FORMAT_R32G32B32A32_SFLOAT,
+        VK_IMAGE_LAYOUT_GENERAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        1
+    );
+
+    if (vkQueueSubmit(_computeQueue, 1, &computeSubmitInfo, _computeInFlightFences[_currentFrame]) != VK_SUCCESS)
         throw std::runtime_error("Failed to submit compute command buffer!");
 
+    // 3. Enregistre le command buffer graphique
     RecordCommandBuffer(_commandBuffers[_currentFrame], _imageIndex);
 
-    VkSemaphore waitSemaphores[] = { _computeFinishedSemaphores[_currentFrame], _imageAvailableSemaphores[_currentFrame] };
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    // 4. Setup des sémaphores pour que graphics attende compute + image dispo
+    VkSemaphore waitSemaphores[] = {
+        _computeFinishedSemaphores[_currentFrame],
+        _imageAvailableSemaphores[_currentFrame]
+    };
+    VkPipelineStageFlags waitStages[] = {
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // il lit l’image
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    };
 
-    submitInfo.waitSemaphoreCount = 2;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &_commandBuffers[_currentFrame];
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &_renderFinishedSemaphores[_currentFrame];
+    // 5. Submit graphique
+    VkSubmitInfo graphicsSubmitInfo{};
+    graphicsSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    graphicsSubmitInfo.waitSemaphoreCount = 2;
+    graphicsSubmitInfo.pWaitSemaphores = waitSemaphores;
+    graphicsSubmitInfo.pWaitDstStageMask = waitStages;
+    graphicsSubmitInfo.commandBufferCount = 1;
+    graphicsSubmitInfo.pCommandBuffers = &_commandBuffers[_currentFrame];
+    graphicsSubmitInfo.signalSemaphoreCount = 1;
+    graphicsSubmitInfo.pSignalSemaphores = &_renderFinishedSemaphores[_currentFrame];
 
-    if (vkQueueSubmit(_graphicsQueue, 1, &submitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS)
+    if (vkQueueSubmit(_graphicsQueue, 1, &graphicsSubmitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS)
         throw std::runtime_error("Failed to submit draw command buffer!");
+
+    TransitionImageLayout(
+        _storageImage,
+        VK_FORMAT_R32G32B32A32_SFLOAT,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_GENERAL,
+        1
+    );
 }
+
+//void VulkanRenderer::DrawFrame() const
+//{
+//    UpdateUniformBuffer(_currentFrame);
+//
+//    // 0. Transition image _storageImage : SHADER_READ_ONLY_OPTIMAL to GENERAL
+//    // (pour que le compute shader puisse écrire dedans)
+//    TransitionImageLayout(
+//        _storageImage,
+//        VK_FORMAT_R32G32B32A32_SFLOAT,
+//        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+//        VK_IMAGE_LAYOUT_GENERAL,
+//        1
+//    );
+//
+//    // 1. Enregistre le command buffer de compute
+//    RecordComputeCommandBuffer(_computeCommandBuffers[_currentFrame]);
+//
+//    // 2. Submit du compute
+//    VkSubmitInfo computeSubmitInfo{};
+//    computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//    computeSubmitInfo.commandBufferCount = 1;
+//    computeSubmitInfo.pCommandBuffers = &_computeCommandBuffers[_currentFrame];
+//    computeSubmitInfo.signalSemaphoreCount = 1;
+//    computeSubmitInfo.pSignalSemaphores = &_computeFinishedSemaphores[_currentFrame];
+//
+//    if (vkQueueSubmit(_computeQueue, 1, &computeSubmitInfo, _computeInFlightFences[_currentFrame]) != VK_SUCCESS)
+//        throw std::runtime_error("Failed to submit compute command buffer!");
+//
+//    // 3. Enregistre le command buffer graphique (après que le compute ait écrit dans l'image)
+//    RecordCommandBuffer(_commandBuffers[_currentFrame], _imageIndex);
+//
+//    // 4. Setup des sémaphores pour que graphics attende compute + image disponible
+//    VkSemaphore waitSemaphores[] = {
+//        _computeFinishedSemaphores[_currentFrame],       // on attend la fin du compute
+//        _imageAvailableSemaphores[_currentFrame]         // on attend que l'image soit prête
+//    };
+//    VkPipelineStageFlags waitStages[] = {
+//        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,           // on attend avant que le fragment shader lise
+//        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT    // on attend avant de commencer le rendu
+//    };
+//
+//    // 5. Submit graphique
+//    VkSubmitInfo graphicsSubmitInfo{};
+//    graphicsSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//    graphicsSubmitInfo.waitSemaphoreCount = 2;
+//    graphicsSubmitInfo.pWaitSemaphores = waitSemaphores;
+//    graphicsSubmitInfo.pWaitDstStageMask = waitStages;
+//    graphicsSubmitInfo.commandBufferCount = 1;
+//    graphicsSubmitInfo.pCommandBuffers = &_commandBuffers[_currentFrame];
+//    graphicsSubmitInfo.signalSemaphoreCount = 1;
+//    graphicsSubmitInfo.pSignalSemaphores = &_renderFinishedSemaphores[_currentFrame];
+//
+//    if (vkQueueSubmit(_graphicsQueue, 1, &graphicsSubmitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS)
+//        throw std::runtime_error("Failed to submit draw command buffer!");
+//}
 
 void VulkanRenderer::EndFrame()
 {
@@ -2479,53 +2548,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::DebugCallback(VkDebugUtilsMessage
     return VK_FALSE;
 }
 
-//void VulkanRenderer::CreateStorageImage()
-//{
-//    VkImageCreateInfo imageInfo{};
-//    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-//    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-//    imageInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-//    imageInfo.extent.width = _swapChainExtent.width;
-//    imageInfo.extent.height = _swapChainExtent.height;
-//    imageInfo.extent.depth = 1;
-//    imageInfo.mipLevels = 1;
-//    imageInfo.arrayLayers = 1;
-//    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-//    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-//    imageInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-//    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-//
-//    if (vkCreateImage(_device, &imageInfo, nullptr, &_storageImage) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to create storage image!");
-//
-//    VkMemoryRequirements memRequirements;
-//    vkGetImageMemoryRequirements(_device, _storageImage, &memRequirements);
-//
-//    VkMemoryAllocateInfo allocInfo{};
-//    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-//    allocInfo.allocationSize = memRequirements.size;
-//    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-//
-//    if (vkAllocateMemory(_device, &allocInfo, nullptr, &_storageImageMemory) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to allocate storage image memory!");
-//
-//    vkBindImageMemory(_device, _storageImage, _storageImageMemory, 0);
-//
-//    VkImageViewCreateInfo viewInfo{};
-//    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-//    viewInfo.image = _storageImage;
-//    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-//    viewInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-//    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-//    viewInfo.subresourceRange.baseMipLevel = 0;
-//    viewInfo.subresourceRange.levelCount = 1;
-//    viewInfo.subresourceRange.baseArrayLayer = 0;
-//    viewInfo.subresourceRange.layerCount = 1;
-//
-//    if (vkCreateImageView(_device, &viewInfo, nullptr, &_storageImageView) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to create storage image view!");
-//}
-
 void VulkanRenderer::CreateStorageImage()
 {
     VkImageCreateInfo imageInfo{};
@@ -2539,7 +2561,10 @@ void VulkanRenderer::CreateStorageImage()
     imageInfo.arrayLayers = 1;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imageInfo.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    imageInfo.usage =
+        VK_IMAGE_USAGE_STORAGE_BIT |
+        VK_IMAGE_USAGE_SAMPLED_BIT |
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     if (vkCreateImage(_device, &imageInfo, nullptr, &_storageImage) != VK_SUCCESS)
@@ -2572,8 +2597,11 @@ void VulkanRenderer::CreateStorageImage()
     if (vkCreateImageView(_device, &viewInfo, nullptr, &_storageImageView) != VK_SUCCESS)
         throw std::runtime_error("Failed to create storage image view!");
 
-    // Transition the image layout to GENERAL
-    TransitionImageLayout(_storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 1);
+    // Transition UNDEFINED to TRANSFER_DST_OPTIMAL
+    TransitionImageLayout(_storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
+
+    // Transition TRANSFER_DST_OPTIMAL to GENERAL
+    TransitionImageLayout(_storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, 1);
 }
 
 
@@ -2583,11 +2611,4 @@ void VulkanRenderer::CreateComputeResources()
     CreateStorageImage();
     CreateComputeDescriptorSets();
     CreateComputePipeline();
-}
-
-
-void VulkanRenderer::UpdateFrame()
-{
-    RecordComputeCommandBuffer(_computeCommandBuffers[_currentFrame]);
-    vkQueueSubmit(_computeQueue, 1, &_computeSubmitInfo, VK_NULL_HANDLE);
 }
