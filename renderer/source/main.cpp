@@ -1,6 +1,3 @@
-#include <iostream>
-#include <cstdlib>
-
 #include "vulkan_renderer.h"
 
 int main()

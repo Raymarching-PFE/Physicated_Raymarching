@@ -81,6 +81,7 @@ void VulkanRenderer::InitImGui() const
 void VulkanRenderer::Run()
 {
     InitWindow();
+    m_modelPaths = LoadPLYFilePaths("point_clouds/");
     InitVulkan();
     InitImGui();
     MainLoop();
@@ -220,22 +221,23 @@ void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
     }
 }
 
-void VulkanRenderer::MainImGui() const
+void VulkanRenderer::MainImGui()
 {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    {
+
+    ImGui::Begin("Physicated Raymarching");
+
+        ProcessInput(m_window);
+        // ImGui::Text("Point cloud file: %s", PLY_PATH.c_str());
+        // ImGui::Text("Number of points: %d", m_vertexNb);
+
         ImGuiIO& io = ImGui::GetIO();
-
-        ImGui::Begin("Physicated Raymarching");
-
-        ImGui::Text("Number of points: %d", m_vertexNb);
-
         float clampedFPS = std::min(io.Framerate, 144.0f);
         ImGui::Text("Application average: %.3f ms/frame (%.1f FPS)", 1000.0f / clampedFPS, clampedFPS);
-        ImGui::End();
-    }
+
+    ImGui::End();
 
     ImGui::Render();
 }
@@ -246,7 +248,7 @@ void VulkanRenderer::MainLoop()
     {
         glfwPollEvents();
         glfwPostEmptyEvent();
-        ProcessInput(m_window);
+        // ProcessInput(m_window);
 
         MainImGui();
 
@@ -296,6 +298,15 @@ void VulkanRenderer::Cleanup() const
 
     vkDestroyDescriptorSetLayout(m_device, m_computeDescriptorSetLayout, nullptr);
 
+    vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
+    vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
+
+    vkDestroyBuffer(m_device, m_quadIndexBuffer, nullptr);
+    vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
+
+    vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
+    vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         vkDestroyBuffer(m_device, m_shaderStorageBuffers[i], nullptr);
@@ -327,7 +338,7 @@ void VulkanRenderer::Cleanup() const
     vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
 
     vkDestroyBuffer(m_device, m_quadIndexBuffer, nullptr);
-    vkFreeMemory(m_device, m_quadindexBufferMemory, nullptr);
+    vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
 
     vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
     vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
@@ -933,7 +944,7 @@ void VulkanRenderer::CreateDescriptorPool()
         throw std::runtime_error("Failed to create descriptor pool!");
 }
 
-void VulkanRenderer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
+void VulkanRenderer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1543,7 +1554,7 @@ void VulkanRenderer::CreateIndexBuffer()
     vkUnmapMemory(m_device, quadstagingBufferMemory);
 
     CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
-    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_quadIndexBuffer, m_quadindexBufferMemory);
+    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_quadIndexBuffer, m_quadIndexBufferMemory);
 
     CopyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
     CopyBuffer(quadstagingBuffer, m_quadIndexBuffer, QuadBufferSize);

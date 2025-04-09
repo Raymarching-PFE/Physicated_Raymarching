@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 #include <chrono>
+#include <filesystem>
 #include <backends/imgui_impl_vulkan.h>
 #include <shaderc/shaderc.hpp>
 
@@ -101,6 +102,19 @@ inline bool CompileShaderFromFile(const std::string& _path, shaderc_shader_kind 
     return true;
 }
 
+inline std::vector<std::string> LoadPLYFilePaths(const std::string& directoryPath)
+{
+    std::vector<std::string> filePaths;
+
+    for (const auto& entry : std::filesystem::directory_iterator(directoryPath))
+    {
+        if (entry.path().extension() == ".ply")
+            filePaths.push_back(entry.path().string());
+    }
+
+    return filePaths;
+}
+
 struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsAndComputeFamily;
@@ -121,6 +135,10 @@ struct SwapChainSupportDetails
 
 struct UniformBufferObject
 {
+    //alignas(16) glm::mat4 model;
+    //alignas(16) glm::mat4 view;
+    //alignas(16) glm::mat4 proj;
+
 	alignas(16) float time;
     alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -178,6 +196,8 @@ private:
     float m_lastY = 0.0f;
     bool  m_firstMouse = true;
     bool  m_isCursorCaptured = false;
+
+    std::vector<std::string> m_modelPaths;
 
 	std::chrono::high_resolution_clock::time_point lastTime;
 
@@ -237,7 +257,8 @@ private:
     VkBuffer        m_indexBuffer = nullptr;
     VkDeviceMemory  m_indexBufferMemory = nullptr;
     VkBuffer        m_quadIndexBuffer = nullptr;
-    VkDeviceMemory  m_quadindexBufferMemory = nullptr;
+    VkDeviceMemory  m_quadIndexBufferMemory = nullptr;
+
 #if COMPUTE
     VkShaderModule m_computeShader = VK_NULL_HANDLE;
 
@@ -266,7 +287,7 @@ private:
 
     static void CheckVkResult(VkResult err);
     void InitImGui() const;
-    void MainImGui() const;
+    void MainImGui();
 
     void InitWindow();
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
@@ -290,7 +311,7 @@ private:
     VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const;
     void CreateUniformBuffers();
     void CreateDescriptorPool();
-    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     VkCommandBuffer BeginSingleTimeCommands() const;
     void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const;
