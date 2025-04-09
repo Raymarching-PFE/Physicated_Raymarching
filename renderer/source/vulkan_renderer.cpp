@@ -82,6 +82,7 @@ void VulkanRenderer::Run()
 {
     InitWindow();
     m_modelPaths = LoadPLYFilePaths("point_clouds/");
+    m_modelCache.LoadAllModelsInCache(m_modelPaths);
     InitVulkan();
     InitImGui();
     MainLoop();
@@ -123,8 +124,6 @@ void VulkanRenderer::InitVulkan()
     CreateCommandPool();
     CreateFramebuffers();
     LoadModel(m_modelPaths[m_currentModelIndex]);
-    CreateVertexBuffer();
-    CreateIndexBuffer();
     CreateShaderStorageBuffers();
     CreateUniformBuffers();
     CreateDescriptorPool();
@@ -137,8 +136,6 @@ void VulkanRenderer::InitVulkan()
     CreateCommandPool();
     CreateFramebuffers();
     LoadModel(m_modelPaths[m_currentModelIndex]);
-    CreateVertexBuffer();
-    CreateIndexBuffer();
     CreateUniformBuffers();
     CreateDescriptorPool();
     CreateDescriptorSets();
@@ -250,12 +247,10 @@ void VulkanRenderer::DestroyModelResources()
 
 void VulkanRenderer::ReloadModel(const std::string& path)
 {
-    vkDeviceWaitIdle(m_device); // pour être sûr que tout est fini avant de modifier
+    vkDeviceWaitIdle(m_device);
 
-    DestroyModelResources();  // une fonction à créer si besoin
+    DestroyModelResources();
     LoadModel(path);
-    CreateVertexBuffer();
-    CreateIndexBuffer();
 }
 
 void VulkanRenderer::MainImGui()
@@ -271,7 +266,7 @@ void VulkanRenderer::MainImGui()
         if (!m_modelPaths.empty())
         {
             std::vector<const char*> modelNames;
-            for (const auto& path : m_modelPaths)
+            for (const std::string& path : m_modelPaths)
                 modelNames.push_back(path.c_str());
 
             static int selectedIndex = m_currentModelIndex;
@@ -1551,12 +1546,20 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::DebugCallback(VkDebugUtilsMessage
 
 void VulkanRenderer::LoadModel(const std::string& path)
 {
-    happly::PLYData plyObj(path);
-    plyObj.validate();
-    m_vertexNb = plyObj.getElement("vertex").count;
-    ModelParser::LoadPlyModel(&plyObj);
+    if (!m_modelCache.LoadModelInCache(path))
+    {
+        std::cerr << "Error loading model from cache: " << path << std::endl;
+        return;
+    }
 
-    // ModelParser::LoadObjModel();
+    const CachedModel& cachedModel = m_modelCache.GetModelFromCache(path);
+
+    m_vertices = cachedModel.m_cachedVertices;
+    m_indices = cachedModel.m_cachedIndices;
+    m_vertexNb = cachedModel.m_cachedVertexCount;
+
+    CreateVertexBuffer();
+    CreateIndexBuffer();
 }
 
 void VulkanRenderer::CreateVertexBuffer()

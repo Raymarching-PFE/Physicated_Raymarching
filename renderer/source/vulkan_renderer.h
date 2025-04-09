@@ -251,6 +251,9 @@ private:
     uint32_t                  m_imageCount = 0;
     uint32_t                  m_queueFamily = (uint32_t)-1;
 
+    ModelCache m_modelCache;
+    std::vector<Vertex> m_vertices;
+    std::vector<uint32_t> m_indices;
     size_t m_vertexNb = 0;
 
     VkBuffer        m_vertexBuffer = nullptr;
