@@ -3,7 +3,8 @@
 #include <vector>
 #include <iostream>
 
-std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = -7, int max = -1)
+// std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = -7, int max = -1)
+std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 0, int max = 100)
 {
    std::vector<glm::vec3> toReturn;
 
@@ -41,7 +42,7 @@ BinaryTree::BinaryTree(int pointsNumber)
    root->left = nullptr;
    root->right = nullptr;
    root->generation = 0;
-   CreateStructureNodes(0, generation, root);
+   CreateStructureNodes(0, generation, root, 1);
 
    // Get root box
    std::vector<float> min = {fakeData[0].x, fakeData[0].y, fakeData[0].z};
@@ -69,11 +70,11 @@ BinaryTree::BinaryTree(int pointsNumber)
    // view tree
    PrintNodeRecursive(root);
 
-   //Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
-
-   //glm::vec3 nearestPoint = GetNearestPointRecursive(glm::vec3(50, 50, 50), 1, 0, root);
-
-   //std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
+   // Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
+   //
+   // glm::vec3 nearestPoint = GetNearestPointRecursive(glm::vec3(50, 50, 50), 1, 0, root);
+   //
+   // std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
 
 }
 
@@ -81,7 +82,7 @@ glm::vec3 BinaryTree::GetNearestPointRecursive(glm::vec3 point, float radius, in
 {
    Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
 
-   // check next boxes 6, then 3 best then depanding on the distances
+   // check next boxes 6, then 3 best then depending on the distances
 
    return nearestBox->boxPos;
 }
@@ -176,6 +177,7 @@ void BinaryTree::PrintNode(Node *node)
          (node->left != nullptr ? "TRUE" : "FALSE") <<
             ", " << (node->right != nullptr ? "TRUE" : "FALSE") <<
                ", generation : " << node->generation <<
+                  ", morten : " << node->mortonNumber <<
                   std::endl;
 }
 
@@ -189,19 +191,21 @@ void BinaryTree::PrintNodeRecursive(Node *node)
       PrintNodeRecursive(node->right);
 }
 
-void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node *node)
+void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node *node, int currentMortenNumber)
 {
    CurrGen++;
 
+   currentMortenNumber *=10;
+
    node->left = new Node({0, glm::vec3(0, 0, 0),
-      glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen});
+      glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen, currentMortenNumber});
    node->right = new Node({0, glm::vec3(0, 0, 0),
-   glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen});
+   glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen, currentMortenNumber + 1});
 
    if (CurrGen != maxGen)
    {
-      CreateStructureNodes(CurrGen, maxGen, node->left);
-      CreateStructureNodes(CurrGen, maxGen, node->right);
+      CreateStructureNodes(CurrGen, maxGen, node->left, currentMortenNumber);
+      CreateStructureNodes(CurrGen, maxGen, node->right, currentMortenNumber+1);
    }
 }
 

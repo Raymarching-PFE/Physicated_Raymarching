@@ -15,6 +15,8 @@ struct Node
 
    // Debug only
    int generation = -1;
+
+   int mortonNumber = 1;
 };
 
 class BinaryTree
@@ -30,7 +32,7 @@ private:
    std::vector<std::vector<glm::vec3> > FillUpTree(const std::vector<glm::vec3> &data, Node *node, int deepness);
    void FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *node, int deepness);
 
-   void CreateStructureNodes(int CurrGen, int maxGen, Node *node);
+   void CreateStructureNodes(int CurrGen, int maxGen, Node *node, int currentMortenNumber);
 
    void PrintNode(Node *node);
    void PrintNodeRecursive(Node *node);
