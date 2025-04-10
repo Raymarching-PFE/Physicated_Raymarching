@@ -1338,120 +1338,7 @@ void VulkanRenderer::CreateImage(uint32_t width, uint32_t height, uint32_t mipLe
     vkBindImageMemory(_device, image, imageMemory, 0);
 }
 
-//void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) const
-//{
-//    VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
-//
-//    VkImageMemoryBarrier barrier{};
-//    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-//    barrier.oldLayout = oldLayout;
-//    barrier.newLayout = newLayout;
-//    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-//    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-//    barrier.image = image;
-//    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-//    barrier.subresourceRange.baseMipLevel = 0;
-//    barrier.subresourceRange.levelCount = mipLevels;
-//    barrier.subresourceRange.baseArrayLayer = 0;
-//    barrier.subresourceRange.layerCount = 1;
-//
-//    // Si c’est un format depth, on adapte le aspectMask
-//    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-//    {
-//        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-//        if (HasStencilComponent(format))
-//            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-//    }
-//
-//    VkPipelineStageFlags sourceStage;
-//    VkPipelineStageFlags destinationStage;
-//
-//    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-//    {
-//        barrier.srcAccessMask = 0;
-//        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-//
-//        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-//        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-//    }
-//    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL)
-//    {
-//        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-//        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-//
-//        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-//        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-//    }
-//    else if (oldLayout == VK_IMAGE_LAYOUT_GENERAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-//    {
-//        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-//        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-//
-//        sourceStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-//        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-//    }
-//    else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_GENERAL)
-//    {
-//        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-//        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-//
-//        sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-//        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-//    }
-//    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_GENERAL)
-//    {
-//        barrier.srcAccessMask = 0;
-//        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-//
-//        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-//        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-//    }
-//    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-//    {
-//        barrier.srcAccessMask = 0;
-//        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-//
-//        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-//        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-//    }
-//    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-//    {
-//        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-//        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-//
-//        sourceStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-//        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-//    }
-//    else
-//    {
-//        throw std::invalid_argument("Unsupported layout transition!");
-//    }
-//
-//    /*
-//    * VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-//        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-//    */
-//
-//
-//    vkCmdPipelineBarrier(
-//        commandBuffer,
-//        sourceStage, destinationStage,
-//        0,
-//        0, nullptr,
-//        0, nullptr,
-//        1, &barrier
-//    );
-//
-//    EndSingleTimeCommands(commandBuffer);
-//}
-
-void VulkanRenderer::TransitionImageLayout(
-    VkImage image,
-    VkFormat format,
-    VkImageLayout oldLayout,
-    VkImageLayout newLayout,
-    uint32_t mipLevels
-) const
+void VulkanRenderer::TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) const
 {
     VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
 
@@ -1540,8 +1427,6 @@ void VulkanRenderer::TransitionImageLayout(
 
     EndSingleTimeCommands(commandBuffer);
 }
-
-
 
 void VulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const
 {
@@ -1771,7 +1656,6 @@ void VulkanRenderer::CreateDescriptorSets()
     }
 }
 
-
 void VulkanRenderer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
 {
     VkBufferCreateInfo bufferInfo{};
@@ -1817,21 +1701,6 @@ VkCommandBuffer VulkanRenderer::BeginSingleTimeCommands() const
     return commandBuffer;
 }
 
-//void VulkanRenderer::EndSingleTimeCommands(VkCommandBuffer commandBuffer) const
-//{
-//    vkEndCommandBuffer(commandBuffer);
-//
-//    VkSubmitInfo submitInfo{};
-//    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-//    submitInfo.commandBufferCount = 1;
-//    submitInfo.pCommandBuffers = &commandBuffer;
-//
-//    vkQueueSubmit(_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-//    vkQueueWaitIdle(_graphicsQueue);
-//
-//    vkFreeCommandBuffers(_device, _commandPool, 1, &commandBuffer);
-//}
-
 void VulkanRenderer::EndSingleTimeCommands(VkCommandBuffer commandBuffer) const
 {
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
@@ -1849,7 +1718,6 @@ void VulkanRenderer::EndSingleTimeCommands(VkCommandBuffer commandBuffer) const
 
     vkFreeCommandBuffers(_device, _commandPool, 1, &commandBuffer);
 }
-
 
 void VulkanRenderer::CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const
 {
@@ -1940,49 +1808,6 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
         throw std::runtime_error("Failed to record command buffer!");
 }
-
-//void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const
-//{
-//    VkCommandBufferBeginInfo beginInfo{};
-//    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-//
-//    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to begin recording compute command buffer!");
-//
-//    // Dispatch du compute shader (image déjà en GENERAL grâce à init ou frame précédente)
-//    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _computePipeline);
-//    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _computePipelineLayout, 0, 1, &_computeDescriptorSets[_currentFrame], 0, nullptr);
-//    vkCmdDispatch(commandBuffer, _swapChainExtent.width / 16, _swapChainExtent.height / 16, 1);
-//
-//    // Transition: GENERAL to SHADER_READ_ONLY_OPTIMAL (preparation for fragment shader)
-//    VkImageMemoryBarrier barrier{};
-//    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-//    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-//    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-//    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-//    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-//    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-//    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-//    barrier.image = _storageImage;
-//    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-//    barrier.subresourceRange.baseMipLevel = 0;
-//    barrier.subresourceRange.levelCount = 1;
-//    barrier.subresourceRange.baseArrayLayer = 0;
-//    barrier.subresourceRange.layerCount = 1;
-//
-//    vkCmdPipelineBarrier(
-//        commandBuffer,
-//        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-//        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-//        0,
-//        0, nullptr,
-//        0, nullptr,
-//        1, &barrier
-//    );
-//
-//    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to record compute command buffer!");
-//}
 
 void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const
 {
@@ -2079,9 +1904,6 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
         throw std::runtime_error("Failed to record compute command buffer!");
 }
-
-
-
 
 void VulkanRenderer::CreateComputeCommandBuffers()
 {
@@ -2230,62 +2052,6 @@ void VulkanRenderer::DrawFrame() const
         1
     );
 }
-
-//void VulkanRenderer::DrawFrame() const
-//{
-//    UpdateUniformBuffer(_currentFrame);
-//
-//    // 0. Transition image _storageImage : SHADER_READ_ONLY_OPTIMAL to GENERAL
-//    // (pour que le compute shader puisse écrire dedans)
-//    TransitionImageLayout(
-//        _storageImage,
-//        VK_FORMAT_R32G32B32A32_SFLOAT,
-//        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-//        VK_IMAGE_LAYOUT_GENERAL,
-//        1
-//    );
-//
-//    // 1. Enregistre le command buffer de compute
-//    RecordComputeCommandBuffer(_computeCommandBuffers[_currentFrame]);
-//
-//    // 2. Submit du compute
-//    VkSubmitInfo computeSubmitInfo{};
-//    computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-//    computeSubmitInfo.commandBufferCount = 1;
-//    computeSubmitInfo.pCommandBuffers = &_computeCommandBuffers[_currentFrame];
-//    computeSubmitInfo.signalSemaphoreCount = 1;
-//    computeSubmitInfo.pSignalSemaphores = &_computeFinishedSemaphores[_currentFrame];
-//
-//    if (vkQueueSubmit(_computeQueue, 1, &computeSubmitInfo, _computeInFlightFences[_currentFrame]) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to submit compute command buffer!");
-//
-//    // 3. Enregistre le command buffer graphique (après que le compute ait écrit dans l'image)
-//    RecordCommandBuffer(_commandBuffers[_currentFrame], _imageIndex);
-//
-//    // 4. Setup des sémaphores pour que graphics attende compute + image disponible
-//    VkSemaphore waitSemaphores[] = {
-//        _computeFinishedSemaphores[_currentFrame],       // on attend la fin du compute
-//        _imageAvailableSemaphores[_currentFrame]         // on attend que l'image soit prête
-//    };
-//    VkPipelineStageFlags waitStages[] = {
-//        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,           // on attend avant que le fragment shader lise
-//        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT    // on attend avant de commencer le rendu
-//    };
-//
-//    // 5. Submit graphique
-//    VkSubmitInfo graphicsSubmitInfo{};
-//    graphicsSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-//    graphicsSubmitInfo.waitSemaphoreCount = 2;
-//    graphicsSubmitInfo.pWaitSemaphores = waitSemaphores;
-//    graphicsSubmitInfo.pWaitDstStageMask = waitStages;
-//    graphicsSubmitInfo.commandBufferCount = 1;
-//    graphicsSubmitInfo.pCommandBuffers = &_commandBuffers[_currentFrame];
-//    graphicsSubmitInfo.signalSemaphoreCount = 1;
-//    graphicsSubmitInfo.pSignalSemaphores = &_renderFinishedSemaphores[_currentFrame];
-//
-//    if (vkQueueSubmit(_graphicsQueue, 1, &graphicsSubmitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to submit draw command buffer!");
-//}
 
 void VulkanRenderer::EndFrame()
 {
@@ -2603,8 +2369,6 @@ void VulkanRenderer::CreateStorageImage()
     // Transition TRANSFER_DST_OPTIMAL to GENERAL
     TransitionImageLayout(_storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, 1);
 }
-
-
 
 void VulkanRenderer::CreateComputeResources()
 {
