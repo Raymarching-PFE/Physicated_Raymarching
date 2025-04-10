@@ -86,6 +86,9 @@ void VulkanRenderer::Run()
     InitWindow();
     m_modelPaths = LoadPLYFilePaths("point_clouds/");
     m_modelCache.LoadAllModelsInCache(m_modelPaths);
+
+    LoadGeneratedPoint();
+
     InitVulkan();
     InitImGui();
     MainLoop();
@@ -133,7 +136,7 @@ void VulkanRenderer::InitVulkan()
     CreateIndexBuffer();
     CreateUniformBuffers();
 
-    LoadGeneratedPoint();
+    // LoadGeneratedPoint();
 
     CreateDescriptorPool();
     CreateComputeDescriptorSets();
@@ -145,6 +148,7 @@ void VulkanRenderer::InitVulkan()
     CreateCommandPool();
     CreateFramebuffers();
     LoadModel(m_modelPaths[m_currentModelIndex]);
+    LoadGeneratedPoint();
     CreateUniformBuffers();
     CreateDescriptorPool();
     CreateDescriptorSets();
@@ -1593,6 +1597,9 @@ void VulkanRenderer::LoadModel(const std::string& path)
     m_indices = cachedModel.m_cachedIndices;
     m_vertexNb = cachedModel.m_cachedVertexCount;
 
+    // TODO fill binarytree with model vertices
+
+
     CreateVertexBuffer();
     CreateIndexBuffer();
 }
@@ -1665,16 +1672,35 @@ void VulkanRenderer::CreateShaderStorageBuffers()
     std::uniform_real_distribution<float> rndDist(0.0f, 1.0f);
 
     // Initial particle positions on a circle
+    // std::vector<Particle> particles(PARTICLE_COUNT);
+    // for (Particle& particle : particles)
+    // {
+    //     float r = 0.25f * sqrt(rndDist(rndEngine));
+    //     float theta = rndDist(rndEngine) * 2.0f * 3.14159265358979323846f;
+    //     float x = r * cos(theta) * HEIGHT / WIDTH;
+    //     float y = r * sin(theta);
+    //     float z = 1;
+    //
+    //     std::cout << "aaaaaaaaaaaaaaaaa " << x << ", " << y << ", " << z << std::endl;
+    //     particle.position = glm::vec3(x, y, z);
+    //     // particle.velocity = glm::normalize(glm::vec2(x,y)) * 0.00025f;
+    //     particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
+    //     std::cout << "aaaaaaaaaaaaaaaaa " << particle.color.x << ", " << particle.color.y << ", " << particle.color.z << ", " << particle.color.w<< std::endl;
+    // }
+
+    BinaryTree binary_tree(PARTICLE_COUNT);
     std::vector<Particle> particles(PARTICLE_COUNT);
+    int i =0;
     for (Particle& particle : particles)
     {
-        float r = 0.25f * sqrt(rndDist(rndEngine));
-        float theta = rndDist(rndEngine) * 2.0f * 3.14159265358979323846f;
-        float x = r * cos(theta) * HEIGHT / WIDTH;
-        float y = r * sin(theta);
-        particle.position = glm::vec2(x, y);
-        particle.velocity = glm::normalize(glm::vec2(x,y)) * 0.00025f;
-        particle.color = glm::vec4(rndDist(rndEngine), rndDist(rndEngine), rndDist(rndEngine), 1.0f);
+        // Particle particle;
+
+        particle.position = binary_tree.generatedPoints[i];
+        // particle.position = glm::vec3(  binary_tree.generatedPoints[i].x, binary_tree.generatedPoints[i].y, binary_tree.generatedPoints[i].z);
+        particle.color = glm::vec4(0.5, 0.5, 0.5, 1.0f);
+
+        // particles.push_back(particle);
+        i++;
     }
 
     VkDeviceSize bufferSize = sizeof(Particle) * PARTICLE_COUNT;

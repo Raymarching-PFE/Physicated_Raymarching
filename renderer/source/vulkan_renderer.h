@@ -14,7 +14,7 @@ constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
 
 #if COMPUTE
-    constexpr uint32_t PARTICLE_COUNT = 8192;
+    constexpr uint32_t PARTICLE_COUNT = 8;
     constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 #else
     constexpr int MAX_FRAMES_IN_FLIGHT = 1;
@@ -136,8 +136,8 @@ struct SwapChainSupportDetails
 #if COMPUTE
 struct Particle
 {
-    glm::vec2 position;
-    glm::vec2 velocity;
+    glm::vec3 position;
+    // glm::vec2 velocity;
     glm::vec4 color;
 
     static VkVertexInputBindingDescription GetBindingDescription()
