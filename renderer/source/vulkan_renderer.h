@@ -1,9 +1,10 @@
 #pragma once
 
-#include <array>
 #include <optional>
 #include <vector>
 #include <chrono>
+#include <filesystem>
+#include <backends/imgui_impl_vulkan.h>
 #include <shaderc/shaderc.hpp>
 
 #include "model_parser.h"
@@ -12,14 +13,13 @@
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
 
-constexpr uint32_t PARTICLE_COUNT = 8192;
+#if COMPUTE
+    constexpr uint32_t PARTICLE_COUNT = 8192;
+    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+#else
+    constexpr int MAX_FRAMES_IN_FLIGHT = 1;
+#endif
 
-// const std::string TEXTURE_PATH = "textures/viking_room.png";
-const std::string TEXTURE_PATH = "textures/red.png";
-
-constexpr int MAX_FRAMES_IN_FLIGHT = 1;
-
-constexpr uint32_t NUMBER_OF_UBO = 1;
 
 const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -102,6 +102,19 @@ inline bool CompileShaderFromFile(const std::string& _path, shaderc_shader_kind 
     return true;
 }
 
+inline std::vector<std::string> LoadPLYFilePaths(const std::string& directoryPath)
+{
+    std::vector<std::string> filePaths;
+
+    for (const auto& entry : std::filesystem::directory_iterator(directoryPath))
+    {
+        if (entry.path().extension() == ".ply")
+            filePaths.push_back(entry.path().string());
+    }
+
+    return filePaths;
+}
+
 struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsAndComputeFamily;
@@ -120,6 +133,7 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+#if COMPUTE
 struct Particle
 {
     glm::vec2 position;
@@ -153,6 +167,7 @@ struct Particle
         return attributeDescriptions;
     }
 };
+#endif
 
 struct UniformBufferObject
 {
@@ -169,7 +184,6 @@ public:
     void Run();
 
 private:
-
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -178,101 +192,102 @@ private:
     float m_pitch = 0.0f;
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
-    bool m_firstMouse = true;
+    bool  m_firstMouse = true;
+    bool  m_isCursorCaptured = false;
 
-    float m_deltaTime = 0.0f;
-    float m_lastFrame = 0.0f;
+    int                      m_currentModelIndex = 0;
+    std::vector<std::string> m_modelPaths;
 
-	std::chrono::high_resolution_clock::time_point lastTime;
-
-    float GetDeltaTime();
-    void ProcessInput(GLFWwindow* window);
-    static void MouseCallback(GLFWwindow* window, double xpos, double ypos);
+	std::chrono::high_resolution_clock::time_point m_lastTime;
 
     GLFWwindow* m_window = nullptr;
 
-    VkInstance m_instance = nullptr;
+    VkInstance               m_instance = nullptr;
     VkDebugUtilsMessengerEXT m_debugMessenger = nullptr;
-    VkSurfaceKHR m_surface = nullptr;
+    VkSurfaceKHR             m_surface = nullptr;
 
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-    VkDevice m_device = nullptr;
+    VkDevice         m_device = nullptr;
 
     VkQueue m_graphicsQueue = nullptr;
-    VkQueue m_computeQueue = nullptr;
     VkQueue m_presentQueue = nullptr;
 
-    VkSwapchainKHR m_swapChain = nullptr;
-    std::vector<VkImage> m_swapChainImages;
-    VkFormat m_swapChainImageFormat = {};
-    VkExtent2D m_swapChainExtent = {};
-    std::vector<VkImageView> m_swapChainImageViews;
+    VkSwapchainKHR             m_swapChain = nullptr;
+    std::vector<VkImage>       m_swapChainImages;
+    VkFormat                   m_swapChainImageFormat = {};
+    VkExtent2D                 m_swapChainExtent = {};
+    std::vector<VkImageView>   m_swapChainImageViews;
     std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
-    VkRenderPass m_renderPass = nullptr;
+    VkRenderPass          m_renderPass = nullptr;
     VkDescriptorSetLayout m_descriptorSetLayout = nullptr;
-    VkPipelineLayout m_pipelineLayout = nullptr;
-    VkPipeline m_graphicsPipeline = nullptr;
-    VkPipeline m_graphicsComputePipeline = nullptr;
-    VkPipelineLayout m_graphicsComputePipelineLayout = nullptr;
+    VkPipelineLayout      m_pipelineLayout = nullptr;
+    VkPipeline            m_graphicsPipeline = nullptr;
 
-    VkShaderModule m_vertexShader = VK_NULL_HANDLE;
-    VkShaderModule m_fragmentShader = VK_NULL_HANDLE;
-    VkShaderModule m_computeShader = VK_NULL_HANDLE;
-
-    VkCommandPool m_commandPool = nullptr;
-
-    VkImage m_colorImage = nullptr;
-    VkDeviceMemory m_colorImageMemory = nullptr;
-    VkImageView m_colorImageView = nullptr;
-
-    VkImage m_depthImage = nullptr;
-    VkDeviceMemory m_depthImageMemory = nullptr;
-    VkImageView m_depthImageView = nullptr;
-
-    uint32_t m_mipLevels = 0;
-    VkImage m_textureImage = nullptr;
-    VkDeviceMemory m_textureImageMemory = nullptr;
-    VkImageView m_textureImageView = nullptr;
-    VkSampler m_textureSampler = nullptr;
-
-    VkBuffer m_vertexBuffer = nullptr;
-    VkDeviceMemory m_vertexBufferMemory = nullptr;
-    VkBuffer m_indexBuffer = nullptr;
-    VkBuffer m_QuadIndexBuffer = nullptr;
-    VkDeviceMemory m_indexBufferMemory = nullptr;
-    VkDeviceMemory m_QuadindexBufferMemory = nullptr;
-
-    std::vector<VkBuffer> m_uniformBuffers;
-    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
-    std::vector<void*> m_uniformBuffersMapped;
-
-    VkDescriptorPool m_descriptorPool = nullptr;
+    VkDescriptorPool             m_descriptorPool = nullptr;
     std::vector<VkDescriptorSet> m_descriptorSets;
-    std::vector<VkDescriptorSet> m_computeDescriptorSets;
-    VkDescriptorSetLayout m_computeDescriptorSetLayout = nullptr;
-    VkPipeline m_computePipeline = nullptr;
-    VkPipelineLayout m_computePipelineLayout = nullptr;
 
+    VkCommandPool                m_commandPool = nullptr;
     std::vector<VkCommandBuffer> m_commandBuffers;
-    std::vector<VkCommandBuffer> m_computeCommandBuffers;
-
-    std::vector<VkBuffer> m_shaderStorageBuffers;
-    std::vector<VkDeviceMemory> m_shaderStorageBuffersMemory;
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
-    std::vector<VkSemaphore> m_computeFinishedSemaphores;
-    std::vector<VkFence> m_inFlightFences;
-    std::vector<VkFence> m_computeInFlightFences;
+    std::vector<VkFence>     m_inFlightFences;
+
     uint32_t m_currentFrame = 0;
     uint32_t m_imageIndex = 0;
 
     bool m_framebufferResized = false;
 
-    float m_lastFrameTime = 0.0f;
-    double m_lastTime = 0.0f;
+    std::vector<VkBuffer>       m_uniformBuffers;
+    std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+    std::vector<void*>          m_uniformBuffersMapped;
+
+    VkBuffer        m_vertexBuffer = nullptr;
+    VkDeviceMemory  m_vertexBufferMemory = nullptr;
+    VkBuffer        m_indexBuffer = nullptr;
+    VkDeviceMemory  m_indexBufferMemory = nullptr;
+    VkBuffer        m_quadIndexBuffer = nullptr;
+    VkDeviceMemory  m_quadIndexBufferMemory = nullptr;
+
+    VkShaderModule m_vertexShader = VK_NULL_HANDLE;
+    VkShaderModule m_fragmentShader = VK_NULL_HANDLE;
+
+    uint32_t m_minImageCount = 0;
+    uint32_t m_imageCount = 0;
+    uint32_t m_queueFamily = (uint32_t)-1;
+
+    ModelCache              m_modelCache;
+    std::vector<Vertex>     m_vertices;
+    std::vector<uint32_t>   m_indices;
+    size_t                  m_vertexNb = 0;
+
+#if COMPUTE
+    VkShaderModule m_computeShader = VK_NULL_HANDLE;
+
+    VkQueue m_computeQueue = nullptr;
+
+    VkDescriptorSetLayout m_computeDescriptorSetLayout = nullptr;
+    VkPipelineLayout      m_computePipelineLayout = nullptr;
+    VkPipeline            m_computePipeline = nullptr;
+
+    std::vector<VkBuffer>       m_shaderStorageBuffers;
+    std::vector<VkDeviceMemory> m_shaderStorageBuffersMemory;
+
+    std::vector<VkDescriptorSet> m_computeDescriptorSets;
+    std::vector<VkCommandBuffer> m_computeCommandBuffers;
+
+    std::vector<VkSemaphore> m_computeFinishedSemaphores;
+    std::vector<VkFence>     m_computeInFlightFences;
+#endif
+
+    float GetDeltaTime();
+    void ProcessInput(GLFWwindow* window);
+    static void MouseCallback(GLFWwindow* window, double xpos, double ypos);
+
+    static void CheckVkResult(VkResult err);
+    void InitImGui() const;
+    void MainImGui();
 
     void InitWindow();
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
@@ -290,45 +305,26 @@ private:
     void CreateSwapChain();
     void CreateImageViews();
     void CreateRenderPass();
-    void CreateComputeDescriptorSetLayout();
-    void CreateDescriptorSetLayout();
     void CreateGraphicsPipeline();
-    void CreateGraphicsComputePipeline();
-    void CreateComputePipeline();
     void CreateFramebuffers();
     void CreateCommandPool();
-    void CreateShaderStorageBuffers();
-    void CreateColorResources();
-    void CreateDepthResources();
-    VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
-    VkFormat FindDepthFormat() const;
-    static bool HasStencilComponent(VkFormat format);
-    void CreateTextureImage();
-    void GenerateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) const;
-    VkSampleCountFlagBits GetMaxUsableSampleCount() const;
-    void CreateTextureImageView();
-    void CreateTextureSampler();
     VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const;
     void CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
     void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) const;
     void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
-    void LoadModel();
     void LoadGeneratedPoint();
 
     void CreateVertexBuffer();
     void CreateIndexBuffer();
     void CreateUniformBuffers();
     void CreateDescriptorPool();
-    void CreateDescriptorSets();
-    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     VkCommandBuffer BeginSingleTimeCommands() const;
     void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const;
     uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
-    void CreateComputeDescriptorSets();
     void CreateCommandBuffers();
-    void RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const;
-    void CreateComputeCommandBuffers();    void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
+    void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
     void CreateSyncObjects();
     void UpdateUniformBuffer(uint32_t currentImage) const;
     void BeginFrame();
@@ -339,12 +335,29 @@ private:
     static VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device) const;
-    bool IsDeviceSuitable(VkPhysicalDevice device) const;
+    bool IsDeviceSuitable(VkPhysicalDevice device);
     static bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
-    QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
+    QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
     static std::vector<const char*> GetRequiredExtensions();
     static bool CheckValidationLayerSupport();
     static std::vector<char> ReadFile(const std::string& filename);
+
+    void LoadModel(const std::string& path);
+
+    void ReloadModel(const std::string& path);
+    void DestroyModelResources();
+
+#if COMPUTE
+    void CreateShaderStorageBuffers();
+    void CreateComputePipeline();
+    void CreateComputeDescriptorSetLayout();
+    void CreateComputeDescriptorSets();
+    void CreateComputeCommandBuffers();
+    void RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const;
+#else
+    void CreateDescriptorSetLayout();
+    void CreateDescriptorSets();
+#endif
     
     VKAPI_ATTR static VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);

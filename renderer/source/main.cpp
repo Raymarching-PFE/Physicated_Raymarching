@@ -1,13 +1,7 @@
-#include <iostream>
-#include <cstdlib>
-
 #include "vulkan_renderer.h"
 #include "binaryTree.h"
 
-#include "model_parser.h"
-
-
-int main() 
+int main()
 {
    VulkanRenderer app;
 
