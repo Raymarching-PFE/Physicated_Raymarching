@@ -19,6 +19,8 @@
 
 
 #include "binaryTree.h"
+
+
 float VulkanRenderer::GetDeltaTime()
 {
     std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
@@ -1233,7 +1235,7 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
     ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
 
-    ubo.sphereNumber = 3;
+    ubo.sphereNumber = 6;
 	//std::cout << "Time: " << ubo.time << std::endl;
 	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
     //std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;

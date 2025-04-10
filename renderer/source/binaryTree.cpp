@@ -72,13 +72,53 @@ BinaryTree::BinaryTree(int pointsNumber)
    // view tree
    PrintNodeRecursive(root);
 
+   Node* result =  GetNodeFromMorton(6, root);
+   PrintNode(result);
+
    // Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
    //
    // glm::vec3 nearestPoint = GetNearestPointRecursive(glm::vec3(50, 50, 50), 1, 0, root);
    //
    // std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
-
 }
+
+// Node* BinaryTree::GetNodeFromMorton(int mortonNumber, Node* _root)
+// {
+//    std::cout << "looking for Morton number : " << mortonNumber << std::endl;
+//
+//    // Get generations
+//    int gen = 0;
+//
+//    int mortenCopy = mortonNumber;
+//    for (int i = 0; i < 16; i++)
+//    {
+//       // check if the first bit is 1
+//       if (mortenCopy > 16384)
+//       {
+//          gen = 15 - i;
+//          break;
+//       }
+//       mortenCopy = mortenCopy << 1;
+//    }
+//
+//    std::cout << "gen : " << gen << std::endl;
+//
+//    // retrieve the node
+//    Node* toReturn = _root;
+//    for (int i = 0 ; i < gen; i++)
+//    {
+//       if (mortonNumber % 2 == 0)
+//          toReturn = toReturn->left;
+//       else
+//          toReturn = toReturn->right;
+//       mortonNumber = mortonNumber >> 1;
+//    }
+//
+//    // std::cout << "node : " << std::endl;
+//    // PrintNode(toReturn);
+//
+//    return toReturn;
+// }
 
 glm::vec3 BinaryTree::GetNearestPointRecursive(glm::vec3 point, float radius, int deepness, Node* node)
 {
@@ -117,7 +157,6 @@ void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *r
    }
    if (root->right != nullptr)
    {
-
       root->right->boxPos = root->boxPos;
       root->right->boxPos[deepness % 3] = root->slice;
       root->right->boxSize = root->boxSize;
@@ -171,7 +210,7 @@ float BinaryTree::FindOptimalSlice(std::vector<glm::vec3> data, int deepness = 0
    return (vec[(vec.size() - 1) / 2] + vec[(vec.size() - 1) / 2 + 1]) / 2 ;
 }
 
-void BinaryTree::PrintNode(Node *node)
+void BinaryTree::PrintNode(const Node* node)
 {
    std::bitset<16> bits(node->mortonNumber);
 
@@ -181,7 +220,7 @@ void BinaryTree::PrintNode(Node *node)
          (node->left != nullptr ? "TRUE" : "FALSE") <<
             ", " << (node->right != nullptr ? "TRUE" : "FALSE") <<
                ", generation : " << node->generation <<
-                  // ", morton : " << node->mortonNumber <<
+                  ", morton : " << node->mortonNumber <<
                      ", morton(bits) : " << bits <<
                   std::endl;
 }

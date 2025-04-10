@@ -29,12 +29,15 @@ public:
    std::vector<glm::vec3> generatedPoints;
 
 private:
+
+   // Node* GetNodeFromMorton(int mortonNumber, Node* _root);
+
    std::vector<std::vector<glm::vec3> > FillUpTree(const std::vector<glm::vec3> &data, Node *node, int deepness);
    void FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *node, int deepness);
 
    void CreateStructureNodes(int CurrGen, int maxGen, Node *node, int currentMortenNumber);
 
-   void PrintNode(Node *node);
+   void PrintNode(const Node *node);
    void PrintNodeRecursive(Node *node);
 
    float FindOptimalSlice(std::vector<glm::vec3> data, int deepness);
