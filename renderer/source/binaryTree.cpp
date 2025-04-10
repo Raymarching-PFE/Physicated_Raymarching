@@ -3,6 +3,8 @@
 #include <vector>
 #include <iostream>
 
+#include <bitset>
+
 // std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = -7, int max = -1)
 std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 0, int max = 100)
 {
@@ -171,13 +173,16 @@ float BinaryTree::FindOptimalSlice(std::vector<glm::vec3> data, int deepness = 0
 
 void BinaryTree::PrintNode(Node *node)
 {
+   std::bitset<16> bits(node->mortonNumber);
+
    std::cout << "Node : Slice : " << node->slice <<
       ", BoxPos : (" << node->boxPos[0] << ", " << node->boxPos[1] << ", " << node->boxPos[2] <<
          "), BoxSize : (" << node->boxSize[0] << ", " << node->boxSize[1] << ", " << node->boxSize[2] << "), "<<
          (node->left != nullptr ? "TRUE" : "FALSE") <<
             ", " << (node->right != nullptr ? "TRUE" : "FALSE") <<
                ", generation : " << node->generation <<
-                  ", morten : " << node->mortonNumber <<
+                  // ", morton : " << node->mortonNumber <<
+                     ", morton(bits) : " << bits <<
                   std::endl;
 }
 
@@ -195,7 +200,7 @@ void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node *node, int c
 {
    CurrGen++;
 
-   currentMortenNumber *=10;
+   currentMortenNumber = currentMortenNumber << 1;
 
    node->left = new Node({0, glm::vec3(0, 0, 0),
       glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen, currentMortenNumber});
