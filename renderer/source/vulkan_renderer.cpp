@@ -1657,7 +1657,7 @@ void VulkanRenderer::CreateDescriptorPool()
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = NUMBER_OF_UBO * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    poolSizes[0].descriptorCount = NUMBER_OF_UBO * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) + static_cast<uint32_t>(_swapChainImages.size());
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     /*poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
