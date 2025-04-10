@@ -6,13 +6,19 @@
 #include <bitset>
 
 // std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = -7, int max = -1)
-std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 0, int max = 100)
+// std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 0, int max = 100)
+std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min = -1, float max = 1)
 {
    std::vector<glm::vec3> toReturn;
 
+   static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+
    for (int i = 0; i < numberOfValues; i++)
    {
-      toReturn.push_back(glm::vec3(min + rand() % (max - min), min + rand() % (max - min), min + rand() % (max - min)));
+      toReturn.push_back(
+         glm::vec3(min + static_cast <float> (rand()) / static_cast <float> (RAND_MAX)* (max - min),
+         min + static_cast <float> (rand()) / static_cast <float> (RAND_MAX)* (max - min),
+         min + static_cast <float> (rand()) / static_cast <float> (RAND_MAX)* (max - min)));
    }
 
    return toReturn;
