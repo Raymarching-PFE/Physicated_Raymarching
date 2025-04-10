@@ -10,7 +10,8 @@ int main()
     }
     catch (const std::exception& e)
     {
-        std::cerr << e.what() << '\n';
+        std::cerr << "\033[31m" << e.what() << '\n'; // Red
+
         return EXIT_FAILURE;
     }
 

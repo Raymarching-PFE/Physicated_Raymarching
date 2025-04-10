@@ -34,7 +34,7 @@ void VulkanRenderer::CheckVkResult(VkResult err)
     if (err == 0)
         return;
 
-    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    std::cerr << "\033[31m" << "[vulkan] Error: VkResult = " << err << "\033[0m" << '\n'; // Red
 
     if (err < 0)
         abort();
@@ -280,7 +280,7 @@ void VulkanRenderer::MainImGui()
             }
         }
 
-        ImGui::Text("Number of points: %d", m_vertexNb);
+        ImGui::Text("Number of points: %zu", m_vertexNb);
 
         ImGuiIO& io = ImGui::GetIO();
         float clampedFPS = std::min(io.Framerate, 144.0f);
@@ -755,7 +755,7 @@ void VulkanRenderer::CreateGraphicsPipeline()
             std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
         }
         else
-            std::cerr << "\033[32m" << "Create Vertex Shader success" << "\033[0m" << '\n'; // Green
+            std::cerr << "\033[32m" << "Create Fragment Shader success" << "\033[0m" << '\n'; // Green
     }
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
