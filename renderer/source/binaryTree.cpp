@@ -72,8 +72,8 @@ BinaryTree::BinaryTree(int pointsNumber)
    // view tree
    PrintNodeRecursive(root);
 
-   Node* result =  GetNodeFromMorton(6, root);
-   PrintNode(result);
+   // Node* result =  GetNodeFromMorton(6, root);
+   // PrintNode(result);
 
    // Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
    //
