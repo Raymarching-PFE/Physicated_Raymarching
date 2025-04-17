@@ -91,4 +91,5 @@ public:
 private:
     std::unordered_map<std::string, CachedModel> m_cache;
     bool LoadModelFromFile(const std::string& path);
-};#pragma endregion
+};
+#pragma endregion
