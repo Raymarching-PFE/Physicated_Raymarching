@@ -1598,7 +1598,12 @@ void VulkanRenderer::LoadModel(const std::string& path)
     m_vertexNb = cachedModel.m_cachedVertexCount;
 
     // TODO fill binarytree with model vertices
-
+    std::vector<glm::vec3> cloudPoints;
+    for (int i  = 0; i < m_vertices.size(); i++)
+    {
+        cloudPoints.push_back(m_vertices[i].pos);
+    }
+    BinaryTree binary_tree(cloudPoints);
 
     CreateVertexBuffer();
     CreateIndexBuffer();

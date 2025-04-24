@@ -23,6 +23,8 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, floa
 
 BinaryTree::BinaryTree(std::vector<glm::vec3> pointCloudPoints)
 {
+   generatedPoints = pointCloudPoints;
+
    // Get generation
    int generation = 0;
    while (pow(2, generation) < pointCloudPoints.size())
@@ -64,7 +66,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> pointCloudPoints)
    FillUpTreeRecursive(pointCloudPoints, root, 0);
 
    // view tree
-   PrintNodeRecursive(root);
+   // PrintNodeRecursive(root);
 
    // Node* result =  GetNodeFromMorton(6, root);
    // PrintNode(result);
@@ -131,7 +133,7 @@ std::vector<glm::vec3> BinaryTree::GetPointsInBoxRecursive(Node *node, std::vect
 glm::vec3 BinaryTree::GetNearestPoint(glm::vec3 point, float radius, int deepness, Node *node)
 {
    // Get the smaller possible box where the sphere is in
-   Node *nearestBox = GetNearestBoxesRecursive(glm::vec3(50, 50, 50), 1, 0, root);
+   // Node *nearestBox = GetNearestBoxesRecursive(glm::vec3(50, 50, 50), 1, 0, root);
 
    // Get all the points inside the box recursivly to get the minimum amount of points to test
    std::vector<glm::vec3> cloudPoints;
@@ -296,6 +298,12 @@ BinaryTree::~BinaryTree()
 
 Node *BinaryTree::GetNearestBoxesRecursive(glm::vec3 point, float radius, int deepness, Node *node)
 {
+   if (node == nullptr)
+   {
+      std::cout << "FAILED : Node is null" << std::endl;
+      return nullptr;
+   }
+
    // if a leaf, return the leaf point
    if (node->left == nullptr && node->right == nullptr)
       return node;
