@@ -5,9 +5,7 @@
 
 #include <bitset>
 
-// std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = -7, int max = -1)
-// std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, int min = 0, int max = 100)
-std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min = -1, float max = 1)
+std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, float max)
 {
    std::vector<glm::vec3> toReturn;
 
@@ -23,23 +21,14 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min = -1,
    return toReturn;
 }
 
-BinaryTree::BinaryTree(int pointsNumber)
+BinaryTree::BinaryTree(std::vector<glm::vec3> pointCloudPoints)
 {
-   // Generate fake data
-   const std::vector<glm::vec3> fakeData = FakeDataGenerator(pointsNumber);
-
-   for (int i = 0; i < fakeData.size(); i++)
-      std::cout << "Data[" << i << "] : (" << fakeData[i].x << ", " << fakeData[i].y << ", " << fakeData[i].z << ")" <<
-            std::endl;
-
-   generatedPoints = fakeData;
-
    // Get generation
    int generation = 0;
-   while (pow(2, generation) < fakeData.size())
+   while (pow(2, generation) < pointCloudPoints.size())
       generation++;
 
-   std::cout << "Elements : " << fakeData.size() << ", Gen : " << generation << std::endl;
+   std::cout << "Elements : " << pointCloudPoints.size() << ", Gen : " << generation << std::endl;
 
    // Create architecture from generation
    Node *root = new Node();
@@ -52,17 +41,17 @@ BinaryTree::BinaryTree(int pointsNumber)
    CreateStructureNodes(0, generation, root, 1);
 
    // Get root box
-   std::vector<float> min = {fakeData[0].x, fakeData[0].y, fakeData[0].z};
-   std::vector<float> max = {fakeData[0].x, fakeData[0].y, fakeData[0].z};
+   std::vector<float> min = {pointCloudPoints[0].x, pointCloudPoints[0].y, pointCloudPoints[0].z};
+   std::vector<float> max = {pointCloudPoints[0].x, pointCloudPoints[0].y, pointCloudPoints[0].z};
 
-   for (int i = 1; i < fakeData.size(); i++)
+   for (int i = 1; i < pointCloudPoints.size(); i++)
    {
       for (int j = 0; j < 3; j++)
       {
-         if (fakeData[i][j] < min[j])
-            min[j] = fakeData[i][j];
-         if (fakeData[i][j] > max[j])
-            max[j] = fakeData[i][j];
+         if (pointCloudPoints[i][j] < min[j])
+            min[j] = pointCloudPoints[i][j];
+         if (pointCloudPoints[i][j] > max[j])
+            max[j] = pointCloudPoints[i][j];
       }
    }
    root->boxPos = glm::vec3(min[0], min[1], min[2]);
@@ -72,7 +61,7 @@ BinaryTree::BinaryTree(int pointsNumber)
          "], size : [" << root->boxSize[0] << ", " << root->boxSize[1] << ", " << root->boxSize[2] << "]" << std::endl;
 
    // Give values for structure nodes
-   FillUpTreeRecursive(fakeData, root, 0);
+   FillUpTreeRecursive(pointCloudPoints, root, 0);
 
    // view tree
    PrintNodeRecursive(root);

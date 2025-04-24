@@ -1,5 +1,4 @@
 #include "vulkan_renderer.h"
-#include "binaryTree.h"
 
 int main()
 {

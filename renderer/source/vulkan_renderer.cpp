@@ -308,7 +308,7 @@ std::vector<glm::vec3> GeneratedPoint;
 
 void VulkanRenderer::LoadGeneratedPoint()
 {
-    BinaryTree binary_tree(8);
+    BinaryTree binary_tree(FakeDataGenerator(8));
     GeneratedPoint = binary_tree.generatedPoints;
 }
 
@@ -1688,7 +1688,7 @@ void VulkanRenderer::CreateShaderStorageBuffers()
     //     std::cout << "aaaaaaaaaaaaaaaaa " << particle.color.x << ", " << particle.color.y << ", " << particle.color.z << ", " << particle.color.w<< std::endl;
     // }
 
-    BinaryTree binary_tree(PARTICLE_COUNT);
+    BinaryTree binary_tree(FakeDataGenerator( PARTICLE_COUNT));
     std::vector<Particle> particles(PARTICLE_COUNT);
     int i =0;
     for (Particle& particle : particles)

@@ -21,10 +21,12 @@ struct Node
    std::vector<glm::vec3> cloudPoints;
 };
 
+std::vector<glm::vec3> FakeDataGenerator(int numberOfValues, float min = -1, float max = 1);
+
 class BinaryTree
 {
 public:
-   BinaryTree(int pointsNumber);
+   BinaryTree(std::vector<glm::vec3> pointCloudPoints);
 
    ~BinaryTree();
 
