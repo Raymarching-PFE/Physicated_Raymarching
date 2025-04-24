@@ -41,7 +41,7 @@
     },
     {
       "name": "Clang_Debug_Compute",
-      "displayName": "Clang Debug",
+      "displayName": "Clang Debug Compute",
       "description": "Sets debug build type with compute pipeline",
       "inherits": "VS_2022_Clang",
       "cacheVariables": {
@@ -51,7 +51,7 @@
     },
     {
       "name": "Clang_Release_Compute",
-      "displayName": "Clang Release",
+      "displayName": "Clang Release Compute",
       "description": "Sets release build type with compute pipeline",
       "inherits": "VS_2022_Clang",
       "cacheVariables": {
@@ -93,6 +93,26 @@
       "inherits": "Linux",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "Linux_Debug_Compute",
+      "displayName": "Linux Debug Compute",
+      "description": "Sets debug build type",
+      "inherits": "Linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "COMPUTE":true
+      }
+    },
+    {
+      "name": "Linux_Release_Compute",
+      "displayName": "Linux Release Compute",
+      "description": "Sets release build type",
+      "inherits": "Linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "COMPUTE":true
       }
     }
   ],

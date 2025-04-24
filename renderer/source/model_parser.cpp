@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-
+#pragma region MODEL PARSER
 std::vector<std::array<double, 3>> ModelParser::GetPlyVertexPos(happly::PLYData* plyObj, const std::string& vertexElementName)
 {
 	return plyObj->getVertexPositions();
@@ -12,7 +12,9 @@ std::vector<double> ModelParser::GetPlyProperty(happly::PLYData* plyObj, const s
 {
 	return plyObj->getElement(vertexElementName).getProperty<double>(propName);
 }
+#pragma endregion
 
+#pragma region MODEL CACHE
 
 void ModelCache::LoadAllModelsInCache(const std::vector<std::string>& paths)
 {
@@ -78,3 +80,4 @@ bool ModelCache::LoadModelFromFile(const std::string& path)
 
 	return true;
 }
+#pragma endregion
