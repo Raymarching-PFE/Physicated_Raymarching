@@ -112,7 +112,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> pointCloudPoints)
 //    return toReturn;
 // }
 
-std::vector<glm::vec3> BinaryTree::GetPointsInBoxRecursive(Node* node, std::vector<glm::vec3> points)
+std::vector<glm::vec3> BinaryTree::GetPointsInBoxRecursive(Node *node, std::vector<glm::vec3> points)
 {
    points.insert(points.end(), node->cloudPoints.begin(), node->cloudPoints.end());
 
@@ -315,11 +315,11 @@ Node *BinaryTree::GetNearestBoxesRecursive(glm::vec3 point, float radius, int de
    {
       if (left)
       {
-         return GetNearestBoxesRecursive(point, radius, deepness+1, node->left);
+         return GetNearestBoxesRecursive(point, radius, deepness + 1, node->left);
       }
       else
       {
-         return GetNearestBoxesRecursive(point, radius, deepness+1, node->right);
+         return GetNearestBoxesRecursive(point, radius, deepness + 1, node->right);
       }
    }
 
