@@ -17,6 +17,8 @@ struct Node
    int generation = -1;
 
    int mortonNumber = 1;
+
+   std::vector<glm::vec3> cloudPoints;
 };
 
 class BinaryTree
@@ -44,9 +46,13 @@ private:
 
    Node *root;
 
-   Node* GetNearestBoxRecursive(glm::vec3 point, float radius, int deepness, Node* node);
+   Node* GetNearestBoxesRecursive(glm::vec3 point, float radius, int deepness, Node* node);
 
-   glm::vec3 GetNearestPointRecursive(glm::vec3 point, float radius, int deepness, Node* node);
+   glm::vec3 GetNearestPoint(glm::vec3 point, float radius, int deepness, Node* node);
+
+   bool CheckBoxSphereIntersection(Node *node, glm::vec3 point, float radius);
+
+   std::vector<glm::vec3> GetPointsInBoxRecursive(Node* node, std::vector<glm::vec3> points);
 
    // Quick sort algorythm
    int Partition(std::vector<float> &vec, int low, int high);

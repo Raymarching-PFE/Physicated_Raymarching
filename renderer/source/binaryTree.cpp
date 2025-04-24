@@ -11,14 +11,13 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min = -1,
 {
    std::vector<glm::vec3> toReturn;
 
-   static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+   static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 
    for (int i = 0; i < numberOfValues; i++)
    {
-      toReturn.push_back(
-         glm::vec3(min + static_cast <float> (rand()) / static_cast <float> (RAND_MAX)* (max - min),
-         min + static_cast <float> (rand()) / static_cast <float> (RAND_MAX)* (max - min),
-         min + static_cast <float> (rand()) / static_cast <float> (RAND_MAX)* (max - min)));
+      toReturn.push_back(glm::vec3(min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (max - min),
+                                   min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (max - min),
+                                   min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (max - min)));
    }
 
    return toReturn;
@@ -42,8 +41,8 @@ BinaryTree::BinaryTree(int pointsNumber)
 
    std::cout << "Elements : " << fakeData.size() << ", Gen : " << generation << std::endl;
 
-   // create architecture from generation
-   Node* root = new Node();
+   // Create architecture from generation
+   Node *root = new Node();
    root->slice = 0;
    root->boxPos = glm::vec3(0, 0, 0);
    root->boxSize = glm::vec3(0, 0, 0);
@@ -67,10 +66,10 @@ BinaryTree::BinaryTree(int pointsNumber)
       }
    }
    root->boxPos = glm::vec3(min[0], min[1], min[2]);
-   root->boxSize = glm::vec3(max[0]-min[0], max[1]-min[1], max[2]-min[2]);
+   root->boxSize = glm::vec3(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
 
-   std::cout << "Box corner : [" << root->boxPos[0] << ", " << root->boxPos[1] << ", " << root->boxPos[2] << "], size : [" <<
-      root->boxSize[0] << ", " << root->boxSize[1] << ", " << root->boxSize[2] << "]" << std::endl;
+   std::cout << "Box corner : [" << root->boxPos[0] << ", " << root->boxPos[1] << ", " << root->boxPos[2] <<
+         "], size : [" << root->boxSize[0] << ", " << root->boxSize[1] << ", " << root->boxSize[2] << "]" << std::endl;
 
    // Give values for structure nodes
    FillUpTreeRecursive(fakeData, root, 0);
@@ -81,11 +80,9 @@ BinaryTree::BinaryTree(int pointsNumber)
    // Node* result =  GetNodeFromMorton(6, root);
    // PrintNode(result);
 
-   // Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
-   //
-   // glm::vec3 nearestPoint = GetNearestPointRecursive(glm::vec3(50, 50, 50), 1, 0, root);
-   //
-   // std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
+   glm::vec3 nearestPoint = GetNearestPoint(glm::vec3(50, 50, 50), 1, 0, root);
+
+   std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
 }
 
 // Node* BinaryTree::GetNodeFromMorton(int mortonNumber, Node* _root)
@@ -126,13 +123,57 @@ BinaryTree::BinaryTree(int pointsNumber)
 //    return toReturn;
 // }
 
-glm::vec3 BinaryTree::GetNearestPointRecursive(glm::vec3 point, float radius, int deepness, Node* node)
+std::vector<glm::vec3> BinaryTree::GetPointsInBoxRecursive(Node* node, std::vector<glm::vec3> points)
 {
-   Node* nearestBox = GetNearestBoxRecursive(glm::vec3(50, 50, 50), 1, 0, root);
+   points.insert(points.end(), node->cloudPoints.begin(), node->cloudPoints.end());
 
-   // check next boxes 6, then 3 best then depending on the distances
+   if (node->left != nullptr)
+   {
+      points = GetPointsInBoxRecursive(node->left, points);
+   }
+   if (node->right != nullptr)
+   {
+      points = GetPointsInBoxRecursive(node->right, points);
+   }
 
-   return nearestBox->boxPos;
+   return points;
+}
+
+glm::vec3 BinaryTree::GetNearestPoint(glm::vec3 point, float radius, int deepness, Node *node)
+{
+   // Get the smaller possible box where the sphere is in
+   Node *nearestBox = GetNearestBoxesRecursive(glm::vec3(50, 50, 50), 1, 0, root);
+
+   // Get all the points inside the box recursivly to get the minimum amount of points to test
+   std::vector<glm::vec3> cloudPoints;
+   cloudPoints = GetPointsInBoxRecursive(node, cloudPoints);
+
+   if (cloudPoints.size() < 1)
+   {
+      std::cout << "Failed to get point" << std::endl;
+      return glm::vec3(-1, -1, -1);
+   }
+
+   // Return the nearest point inside the array you just made
+   glm::vec3 nearestPoint = cloudPoints[0];
+
+   glm::vec3 diff = cloudPoints[0] - point;
+   float distSqr = dot(diff, diff);
+   float minDist = distSqr;
+
+   for (int i = 1; i < cloudPoints.size(); i++)
+   {
+      diff = cloudPoints[i] - point;
+      distSqr = dot(diff, diff);
+
+      if (distSqr < minDist)
+      {
+         nearestPoint = cloudPoints[i];
+         minDist = distSqr;
+      }
+   }
+
+   return nearestPoint;
 }
 
 void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *root, int deepness = 0)
@@ -144,6 +185,10 @@ void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *r
    if (data.size() == 1)
    {
       root->boxPos = data[0];
+
+      // Set point value
+      root->cloudPoints.push_back(data[0]);
+
       root->right = nullptr;
       root->left = nullptr;
       return;
@@ -171,8 +216,8 @@ void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *r
    }
 }
 
-std::vector<std::vector<glm::vec3> > BinaryTree::FillUpTree(
-   const std::vector<glm::vec3> &data, Node *node, int deepness = 0)
+std::vector<std::vector<glm::vec3> > BinaryTree::FillUpTree(const std::vector<glm::vec3> &data, Node *node,
+                                                            int deepness = 0)
 {
    std::vector<std::vector<glm::vec3> > results;
 
@@ -213,22 +258,18 @@ float BinaryTree::FindOptimalSlice(std::vector<glm::vec3> data, int deepness = 0
    QuickSort(vec, 0, n - 1);
 
    // Return median
-   return (vec[(vec.size() - 1) / 2] + vec[(vec.size() - 1) / 2 + 1]) / 2 ;
+   return (vec[(vec.size() - 1) / 2] + vec[(vec.size() - 1) / 2 + 1]) / 2;
 }
 
-void BinaryTree::PrintNode(const Node* node)
+void BinaryTree::PrintNode(const Node *node)
 {
    std::bitset<16> bits(node->mortonNumber);
 
-   std::cout << "Node : Slice : " << node->slice <<
-      ", BoxPos : (" << node->boxPos[0] << ", " << node->boxPos[1] << ", " << node->boxPos[2] <<
-         "), BoxSize : (" << node->boxSize[0] << ", " << node->boxSize[1] << ", " << node->boxSize[2] << "), "<<
-         (node->left != nullptr ? "TRUE" : "FALSE") <<
-            ", " << (node->right != nullptr ? "TRUE" : "FALSE") <<
-               ", generation : " << node->generation <<
-                  ", morton : " << node->mortonNumber <<
-                     ", morton(bits) : " << bits <<
-                  std::endl;
+   std::cout << "Node : Slice : " << node->slice << ", BoxPos : (" << node->boxPos[0] << ", " << node->boxPos[1] << ", "
+         << node->boxPos[2] << "), BoxSize : (" << node->boxSize[0] << ", " << node->boxSize[1] << ", " << node->boxSize
+         [2] << "), " << (node->left != nullptr ? "TRUE" : "FALSE") << ", " << (
+            node->right != nullptr ? "TRUE" : "FALSE") << ", generation : " << node->generation << ", morton : " << node
+         ->mortonNumber << ", morton(bits) : " << bits << std::endl;
 }
 
 void BinaryTree::PrintNodeRecursive(Node *node)
@@ -247,15 +288,15 @@ void BinaryTree::CreateStructureNodes(int CurrGen, int maxGen, Node *node, int c
 
    currentMortenNumber = currentMortenNumber << 1;
 
-   node->left = new Node({0, glm::vec3(0, 0, 0),
-      glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen, currentMortenNumber});
-   node->right = new Node({0, glm::vec3(0, 0, 0),
-   glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen, currentMortenNumber + 1});
+   node->left = new Node({0, glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen, currentMortenNumber});
+   node->right = new Node({
+      0, glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), nullptr, nullptr, CurrGen, currentMortenNumber + 1
+   });
 
    if (CurrGen != maxGen)
    {
       CreateStructureNodes(CurrGen, maxGen, node->left, currentMortenNumber);
-      CreateStructureNodes(CurrGen, maxGen, node->right, currentMortenNumber+1);
+      CreateStructureNodes(CurrGen, maxGen, node->right, currentMortenNumber + 1);
    }
 }
 
@@ -264,7 +305,7 @@ BinaryTree::~BinaryTree()
    //TODO free allocations
 }
 
-Node* BinaryTree::GetNearestBoxRecursive(glm::vec3 point, float radius, int deepness, Node* node)
+Node *BinaryTree::GetNearestBoxesRecursive(glm::vec3 point, float radius, int deepness, Node *node)
 {
    // if a leaf, return the leaf point
    if (node->left == nullptr && node->right == nullptr)
@@ -276,11 +317,67 @@ Node* BinaryTree::GetNearestBoxRecursive(glm::vec3 point, float radius, int deep
    else if (node->right == nullptr)
       return node->left;
 
-   // Get the best child branch depending on the slice
-   if (point[deepness % 3] < node->slice)
-      return GetNearestBoxRecursive(point, radius, deepness + 1, node->left);
-   else
-      return GetNearestBoxRecursive(point, radius, deepness + 1, node->right);
+   // check box-sphere intersection
+   bool left = CheckBoxSphereIntersection(node->left, point, radius);
+   bool right = CheckBoxSphereIntersection(node->right, point, radius);
+
+   // if only one of them is good, GetNearestBoxRecursive in the intersecting box
+   if (left | right)
+   {
+      if (left)
+      {
+         return GetNearestBoxesRecursive(point, radius, deepness+1, node->left);
+      }
+      else
+      {
+         return GetNearestBoxesRecursive(point, radius, deepness+1, node->right);
+      }
+   }
+
+   // if both of them are colliding, return all the points inside the both boxes (get them with morten indexes i guess?)
+   if (left && right)
+   {
+      return node;
+   }
+
+   // if nothing intersect, return null
+   // i think we never go here... depending on the minimal cuts variant...
+   if (!left && !right)
+   {
+      return nullptr;
+   }
+   return nullptr;
+}
+
+bool BinaryTree::CheckBoxSphereIntersection(Node *node, glm::vec3 point, float radius)
+{
+   // Naive method
+   // TODO improve it
+
+   std::vector<glm::vec3> boxPoints;
+
+   boxPoints.push_back(node->boxPos);
+   boxPoints.push_back(node->boxPos + glm::vec3(node->boxSize.x, 0, 0));
+   boxPoints.push_back(node->boxPos + glm::vec3(0, node->boxSize.y, 0));
+   boxPoints.push_back(node->boxPos + glm::vec3(0, 0, node->boxSize.z));
+
+   boxPoints.push_back(node->boxPos + node->boxSize - glm::vec3(node->boxSize.x, 0, 0));
+   boxPoints.push_back(node->boxPos + node->boxSize - glm::vec3(0, node->boxSize.y, 0));
+   boxPoints.push_back(node->boxPos + node->boxSize - glm::vec3(0, 0, node->boxSize.z));
+   boxPoints.push_back(node->boxPos + node->boxSize);
+
+   for (int i = 0; i < 6; i++)
+   {
+      glm::vec3 diff = boxPoints[i] - point;
+      float distSqr = dot(diff, diff);
+
+      if (distSqr < radius)
+      {
+         return true;
+      }
+   }
+
+   return false;
 }
 
 int BinaryTree::Partition(std::vector<float> &vec, int low, int high)
