@@ -65,7 +65,7 @@ gitGraph
 
 Notation        | Element
 -------         | ------
-_camelCase      | class members
+m_camelCase     | class members
 camelCase       | other variables
 PascalCase      | functions / structures / classes
 snake_case      | files
