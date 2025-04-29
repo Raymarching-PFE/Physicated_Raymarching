@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+constexpr int MAX_POINTS_PER_LEAVES = 4;
+
 struct Node
 {
    float slice = -1;
@@ -13,11 +15,9 @@ struct Node
    Node *left = nullptr;
    Node *right = nullptr;
 
-   // Debug only
-   int generation = -1;
-
    int mortonNumber = 1;
 
+   //Only when leaf
    std::vector<glm::vec3> cloudPoints;
 };
 
@@ -33,6 +33,8 @@ public:
    std::vector<glm::vec3> generatedPoints;
 
 private:
+
+   std::vector<glm::vec3> GetBox(std::vector<glm::vec3> data);
 
    // Node* GetNodeFromMorton(int mortonNumber, Node* _root);
 
