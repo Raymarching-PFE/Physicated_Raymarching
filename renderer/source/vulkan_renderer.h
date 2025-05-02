@@ -63,7 +63,6 @@ inline bool CompileShaderFromFile(const std::string& _path, shaderc_shader_kind 
             return false;
         }
 
-
         std::stringstream sstream;
         sstream << fStream.rdbuf();
 

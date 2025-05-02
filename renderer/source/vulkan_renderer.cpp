@@ -36,7 +36,7 @@ void VulkanRenderer::CheckVkResult(VkResult err)
     if (err == 0)
         return;
 
-    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    std::cerr << "\033[31m" << "[vulkan] Error: VkResult = " << err << "\033[0m" << '\n'; // Red
 
     if (err < 0)
         abort();
@@ -320,7 +320,7 @@ void VulkanRenderer::MainImGui()
             }
         }
 
-        ImGui::Text("Number of points: %d", static_cast<int>(m_vertexNb));
+        ImGui::Text("Number of points: %zu", m_vertexNb);
 
         ImGuiIO& io = ImGui::GetIO();
         float clampedFPS = std::min(io.Framerate, 144.0f);
@@ -337,9 +337,10 @@ void VulkanRenderer::MainLoop()
     {
         glfwPollEvents();
         glfwPostEmptyEvent();
+        ProcessInput(m_window);
 
         //MainImGui();
-        ProcessInput(m_window);
+
         BeginFrame();
         DrawFrame();
         EndFrame();
@@ -944,226 +945,99 @@ void VulkanRenderer::CreateDescriptorSetLayout()
         throw std::runtime_error("Failed to create descriptor set layout!");
 }
 
-//void VulkanRenderer::CreateGraphicsPipeline()
-//{
-//    // Vertex Shader
-//    {
-//        std::vector<uint32_t> shCode;
-//
-//#if COMPUTE
-//        CompileShaderFromFile("shaders/shader_compute.vert", shaderc_vertex_shader, shCode);
-//#else
-//        CompileShaderFromFile("shaders/basic_Raymarching.vert", shaderc_vertex_shader, shCode);
-//#endif
-//
-//        const VkShaderModuleCreateInfo createInfo{
-//            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-//            .pNext = nullptr,
-//            .flags = 0u,
-//            .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
-//            .pCode = shCode.data(),
-//        };
-//
-//        const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_vertexShader);
-//        if (vrShaderCompile != VK_SUCCESS)
-//        {
-//            std::cerr << "\033[31m" << "Create Vertex Shader failed!" << "\033[0m" << '\n'; // Red
-//            std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
-//        }
-//        else
-//            std::cerr << "\033[32m" << "Create Vertex Shader success" << "\033[0m" << '\n'; // Green
-//    }
-//
-//    // Fragment Shader
-//    {
-//        std::vector<uint32_t> shCode;
-//
-//#if COMPUTE
-//        CompileShaderFromFile("shaders/shader_compute.frag", shaderc_fragment_shader, shCode);
-//#else
-//        CompileShaderFromFile("shaders/basic_Raymarching.frag", shaderc_fragment_shader, shCode);
-//#endif
-//
-//        const VkShaderModuleCreateInfo createInfo{
-//            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-//            .pNext = nullptr,
-//            .flags = 0u,
-//            .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
-//            .pCode = shCode.data(),
-//        };
-//
-//        const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_fragmentShader);
-//        if (vrShaderCompile != VK_SUCCESS)
-//        {
-//            std::cerr << "\033[31m" << "Create Vertex Shader failed!" << "\033[0m" << '\n'; // Red
-//            std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
-//        }
-//        else
-//            std::cerr << "\033[32m" << "Create Vertex Shader success" << "\033[0m" << '\n'; // Green
-//    }
-//
-//    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-//    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-//    vertShaderStageInfo.module = m_vertexShader;
-//    vertShaderStageInfo.pName = "main";
-//
-//    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-//    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-//    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-//    fragShaderStageInfo.module = m_fragmentShader;
-//    fragShaderStageInfo.pName = "main";
-//
-//    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
-//
-//    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-//    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-//
-//#if COMPUTE
-//    VkVertexInputBindingDescription bindingDescription = Particle::GetBindingDescription();
-//    std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = Particle::GetAttributeDescriptions();
-//
-//    vertexInputInfo.vertexBindingDescriptionCount = 1;
-//    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-//    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-//    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-//
-//    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-//    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-//    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-//    inputAssembly.primitiveRestartEnable = VK_FALSE;
-//#else
-//    /*VkVertexInputBindingDescription bindingDescription = Vertex::GetBindingDescription();
-//    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::GetAttributeDescriptions();
-//
-//    vertexInputInfo.vertexBindingDescriptionCount = 0;
-//    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-//    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-//    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();*/
-//
-//    vertexInputInfo.vertexBindingDescriptionCount = 0;
-//    vertexInputInfo.pVertexBindingDescriptions = nullptr;
-//    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-//    vertexInputInfo.pVertexAttributeDescriptions = nullptr;
-//
-//    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-//    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-//    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-//    inputAssembly.primitiveRestartEnable = VK_FALSE;
-//#endif
-//
-//    VkPipelineViewportStateCreateInfo viewportState{};
-//    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-//    viewportState.viewportCount = 1;
-//    viewportState.scissorCount = 1;
-//
-//    VkPipelineRasterizationStateCreateInfo rasterizer{};
-//    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-//    rasterizer.depthClampEnable = VK_FALSE;
-//    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-//    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-//    rasterizer.lineWidth = 1.0f;
-//    rasterizer.cullMode = VK_CULL_MODE_NONE;
-//    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-//    rasterizer.depthBiasEnable = VK_FALSE;
-//
-//    VkPipelineMultisampleStateCreateInfo multisampling{};
-//    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-//    multisampling.sampleShadingEnable = VK_FALSE;
-//    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-//    multisampling.minSampleShading = .2f;
-//
-//    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-//    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-//    colorBlendAttachment.blendEnable = VK_FALSE;
-//    /* test */ colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-//    /* test */ colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-//    /* test */ colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-//    /* test */ colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-//    /* test */ colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-//    /* test */ colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-//
-//    VkPipelineColorBlendStateCreateInfo colorBlending{};
-//    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-//    colorBlending.logicOpEnable = VK_FALSE;
-//    colorBlending.logicOp = VK_LOGIC_OP_COPY;
-//    colorBlending.attachmentCount = 1;
-//    colorBlending.pAttachments = &colorBlendAttachment;
-//    colorBlending.blendConstants[0] = 0.0f;
-//    colorBlending.blendConstants[1] = 0.0f;
-//    colorBlending.blendConstants[2] = 0.0f;
-//    colorBlending.blendConstants[3] = 0.0f;
-//
-//    std::vector<VkDynamicState> dynamicStates =
-//    {
-//        VK_DYNAMIC_STATE_VIEWPORT,
-//        VK_DYNAMIC_STATE_SCISSOR
-//    };
-//    VkPipelineDynamicStateCreateInfo dynamicState{};
-//    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-//    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-//    dynamicState.pDynamicStates = dynamicStates.data();
-//
-//    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-//    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-//    pipelineLayoutInfo.setLayoutCount = 1;
-//#if COMPUTE
-//    pipelineLayoutInfo.pSetLayouts = &m_computeDescriptorSetLayout;
-//#else
-//    pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
-//#endif
-//
-//    if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to create pipeline layout!");
-//
-//    VkGraphicsPipelineCreateInfo pipelineInfo{};
-//    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-//    pipelineInfo.stageCount = 2;
-//    pipelineInfo.pStages = shaderStages;
-//    pipelineInfo.pVertexInputState = &vertexInputInfo;
-//    pipelineInfo.pInputAssemblyState = &inputAssembly;
-//    pipelineInfo.pViewportState = &viewportState;
-//    pipelineInfo.pRasterizationState = &rasterizer;
-//    pipelineInfo.pMultisampleState = &multisampling;
-//    pipelineInfo.pColorBlendState = &colorBlending;
-//    pipelineInfo.pDynamicState = &dynamicState;
-//    pipelineInfo.layout = m_pipelineLayout;
-//    pipelineInfo.renderPass = m_renderPass;
-//    pipelineInfo.subpass = 0;
-//    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-//    pipelineInfo.basePipelineIndex = -1; // Optional
-//
-//    if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS)
-//        throw std::runtime_error("Failed to create graphics pipeline!");
-//
-//    vkDestroyShaderModule(m_device, m_vertexShader, nullptr);
-//    vkDestroyShaderModule(m_device, m_fragmentShader, nullptr);
-//}
-
 void VulkanRenderer::CreateGraphicsPipeline()
 {
-    const std::vector<char> vertShaderCode = ReadFile("shaders/basic_Raymarching_vert.spv");
-    const std::vector<char> fragShaderCode = ReadFile("shaders/compute_Raymarching_frag.spv");
+    // Vertex Shader
+    {
+        std::vector<uint32_t> shCode;
 
-    VkShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
-    VkShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
+#if COMPUTE
+        CompileShaderFromFile("shaders/basic_Raymarching.vert", shaderc_vertex_shader, shCode);
+#else
+        CompileShaderFromFile("shaders/basic_Raymarching.vert", shaderc_vertex_shader, shCode);
+#endif
+
+        const VkShaderModuleCreateInfo createInfo{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0u,
+            .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
+            .pCode = shCode.data(),
+        };
+
+        const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_vertexShader);
+        if (vrShaderCompile != VK_SUCCESS)
+        {
+            std::cerr << "\033[31m" << "Create Vertex Shader failed!" << "\033[0m" << '\n'; // Red
+            std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
+        }
+        else
+            std::cerr << "\033[32m" << "Create Vertex Shader success" << "\033[0m" << '\n'; // Green
+    }
+
+    // Fragment Shader
+    {
+        std::vector<uint32_t> shCode;
+
+#if COMPUTE
+        CompileShaderFromFile("shaders/compute_Raymarching.frag", shaderc_fragment_shader, shCode);
+#else
+        //CompileShaderFromFile("shaders/basic_Raymarching.frag", shaderc_fragment_shader, shCode);
+#endif
+
+        const VkShaderModuleCreateInfo createInfo{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0u,
+            .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
+            .pCode = shCode.data(),
+        };
+
+        const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_fragmentShader);
+        if (vrShaderCompile != VK_SUCCESS)
+        {
+            std::cerr << "\033[31m" << "Create Vertex Shader failed!" << "\033[0m" << '\n'; // Red
+            std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
+        }
+        else
+            std::cerr << "\033[32m" << "Create Vertex Shader success" << "\033[0m" << '\n'; // Green
+    }
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.module = m_vertexShader;
     vertShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.module = m_fragmentShader;
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+#if COMPUTE
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.pVertexBindingDescriptions = nullptr;
+    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.primitiveRestartEnable = VK_FALSE;
+#else
+    /*VkVertexInputBindingDescription bindingDescription = Vertex::GetBindingDescription();
+    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::GetAttributeDescriptions();
+
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();*/
 
     vertexInputInfo.vertexBindingDescriptionCount = 0;
     vertexInputInfo.pVertexBindingDescriptions = nullptr;
@@ -1174,6 +1048,7 @@ void VulkanRenderer::CreateGraphicsPipeline()
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
+#endif
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -1242,7 +1117,11 @@ void VulkanRenderer::CreateGraphicsPipeline()
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
+#if COMPUTE
+    pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;// &m_computeDescriptorSetLayout;
+#else
     pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
+#endif
 
     if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
         throw std::runtime_error("Failed to create pipeline layout!");
@@ -1268,8 +1147,8 @@ void VulkanRenderer::CreateGraphicsPipeline()
     if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline) != VK_SUCCESS)
         throw std::runtime_error("Failed to create graphics pipeline!");
 
-    vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(m_device, vertShaderModule, nullptr);
+    vkDestroyShaderModule(m_device, m_fragmentShader, nullptr);
+    vkDestroyShaderModule(m_device, m_vertexShader, nullptr);
 }
 
 #if COMPUTE

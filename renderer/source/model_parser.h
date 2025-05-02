@@ -14,7 +14,7 @@
 
 #include "happly.h"
 
-
+#pragma region VERTEX
 struct Vertex
 {
 	glm::vec3 pos;
@@ -61,23 +61,27 @@ template<> struct std::hash<Vertex>
 		return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
 	}
 };
+#pragma endregion
 
-
+#pragma region MODEL PARSER
 class ModelParser
 {
 public:
 	static std::vector<std::array<double, 3>> GetPlyVertexPos(happly::PLYData* plyObj, const std::string& vertexElementName = "vertex");
 	static std::vector<double> GetPlyProperty(happly::PLYData* plyObj, const std::string& propName, const std::string& vertexElementName = "vertex");
 };
+#pragma endregion
 
-
+#pragma region CACHED MODEL
 struct CachedModel
 {
 	std::vector<Vertex> m_cachedVertices;
 	std::vector<uint32_t> m_cachedIndices;
 	size_t m_cachedVertexCount;
 };
+#pragma endregion
 
+#pragma region MODEL CACHE
 class ModelCache
 {
 public:
@@ -89,3 +93,4 @@ private:
     std::unordered_map<std::string, CachedModel> m_cache;
     bool LoadModelFromFile(const std::string& path);
 };
+#pragma endregion
