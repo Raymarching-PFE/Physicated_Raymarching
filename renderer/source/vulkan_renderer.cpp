@@ -462,11 +462,17 @@ void VulkanRenderer::Cleanup() const
     CleanupSwapChain();
 
     vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
+
+#if COMPUTE
     vkDestroyPipeline(m_device, m_computePipeline, nullptr);
+#endif
+
     vkDestroyPipeline(m_device, m_graphicsComputePipeline, nullptr);
 
     vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
+#if COMPUTE
     vkDestroyPipelineLayout(m_device, m_computePipelineLayout, nullptr);
+#endif
     vkDestroyPipelineLayout(m_device, m_graphicsComputePipelineLayout, nullptr);
 
     vkDestroyRenderPass(m_device, m_renderPass, nullptr);
@@ -696,7 +702,6 @@ void VulkanRenderer::PickPhysicalDevice()
 //    vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
 //}
 
-#if COMPUTE
 void VulkanRenderer::CreateLogicalDevice()
 {
     QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice);
@@ -741,11 +746,13 @@ void VulkanRenderer::CreateLogicalDevice()
     if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
         throw std::runtime_error("Failed to create logical device!");
 
-    vkGetDeviceQueue(m_device, indices.graphicsAndComputeFamily.value(), 0, &m_graphicsQueue);
+#if COMPUTE
     vkGetDeviceQueue(m_device, indices.graphicsAndComputeFamily.value(), 0, &m_computeQueue);
+#endif
+
+    vkGetDeviceQueue(m_device, indices.graphicsAndComputeFamily.value(), 0, &m_graphicsQueue);
     vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
 }
-#endif
 
 void VulkanRenderer::CreateSwapChain()
 {
@@ -982,7 +989,7 @@ void VulkanRenderer::CreateGraphicsPipeline()
 #if COMPUTE
         CompileShaderFromFile("shaders/compute_Raymarching.frag", shaderc_fragment_shader, shCode);
 #else
-        //CompileShaderFromFile("shaders/basic_Raymarching.frag", shaderc_fragment_shader, shCode);
+        CompileShaderFromFile("shaders/basic_Raymarching.frag", shaderc_fragment_shader, shCode);
 #endif
 
         const VkShaderModuleCreateInfo createInfo{
@@ -2148,15 +2155,20 @@ void VulkanRenderer::BeginFrame()
         throw std::runtime_error("Failed to acquire swap chain image!");
 }
 
-#if COMPUTE
 void VulkanRenderer::DrawFrame() const
 {
     UpdateUniformBuffer(m_currentFrame);
 
-    // 1. Enregistre le command buffer de compute
+    VkSubmitInfo graphicsSubmitInfo{};
+    graphicsSubmitInfo = {};
+    graphicsSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+#if COMPUTE
+    //Save compute command buffer
     RecordComputeCommandBuffer(m_computeCommandBuffers[m_currentFrame]);
 
-    // 2. Submit du compute
+
+    // Submit compute
     VkSubmitInfo computeSubmitInfo{};
     computeSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     computeSubmitInfo.commandBufferCount = 1;
@@ -2174,24 +2186,32 @@ void VulkanRenderer::DrawFrame() const
 
     if (vkQueueSubmit(m_computeQueue, 1, &computeSubmitInfo, m_computeInFlightFences[m_currentFrame]) != VK_SUCCESS)
         throw std::runtime_error("Failed to submit compute command buffer!");
+#endif
 
-    // 3. Enregistre le command buffer graphique
+    //Save graphic command buffer 
     RecordCommandBuffer(m_commandBuffers[m_currentFrame], m_imageIndex);
+    
 
-    // 4. Setup des s�maphores pour que graphics attende compute + image dispo
+#if COMPUTE
+    //Setup semaphores for graphics wait compute + image available
     VkSemaphore waitSemaphores[] = {
         m_computeFinishedSemaphores[m_currentFrame],
         m_imageAvailableSemaphores[m_currentFrame]
     };
     VkPipelineStageFlags waitStages[] = {
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // il lit l�image
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // reading image
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
     };
 
-    // 5. Submit graphique
-    VkSubmitInfo graphicsSubmitInfo{};
-    graphicsSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     graphicsSubmitInfo.waitSemaphoreCount = 2;
+#else
+    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+    VkSemaphore waitSemaphores[] = { m_imageAvailableSemaphores[m_currentFrame] };
+    graphicsSubmitInfo.waitSemaphoreCount = 1;
+#endif
+
+    // Submit graphic
     graphicsSubmitInfo.pWaitSemaphores = waitSemaphores;
     graphicsSubmitInfo.pWaitDstStageMask = waitStages;
     graphicsSubmitInfo.commandBufferCount = 1;
@@ -2202,6 +2222,7 @@ void VulkanRenderer::DrawFrame() const
     if (vkQueueSubmit(m_graphicsQueue, 1, &graphicsSubmitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS)
         throw std::runtime_error("Failed to submit draw command buffer!");
 
+#if COMPUTE
     TransitionImageLayout(
         _storageImage,
         VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -2209,8 +2230,8 @@ void VulkanRenderer::DrawFrame() const
         VK_IMAGE_LAYOUT_GENERAL,
         1
     );
-}
 #endif
+}
 
 void VulkanRenderer::EndFrame()
 {
