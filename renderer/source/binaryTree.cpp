@@ -95,21 +95,21 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
 
    std::vector<Node> buffer = FillGPUArray(root, pointCloudPoints);
 
-   std::cout << "Buffer morton: " << buffer.size() << std::endl;
-   for (int i = 0; i < buffer.size(); i++)
-   {
-      std::cout << buffer[i].mortonNumber << ", ";
-   }
-
-   std::cout << std::endl;
-   std::cout << "Buffer points: " << buffer.size() << std::endl;
-   for (int i = 0; i < buffer.size(); i++)
-   {
-      for (int j = 0; j < 4; j++)
-         std::cout << buffer.data()[i].cloudPoints[j].x << ", " << buffer.data()[i].cloudPoints[j].y << ", " << buffer.
-               data()[i].cloudPoints[j].z << std::endl;
-      std::cout << std::endl;
-   }
+   // std::cout << "Buffer morton: " << buffer.size() << std::endl;
+   // for (int i = 0; i < buffer.size(); i++)
+   // {
+   //    std::cout << buffer[i].mortonNumber << ", ";
+   // }
+   //
+   // std::cout << std::endl;
+   // std::cout << "Buffer points: " << buffer.size() << std::endl;
+   // for (int i = 0; i < buffer.size(); i++)
+   // {
+   //    for (int j = 0; j < MAX_POINTS_PER_LEAVES; j++)
+   //       std::cout << buffer.data()[i].cloudPoints[j].x << ", " << buffer.data()[i].cloudPoints[j].y << ", " << buffer.
+   //             data()[i].cloudPoints[j].z << std::endl;
+   //    std::cout << std::endl;
+   // }
 }
 
 void BinaryTree::FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> &pointCloudPoints,
