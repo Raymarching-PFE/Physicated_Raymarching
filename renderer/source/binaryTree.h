@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include <array>
+
 constexpr int MAX_POINTS_PER_LEAVES = 4;
 
 struct Node
@@ -18,7 +20,9 @@ struct Node
    int mortonNumber = 1;
 
    //Only when leaf
-   std::vector<glm::vec3> cloudPoints;
+   // std::vector<glm::vec3> cloudPoints;
+   std::array<glm::vec3, MAX_POINTS_PER_LEAVES> cloudPoints;
+   // std::array<unsigned int, MAX_POINTS_PER_LEAVES> cloudPoints;
 };
 
 std::vector<glm::vec3> FakeDataGenerator(int numberOfValues, float min = -1, float max = 1);
@@ -32,7 +36,27 @@ public:
 
    std::vector<glm::vec3> generatedPoints;
 
+   // double arrays system
+   // the first one is the tree and the cloudpoints in the nodes are offset for the next array
+   // the second array is an array with all the points
+
+   //TODO define sizes better
+   // size is 2^(gen+1) -1
+   // on order avec les morton number -> index
+   // std::array<Node, 1> ToGPUArrayTree;
+
+   //TODO opti ? on pre-tri les elements?
+   // size is number of point of pointcloud
+   // les nodes font ref a des index de cet array
+   // std::array<glm::vec3, 1> ToGPUArrayPoints;
+
 private:
+
+   // USELESS ?
+   // glm::vec3* FillGPUPointsArray(std::vector<glm::vec3> pointCloudPoints);
+   // Node* FillGPUArray(Node* root, std::vector<glm::vec3> pointCloudPoints);
+   // void FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> pointCloudPoints, Node* toReturn);
+   //
 
    std::vector<glm::vec3> GetBox(std::vector<glm::vec3> data);
 

@@ -10,7 +10,7 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, floa
 {
    std::vector<glm::vec3> toReturn;
 
-   static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+   // static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 
    std::cout << "Points :" << std::endl;
    for (int i = 0; i < numberOfValues; i++)
@@ -34,9 +34,11 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> pointCloudPoints)
    generatedPoints = pointCloudPoints;
 
    // Get generation
-   int generation = 0;
-   while (pow(2, generation) < pointCloudPoints.size() / MAX_POINTS_PER_LEAVES)
-      generation++;
+   // int generation = 0;
+   // while (pow(2, generation) < pointCloudPoints.size() / MAX_POINTS_PER_LEAVES)
+   //    generation++;
+
+   int generation = std::ceil(std::log2(pointCloudPoints.size() / static_cast<double>(MAX_POINTS_PER_LEAVES)));
 
    std::cout << "Elements : " << pointCloudPoints.size() << ", Gen : " << generation << std::endl;
 
@@ -80,7 +82,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> pointCloudPoints)
    FillUpTreeRecursive(pointCloudPoints, root, 0);
 
    // view tree
-   // PrintNodeRecursive(root);
+   PrintNodeRecursive(root);
 
    // Node* result =  GetNodeFromMorton(6, root);
    // PrintNode(result);
@@ -88,7 +90,41 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> pointCloudPoints)
    glm::vec3 nearestPoint = GetNearestPoint(glm::vec3(50, 50, 50), 1, 0, root);
 
    std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
+
+   // glm::vec3* pointsArray = FillGPUPointsArray();
+
+
+   // Node* buffer = FillGPUArray(root, pointCloudPoints);
+
+
 }
+
+// void BinaryTree::FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> pointCloudPoints, Node* toReturn)
+// {
+//    toReturn[node->mortonNumber] = *node;
+//
+//    std::cout << "add : " << root->mortonNumber << std::endl;
+//
+//    if (node->left != nullptr)
+//       PrintNodeRecursive(node->left);
+//    if (node->right != nullptr)
+//       PrintNodeRecursive(node->right);
+// }
+
+// Node* BinaryTree::FillGPUArray(Node* root, std::vector<glm::vec3> pointCloudPoints)
+// {
+//    int generation = std::ceil(std::log2(pointCloudPoints.size() / static_cast<double>(MAX_POINTS_PER_LEAVES)));
+//
+//    Node toReturn[ (int)powf(2.0f, (float)generation+1.0f) -1.0f];
+//
+//    FillGPUArrayRecursive(root, pointCloudPoints, toReturn);
+//    return toReturn;
+// }
+//
+// glm::vec3* BinaryTree::FillGPUPointsArray(std::vector<glm::vec3> pointCloudPoints)
+// {
+//    return pointCloudPoints.data();
+// }
 
 // Node* BinaryTree::GetNodeFromMorton(int mortonNumber, Node* _root)
 // {
@@ -224,7 +260,10 @@ void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *r
       root->boxSize = rootbox[1];
 
       // Add points
-      root->cloudPoints.insert(root->cloudPoints.end(), data.begin(), data.end());
+      for (int i = 0; i < data.size(); i++)
+      {
+         root->cloudPoints[i] = data[i];
+      }
 
       // No children, it is a leaf
       root->right = nullptr;
@@ -315,7 +354,10 @@ void BinaryTree::PrintNode(const Node *node)
 
    << "Morton : " << node->mortonNumber << ", Morton(bits) : " << bits << std::endl
 
-   << "Number of cloud points : " << node->cloudPoints.size()
+   // << "Number of cloud points : " << node->cloudPoints.size()
+
+   // << "cloud points : " << node->cloudPoints[0] << ", " << node->cloudPoints[1] << ", " << node->cloudPoints[2]
+   // << ", " << node->cloudPoints[3]
 
    << std::endl << std::endl;
 }
