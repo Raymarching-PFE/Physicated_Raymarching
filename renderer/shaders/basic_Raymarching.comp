@@ -1,0 +1,151 @@
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(set = 0, binding = 0) uniform UniformBufferObject {
+    float time;
+    vec3 cameraPos;
+    vec3 cameraFront;
+} ubo;
+
+layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D img_output;
+
+const int MAX_STEPS = 128;
+const float MAX_DIST = 5.0;
+const float EPSILON = 0.001;
+const int MAX_RECURSION_DEPTH = 3;
+
+struct Ray {
+    vec3 origin;
+    vec3 direction;
+};
+
+struct Material {
+    vec3 color;
+    float reflectivity;
+};
+
+mat3 rotateX(float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+    return mat3(
+        1.0, 0.0, 0.0,
+        0.0, c, -s,
+        0.0, s, c
+    );
+}
+
+Ray generateRay(vec2 uv) {
+    vec3 right = normalize(cross(ubo.cameraFront, vec3(0.0, 1.0, 0.0)));
+    vec3 up = normalize(cross(right, ubo.cameraFront));
+
+    float fov = radians(90.0);
+    float aspectRatio = 16.0 / 9.0;
+
+    vec3 rayDir = normalize(ubo.cameraFront + uv.x * right * aspectRatio + uv.y * up);
+    return Ray(ubo.cameraPos, rayDir);
+}
+
+float smoothMin(float a, float b, float k) {
+    float h = max(k - abs(a - b), 0.0) / k;
+    return min(a, b) - h * h * h * k * (1.0 / 6.0);
+}
+
+float sphereSDF(vec3 p, vec3 center, float radius) {
+    return length(p - center) - radius;
+}
+
+float torusSDF(vec3 p, vec2 t) {
+    vec2 q = vec2(length(p.xz) - t.x, p.y);
+    return length(q) - t.y;
+}
+
+float sceneSDF(vec3 p, out Material material) {
+    vec3 torusPos = vec3(0.0, 0.0, -7.0);
+    vec3 spherePos = vec3(2.5 + 2.5 * sin(ubo.time), 0.0, -7.0);
+
+    float torusDist = torusSDF(p - torusPos, vec2(1.0, 0.3));
+    float sphereDist = sphereSDF(p, spherePos, 0.5);
+
+    float k = 0.5;
+    float dist = smoothMin(torusDist, sphereDist, k);
+
+    if (dist == torusDist) {
+        material.color = vec3(1.0, 0.0, 0.0);
+        material.reflectivity = 0.5;
+    } else {
+        material.color = vec3(0.0, 0.0, 1.0);
+        material.reflectivity = 0.8;
+    }
+
+    return dist;
+}
+
+float rayMarch(Ray ray, out Material material) {
+    float distance = 0.0;
+    for (int i = 0; i < MAX_STEPS; i++) {
+        vec3 p = ray.origin + ray.direction * distance;
+        float d = sceneSDF(p, material);
+        if (d < EPSILON) return distance;
+        distance += d;
+        if (distance > MAX_DIST) break;
+    }
+    return -1.0;
+}
+
+vec3 getNormal(vec3 p) {
+    vec2 e = vec2(EPSILON, 0.0);
+    Material dummyMaterial;
+    return normalize(vec3(
+        sceneSDF(p + e.xyy, dummyMaterial) - sceneSDF(p - e.xyy, dummyMaterial),
+        sceneSDF(p + e.yxy, dummyMaterial) - sceneSDF(p - e.yxy, dummyMaterial),
+        sceneSDF(p + e.yyx, dummyMaterial) - sceneSDF(p - e.yyx, dummyMaterial)
+    ));
+}
+
+vec3 getColor(Ray ray, vec3 p, Material material) {
+    vec3 color = vec3(0.0);
+    vec3 attenuation = vec3(1.0);
+
+    for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
+        vec3 normal = getNormal(p);
+        vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
+        float diff = max(dot(normal, lightDir), 0.0);
+        vec3 diffuse = diff * material.color;
+
+        color += attenuation * diffuse;
+
+        vec3 reflectDir = reflect(ray.direction, normal);
+        ray = Ray(p + reflectDir * EPSILON, reflectDir);
+        float reflectDist = rayMarch(ray, material);
+        if (reflectDist < 0.0) break;
+
+        p = ray.origin + ray.direction * reflectDist;
+        attenuation *= material.reflectivity;
+    }
+
+    return color;
+}
+
+void main() {
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 imageSize = imageSize(img_output);
+
+    if (pixelCoord.x >= imageSize.x || pixelCoord.y >= imageSize.y)
+        return;
+
+    vec2 uv = (vec2(pixelCoord) / vec2(imageSize)) * 2.0 - 1.0;
+    uv.y *= -1.0; // flip vertical (comme fragment)
+
+    Ray ray = generateRay(uv);
+    Material material;
+    float dist = rayMarch(ray, material);
+
+    vec4 color = vec4(0.0);
+    if (dist > 0.0) {
+        vec3 p = ray.origin + ray.direction * dist;
+        color = vec4(getColor(ray, p, material), 1.0);
+    }
+
+    imageStore(img_output, pixelCoord, color);
+}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <algorithm>
 #include <vector>
 #include <chrono>
 #include <filesystem>
@@ -12,14 +13,7 @@
 
 constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
-
-#if COMPUTE
-    constexpr uint32_t PARTICLE_COUNT = 8;
-    constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-#else
-    constexpr int MAX_FRAMES_IN_FLIGHT = 1;
-#endif
-
+constexpr int MAX_FRAMES_IN_FLIGHT = 1;
 
 const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -59,7 +53,6 @@ inline bool CompileShaderFromFile(const std::string& _path, shaderc_shader_kind 
             std::cerr << "\033[31m" << "Failed to open shader file " << _path << "\033[0m" << '\n'; // Red
             return false;
         }
-
 
         std::stringstream sstream;
         sstream << fStream.rdbuf();
@@ -193,7 +186,7 @@ private:
     float m_lastX = 0.0f;
     float m_lastY = 0.0f;
     bool  m_firstMouse = true;
-    bool  m_isCursorCaptured = false;
+    bool  m_isCursorCaptured = true;
 
     int                      m_currentModelIndex = 0;
     std::vector<std::string> m_modelPaths;
@@ -221,8 +214,11 @@ private:
 
     VkRenderPass          m_renderPass = nullptr;
     VkDescriptorSetLayout m_descriptorSetLayout = nullptr;
+    //VkDescriptorSetLayout m_computeDescriptorSetLayout = nullptr;
     VkPipelineLayout      m_pipelineLayout = nullptr;
+    VkPipelineLayout      m_graphicsComputePipelineLayout = nullptr;
     VkPipeline            m_graphicsPipeline = nullptr;
+    VkPipeline            m_graphicsComputePipeline = nullptr;
 
     VkDescriptorPool             m_descriptorPool = nullptr;
     std::vector<VkDescriptorSet> m_descriptorSets;
@@ -318,7 +314,7 @@ private:
     void CreateIndexBuffer();
     void CreateUniformBuffers();
     void CreateDescriptorPool();
-    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
     VkCommandBuffer BeginSingleTimeCommands() const;
     void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
     void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) const;
@@ -354,11 +350,46 @@ private:
     void CreateComputeDescriptorSets();
     void CreateComputeCommandBuffers();
     void RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const;
+    void CreateDescriptorSets();
 #else
-    void CreateDescriptorSetLayout();
     void CreateDescriptorSets();
 #endif
+    void CreateDescriptorSetLayout();
     
     VKAPI_ATTR static VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+
+    void CreateStorageImage();
+    void CreateComputeResources();
+    void CreateGraphicsComputePipeline();
+    void CreateColorResources();
+    void CreateDepthResources();
+    VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+    VkFormat FindDepthFormat() const;
+	static bool HasStencilComponent(VkFormat format);
+    VkSampleCountFlagBits GetMaxUsableSampleCount() const;
+    // void CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) const;
+    // void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) const;
+    // void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
+    void CreateTextureSampler();
+
+    VkImage _storageImage;
+    VkDeviceMemory _storageImageMemory;
+    VkImageView _storageImageView;
+	VkSubmitInfo _computeSubmitInfo;
+    VkDescriptorPool _computeDescriptorPool;
+
+    VkImage m_colorImage = nullptr;
+    VkDeviceMemory m_colorImageMemory = nullptr;
+    VkImageView m_colorImageView = nullptr;
+
+    VkImage m_depthImage = nullptr;
+    VkDeviceMemory m_depthImageMemory = nullptr;
+    VkImageView m_depthImageView = nullptr;
+
+    VkBuffer m_QuadIndexBuffer = nullptr;
+    VkDeviceMemory m_QuadindexBufferMemory = nullptr;
+
+    VkImageView m_textureImageView = nullptr;
+    VkSampler m_textureSampler = nullptr;
 };
