@@ -4,7 +4,7 @@
 
 #include <array>
 
-constexpr int MAX_POINTS_PER_LEAVES = 4;
+constexpr int MAX_POINTS_PER_LEAVES = 16;
 
 struct Node
 {
@@ -30,7 +30,7 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues, float min = -1, flo
 class BinaryTree
 {
 public:
-   BinaryTree(std::vector<glm::vec3> pointCloudPoints);
+   BinaryTree(std::vector<glm::vec3> &pointCloudPoints);
 
    ~BinaryTree();
 
@@ -53,10 +53,10 @@ public:
 private:
 
    // USELESS ?
-   // glm::vec3* FillGPUPointsArray(std::vector<glm::vec3> pointCloudPoints);
-   // Node* FillGPUArray(Node* root, std::vector<glm::vec3> pointCloudPoints);
-   // void FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> pointCloudPoints, Node* toReturn);
-   //
+   glm::vec3* FillGPUPointsArray(std::vector<glm::vec3>& pointCloudPoints);
+   std::vector<Node> FillGPUArray(Node* root, std::vector<glm::vec3>& pointCloudPoints);
+   void FillGPUArrayRecursive(Node *node, std::vector<glm::vec3>& pointCloudPoints, std::vector<Node>& toReturn);
+
 
    std::vector<glm::vec3> GetBox(std::vector<glm::vec3> data);
 

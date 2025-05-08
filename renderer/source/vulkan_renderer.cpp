@@ -345,8 +345,8 @@ std::vector<glm::vec3> GeneratedPoint;
 
 void VulkanRenderer::LoadGeneratedPoint()
 {
-    BinaryTree binary_tree(FakeDataGenerator(8));
-    GeneratedPoint = binary_tree.generatedPoints;
+    // BinaryTree binary_tree(FakeDataGenerator(8));
+    // GeneratedPoint = binary_tree.generatedPoints;
 }
 
 void VulkanRenderer::MainLoop()
