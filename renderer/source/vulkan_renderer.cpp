@@ -130,6 +130,9 @@ void VulkanRenderer::InitVulkan()
     CreateDescriptorSetLayout();
     CreateGraphicsPipeline();
     CreateComputePipeline();
+
+    SendBinaryTreeToCompute();
+
     CreateCommandPool();
     CreateColorResources();
     CreateDepthResources();
@@ -1712,6 +1715,10 @@ void VulkanRenderer::LoadModel(const std::string& path)
     }
     BinaryTree binary_tree(cloudPoints);
 
+#if COMPUTE
+    SendBinaryTreeToCompute();
+#endif
+
     CreateVertexBuffer();
     CreateIndexBuffer();
 }
@@ -2846,3 +2853,100 @@ void VulkanRenderer::CreateDescriptorSetLayout()
         throw std::runtime_error("Failed to create descriptor set layout!");
 }
 
+
+#if COMPUTE
+void VulkanRenderer::SendBinaryTreeToCompute()
+{
+    // Create fake data
+    std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
+    BinaryTree fakeTree(fakePoints);
+
+    // Create buffer to send
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = sizeof(Node) * fakeTree.GPUReadyBuffer.size();
+    bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VkBuffer nodeBuffer;
+    vkCreateBuffer(m_device, &bufferInfo, nullptr, &nodeBuffer);
+
+    // Allocate GPU memory
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(m_device, nodeBuffer, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    VkDeviceMemory nodeBufferMemory;
+    vkAllocateMemory(m_device, &allocInfo, nullptr, &nodeBufferMemory);
+
+    // Link to memory
+    vkBindBufferMemory(m_device, nodeBuffer, nodeBufferMemory, 0);
+
+    // Send to GPU
+    void* data;
+    vkMapMemory(m_device, nodeBufferMemory, 0, fakeTree.GPUReadyBuffer.size(), 0, &data);
+    memcpy(data, fakeTree.GPUReadyBuffer.data(), fakeTree.GPUReadyBuffer.size());
+    vkUnmapMemory(m_device, nodeBufferMemory);
+
+    // Descriptor set layout
+    VkDescriptorSetLayoutBinding nodeLayoutBinding{};
+    nodeLayoutBinding.binding = 0;
+    nodeLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    nodeLayoutBinding.descriptorCount = 1;
+    nodeLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    VkDescriptorBufferInfo bufferInfoD{};
+    bufferInfoD.buffer = nodeBuffer;
+    bufferInfoD.offset = 0;
+    bufferInfoD.range = sizeof(Node) * fakeTree.GPUReadyBuffer.size();
+
+//
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = 1;
+    layoutInfo.pBindings = &nodeLayoutBinding;
+
+    VkDescriptorSetLayout descriptorSetLayout;
+    vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &descriptorSetLayout);
+
+    // 2. Créer un pool + allouer
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    poolSize.descriptorCount = 1;
+
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.maxSets = 1;
+
+    VkDescriptorPool descriptorPool;
+    vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &descriptorPool);
+
+    VkDescriptorSetAllocateInfo allocInfo_2{};
+    allocInfo_2.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo_2.descriptorPool = descriptorPool;
+    allocInfo_2.descriptorSetCount = 1;
+    allocInfo_2.pSetLayouts = &descriptorSetLayout;
+
+    VkDescriptorSet descriptorSet;
+    vkAllocateDescriptorSets(m_device, &allocInfo_2, &descriptorSet);
+  //
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = descriptorSet;
+    write.dstBinding = 0;
+    write.dstArrayElement = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    write.descriptorCount = 1;
+    write.pBufferInfo = &bufferInfoD;
+
+    vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
+}
+#endif

@@ -6,6 +6,22 @@ struct Particle
     vec4 color;
 };
 
+//struct Node
+//{
+//    vec3 boxPos;
+//    vec3 boxSize;
+//
+//    // Children
+//    // TODO Change to get the index (morton number/ index in the array)
+//    int left;
+//    int right;
+//
+//    int mortonNumber;
+//
+//    //constexpr int MAX_POINTS_PER_LEAVES = 16;
+//    vec3 cloudPoints[16];
+//};
+
 layout (binding = 0) uniform ParameterUBO 
 {
     float deltaTime;
@@ -22,6 +38,12 @@ layout(std140, binding = 2) buffer ParticleSSBOOut
 };
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+
+//layout(std430, binding = 0) buffer BinaryTreeBuffer
+//{
+//    Node nodes[];
+//};
 
 //void main() 
 //{
@@ -51,4 +73,11 @@ void main() {
     } else {
         imageStore(img_output, pixel_coords, vec4(1.0, 0.0, 0.0, 1.0)); // rouge
     }
+
+// test tree values
+//    if (nodes[1].mortonNumber != 1) {
+//        imageStore(img_output, pixel_coords, vec4(0.0, 1.0, 0.0, 1.0)); // pixel vert unique
+//    } else {
+//        imageStore(img_output, pixel_coords, vec4(1.0, 0.0, 0.0, 1.0)); // rouge
+//    }
 }

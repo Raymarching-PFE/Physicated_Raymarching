@@ -110,6 +110,27 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    //             data()[i].cloudPoints[j].z << std::endl;
    //    std::cout << std::endl;
    // }
+
+   GPUReadyBuffer.resize(buffer.size());
+   for (int i = 0; i < buffer.size(); i++)
+   {
+      // Unchanged
+      GPUReadyBuffer[i].boxPos = buffer[i].boxPos;
+      GPUReadyBuffer[i].boxSize = buffer[i].boxSize;
+      GPUReadyBuffer[i].mortonNumber = buffer[i].mortonNumber;
+      GPUReadyBuffer[i].cloudPoints = buffer[i].cloudPoints;
+
+      // left/right -> int index
+      if (buffer[i].left != nullptr)
+         GPUReadyBuffer[i].left = buffer[i].left->mortonNumber;
+      else
+         GPUReadyBuffer[i].left = 0;
+
+      if (buffer[i].right != nullptr)
+         GPUReadyBuffer[i].right = buffer[i].right->mortonNumber;
+      else
+         GPUReadyBuffer[i].right = 0;
+   }
 }
 
 void BinaryTree::FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> &pointCloudPoints,

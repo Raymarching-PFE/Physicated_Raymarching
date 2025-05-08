@@ -6,6 +6,21 @@
 
 constexpr int MAX_POINTS_PER_LEAVES = 16;
 
+
+struct GPUNode
+{
+   glm::vec3 boxPos = glm::vec3(-1, -1, -1);
+   glm::vec3 boxSize = glm::vec3(-1, -1, -1);
+
+   // Children
+   int left;
+   int right;
+
+   int mortonNumber = 1;
+
+   std::array<glm::vec3, MAX_POINTS_PER_LEAVES> cloudPoints;
+};
+
 struct Node
 {
    float slice = -1;
@@ -35,6 +50,8 @@ public:
    ~BinaryTree();
 
    std::vector<glm::vec3> generatedPoints;
+
+   std::vector<GPUNode> GPUReadyBuffer;
 
    // double arrays system
    // the first one is the tree and the cloudpoints in the nodes are offset for the next array

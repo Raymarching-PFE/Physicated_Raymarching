@@ -259,6 +259,9 @@ private:
     size_t                  m_vertexNb = 0;
 
 #if COMPUTE
+
+    void SendBinaryTreeToCompute();
+
     VkShaderModule m_computeShader = VK_NULL_HANDLE;
 
     VkQueue m_computeQueue = nullptr;
