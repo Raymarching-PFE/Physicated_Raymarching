@@ -2178,9 +2178,9 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 
     std::copy(fakeTree.GPUReadyBuffer.begin(), fakeTree.GPUReadyBuffer.begin() + std::min(fakeTree.GPUReadyBuffer.size(), size_t(100)), ubo.nodes);
 
+#endif
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 
-#endif
 }
 
 void VulkanRenderer::BeginFrame()
