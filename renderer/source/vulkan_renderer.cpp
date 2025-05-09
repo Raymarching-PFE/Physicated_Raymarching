@@ -151,6 +151,7 @@ void VulkanRenderer::InitVulkan()
     CreateCommandBuffers();
     CreateComputeCommandBuffers();
 #else
+    CreateTextureSampler();
     CreateDescriptorSetLayout();
     CreateGraphicsPipeline();
     CreateCommandPool();
@@ -1793,14 +1794,18 @@ void VulkanRenderer::CreateDescriptorSets()
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
+#if COMPUTE
+
         // --- Sampler image (binding 1) — on utilise _storageImageView ---
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = _storageImageView;
         imageInfo.sampler = m_textureSampler;
-
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+#else
+        std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 
+#endif
         // Binding 0 : UBO
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = m_descriptorSets[i];
@@ -1810,6 +1815,7 @@ void VulkanRenderer::CreateDescriptorSets()
         descriptorWrites[0].descriptorCount = 1;
         descriptorWrites[0].pBufferInfo = &bufferInfo;
 
+#if COMPUTE
         // Binding 1 : Combined image sampler (texture)
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = m_descriptorSets[i];
@@ -1819,6 +1825,7 @@ void VulkanRenderer::CreateDescriptorSets()
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
 
+#endif
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
@@ -2141,21 +2148,24 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     // ubo.spheresArray[6] = glm::vec4(GeneratedPoint[6].x, GeneratedPoint[6].y, GeneratedPoint[6].z, 0.0f);
     // ubo.spheresArray[7] = glm::vec4(GeneratedPoint[7].x, GeneratedPoint[7].y, GeneratedPoint[7].z, 0.0f);
 
-    //ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
-    //ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
-    //ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
-    //ubo.spheresArray[3] = glm::vec4(3.0f, 0.0f, -7.0f, 0.5f);
-    //ubo.spheresArray[4] = glm::vec4(-1.0f, 0.0f, -7.0f, 0.5f);
-    //ubo.spheresArray[5] = glm::vec4(-2.0f, 0.0f, -7.0f, 0.5f);
-    //ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
-    //ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
+#if COMPUTE
+#else
 
+    ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
+    ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
+    ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
+    ubo.spheresArray[3] = glm::vec4(3.0f, 0.0f, -7.0f, 0.5f);
+    ubo.spheresArray[4] = glm::vec4(-1.0f, 0.0f, -7.0f, 0.5f);
+    ubo.spheresArray[5] = glm::vec4(-2.0f, 0.0f, -7.0f, 0.5f);
+    ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
+    ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
+#endif
     ubo.sphereNumber = 6;
 	//std::cout << "Time: " << ubo.time << std::endl;
 	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
     //std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
 
-
+#if COMPUTE
     // Create fake data
     std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
     BinaryTree fakeTree(fakePoints);
@@ -2169,6 +2179,8 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     std::copy(fakeTree.GPUReadyBuffer.begin(), fakeTree.GPUReadyBuffer.begin() + std::min(fakeTree.GPUReadyBuffer.size(), size_t(100)), ubo.nodes);
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+
+#endif
 }
 
 void VulkanRenderer::BeginFrame()
@@ -2849,6 +2861,8 @@ void VulkanRenderer::CreateDescriptorSetLayout()
     uboLayoutBinding.pImmutableSamplers = nullptr;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
+#if COMPUTE
+
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
     samplerLayoutBinding.descriptorCount = 1;
@@ -2861,7 +2875,15 @@ void VulkanRenderer::CreateDescriptorSetLayout()
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings = bindings.data();
+#else
 
+    std::array<VkDescriptorSetLayoutBinding, 1> bindings = { uboLayoutBinding };
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+#endif
     if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
         throw std::runtime_error("Failed to create descriptor set layout!");
 }

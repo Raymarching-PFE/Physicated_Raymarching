@@ -169,14 +169,12 @@ struct UniformBufferObject
     alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 
+#if COMPUTE
     alignas(16) GPUNode nodes[100];
+#else
+    alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
+#endif
     alignas(16) int sphereNumber;
-
-    // only pas compute ?
-    //alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
-
-    // only compute ?
-
 };
 
 class VulkanRenderer
