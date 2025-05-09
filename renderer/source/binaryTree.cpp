@@ -100,8 +100,8 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    // {
    //    std::cout << buffer[i].mortonNumber << ", ";
    // }
-   //
-   // std::cout << std::endl;
+
+   std::cout << std::endl;
    // std::cout << "Buffer points: " << buffer.size() << std::endl;
    // for (int i = 0; i < buffer.size(); i++)
    // {
@@ -115,21 +115,27 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    for (int i = 0; i < buffer.size(); i++)
    {
       // Unchanged
-      GPUReadyBuffer[i].boxPos = buffer[i].boxPos;
-      GPUReadyBuffer[i].boxSize = buffer[i].boxSize;
+      // GPUReadyBuffer[i].boxPos = buffer[i].boxPos;
+      // GPUReadyBuffer[i].boxSize = buffer[i].boxSize;
       GPUReadyBuffer[i].mortonNumber = buffer[i].mortonNumber;
-      GPUReadyBuffer[i].cloudPoints = buffer[i].cloudPoints;
+      // GPUReadyBuffer[i].cloudPoints = buffer[i].cloudPoints;
 
       // left/right -> int index
-      if (buffer[i].left != nullptr)
-         GPUReadyBuffer[i].left = buffer[i].left->mortonNumber;
-      else
-         GPUReadyBuffer[i].left = 0;
+      // if (buffer[i].left != nullptr)
+         // GPUReadyBuffer[i].left = buffer[i].left->mortonNumber;
+      // else
+         // GPUReadyBuffer[i].left = 0;
 
-      if (buffer[i].right != nullptr)
-         GPUReadyBuffer[i].right = buffer[i].right->mortonNumber;
-      else
-         GPUReadyBuffer[i].right = 0;
+      // if (buffer[i].right != nullptr)
+         // GPUReadyBuffer[i].right = buffer[i].right->mortonNumber;
+      // else
+         // GPUReadyBuffer[i].right = 0;
+   }
+
+   std::cout << "GPU buffer : " << GPUReadyBuffer.size() << std::endl;
+   for (int i = 0; i < GPUReadyBuffer.size(); i++)
+   {
+      std::cout << GPUReadyBuffer[i].mortonNumber << ", ";
    }
 }
 

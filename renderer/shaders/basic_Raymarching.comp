@@ -1,11 +1,29 @@
 #version 450
 
+struct Node
+{
+    int mortonNumber;
+
+//    vec3 boxPos;
+//    vec3 boxSize;
+
+    // Children
+    // TODO Change to get the index (morton number/ index in the array)
+//    int left;
+//    int right;
+
+    //constexpr int MAX_POINTS_PER_LEAVES = 16;
+//    vec3 cloudPoints[16];
+};
+
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     float time;
     vec3 cameraPos;
     vec3 cameraFront;
+    Node nodes[100];//8192 pour le lapin
+
 } ubo;
 
 layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D img_output;
@@ -17,26 +35,12 @@ const float MAX_DIST = 5.0;
 const float EPSILON = 0.001;
 const int MAX_RECURSION_DEPTH = 3;
 
-struct Node
-{
-    vec3 boxPos;
-    vec3 boxSize;
 
-    // Children
-    // TODO Change to get the index (morton number/ index in the array)
-    int left;
-    int right;
 
-    int mortonNumber;
-
-    //constexpr int MAX_POINTS_PER_LEAVES = 16;
-    vec3 cloudPoints[16];
-};
-
-layout(std430, binding = 0) buffer BinaryTreeBuffer
-{
-    Node nodes[8192];
-};
+//layout(std430, binding = 2) buffer BinaryTreeBuffer
+//{
+//    Node nodes[100];//8192 pour le lapin
+//};
 
 struct Ray {
     vec3 origin;
@@ -170,15 +174,12 @@ void main() {
         color = vec4(getColor(ray, p, material), 1.0);
     }
 
-    if (nodes[1].mortonNumber != 1)
+    color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    if (ubo.nodes[1].mortonNumber > 0 && ubo.nodes[1].mortonNumber < 2)
     {
-        // to rouge
-        color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        // + red
+        color += vec4(1.0f, 0.0f, 0.0f, 0.0f);
     }
-//    else
-//    {
-//        // pas rouge
-//    }
 
     imageStore(img_output, pixelCoord, color);
 }

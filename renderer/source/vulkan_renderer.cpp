@@ -20,7 +20,7 @@
 #include "backends/imgui_impl_glfw.h"
 
 
-#include "binaryTree.h"
+//#include "binaryTree.h"
 
 
 float VulkanRenderer::GetDeltaTime()
@@ -2141,19 +2141,32 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     // ubo.spheresArray[6] = glm::vec4(GeneratedPoint[6].x, GeneratedPoint[6].y, GeneratedPoint[6].z, 0.0f);
     // ubo.spheresArray[7] = glm::vec4(GeneratedPoint[7].x, GeneratedPoint[7].y, GeneratedPoint[7].z, 0.0f);
 
-    ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
-    ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
-    ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
-    ubo.spheresArray[3] = glm::vec4(3.0f, 0.0f, -7.0f, 0.5f);
-    ubo.spheresArray[4] = glm::vec4(-1.0f, 0.0f, -7.0f, 0.5f);
-    ubo.spheresArray[5] = glm::vec4(-2.0f, 0.0f, -7.0f, 0.5f);
-    ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
-    ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
+    //ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
+    //ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
+    //ubo.spheresArray[3] = glm::vec4(3.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[4] = glm::vec4(-1.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[5] = glm::vec4(-2.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
 
     ubo.sphereNumber = 6;
 	//std::cout << "Time: " << ubo.time << std::endl;
 	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
     //std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
+
+
+    // Create fake data
+    std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
+    BinaryTree fakeTree(fakePoints);
+
+    //GPUNode myNodes[100];
+    //for (int i = 0; i < 100; i++)
+    //{
+    //    myNodes[i] = fakeTree.GPUReadyBuffer[i];
+    //}
+
+    std::copy(fakeTree.GPUReadyBuffer.begin(), fakeTree.GPUReadyBuffer.begin() + std::min(fakeTree.GPUReadyBuffer.size(), size_t(100)), ubo.nodes);
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

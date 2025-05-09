@@ -9,6 +9,7 @@
 #include <shaderc/shaderc.hpp>
 
 #include "model_parser.h"
+#include "binaryTree.h"
 
 
 constexpr uint32_t WIDTH = 800;
@@ -167,8 +168,15 @@ struct UniformBufferObject
 	alignas(16) float time;
     alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-    alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
+
+    alignas(16) GPUNode nodes[100];
     alignas(16) int sphereNumber;
+
+    // only pas compute ?
+    //alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
+
+    // only compute ?
+
 };
 
 class VulkanRenderer
@@ -180,6 +188,8 @@ private:
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    GPUNode myNodes[100];
 
     float m_yaw = -90.0f;
     float m_pitch = 0.0f;

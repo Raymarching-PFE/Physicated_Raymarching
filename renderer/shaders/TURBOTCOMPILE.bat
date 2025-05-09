@@ -1,4 +1,4 @@
-C:/VulkanSDK/1.4.304.1/Bin/glslc.exe basic_Raymarching.comp -o basic_Raymarching_comp.spv
+C:/VulkanSDK/1.4.304.1/Bin/glslc.exe basic_Raymarching.comp -o raymarching.spv
 
 C:/VulkanSDK/1.4.304.1/Bin/glslc.exe basic_Raymarching.frag -o basic_Raymarching_frag.spv
 C:/VulkanSDK/1.4.304.1/Bin/glslc.exe basic_Raymarching.vert -o basic_Raymarching_vert.spv

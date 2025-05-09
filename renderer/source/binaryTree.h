@@ -9,16 +9,16 @@ constexpr int MAX_POINTS_PER_LEAVES = 16;
 
 struct GPUNode
 {
-   glm::vec3 boxPos = glm::vec3(-1, -1, -1);
-   glm::vec3 boxSize = glm::vec3(-1, -1, -1);
+	alignas(16) int mortonNumber = 1;
+
+   // glm::vec3 boxPos = glm::vec3(-1, -1, -1);
+   // glm::vec3 boxSize = glm::vec3(-1, -1, -1);
 
    // Children
-   int left;
-   int right;
+   // int left;
+   // int right;
 
-   int mortonNumber = 1;
-
-   std::array<glm::vec3, MAX_POINTS_PER_LEAVES> cloudPoints;
+   // std::array<glm::vec3, MAX_POINTS_PER_LEAVES> cloudPoints;
 };
 
 struct Node
