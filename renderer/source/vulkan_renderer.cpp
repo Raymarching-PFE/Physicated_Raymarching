@@ -1202,50 +1202,6 @@ void VulkanRenderer::CreateGraphicsComputePipeline()
 }
 #endif
 
-#if COMPUTE
-void VulkanRenderer::CreateComputePipeline()
-{
-    if (m_computePipelineLayout != VK_NULL_HANDLE)
-    {
-        vkDestroyPipelineLayout(m_device, m_computePipelineLayout, nullptr);
-        m_computePipelineLayout = VK_NULL_HANDLE;
-    }
-    if (m_computePipeline != VK_NULL_HANDLE)
-    {
-        vkDestroyPipeline(m_device, m_computePipeline, nullptr);
-        m_computePipeline = VK_NULL_HANDLE;
-    }
-
-    std::vector<char> computeShaderCode = ReadFile("shaders/raymarching.spv");
-
-    VkShaderModule computeShaderModule = CreateShaderModule(computeShaderCode);
-
-    VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
-    computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    computeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    computeShaderStageInfo.module = computeShaderModule;
-    computeShaderStageInfo.pName = "main";
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &m_computeDescriptorSetLayout;
-
-    if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_computePipelineLayout) != VK_SUCCESS)
-        throw std::runtime_error("Failed to create compute pipeline layout!");
-
-    VkComputePipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineInfo.layout = m_computePipelineLayout;
-    pipelineInfo.stage = computeShaderStageInfo;
-
-    if (vkCreateComputePipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_computePipeline) != VK_SUCCESS)
-        throw std::runtime_error("Failed to create compute pipeline!");
-
-    vkDestroyShaderModule(m_device, computeShaderModule, nullptr);
-}
-#endif
-
 void VulkanRenderer::CreateFramebuffers()
 {
     m_swapChainFramebuffers.resize(m_swapChainImageViews.size());
@@ -2659,6 +2615,66 @@ void VulkanRenderer::CreateComputeResources()
 //     vkDestroyShaderModule(m_device, m_computeShader, nullptr);
 // }
 //
+
+void VulkanRenderer::CreateComputePipeline()
+{
+    if (m_computePipelineLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineLayout(m_device, m_computePipelineLayout, nullptr);
+        m_computePipelineLayout = VK_NULL_HANDLE;
+    }
+    if (m_computePipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(m_device, m_computePipeline, nullptr);
+        m_computePipeline = VK_NULL_HANDLE;
+    }
+
+    std::vector<uint32_t> shCode;
+
+    CompileShaderFromFile("shaders/basic_Raymarching.comp", shaderc_compute_shader, shCode);
+
+    const VkShaderModuleCreateInfo createInfo{
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0u,
+        .codeSize = static_cast<uint32_t>(shCode.size()) * sizeof(uint32_t),
+        .pCode = shCode.data(),
+    };
+
+    const VkResult vrShaderCompile = vkCreateShaderModule(m_device, &createInfo, nullptr, &m_computeShader);
+    if (vrShaderCompile != VK_SUCCESS)
+    {
+        std::cerr << "\033[31m" << "Create Compute Shader failed!" << "\033[0m" << '\n'; // Red
+        std::cerr << "\033[31m" << "Error code: " << vrShaderCompile << "\033[0m" << '\n'; // Red
+    }
+    else
+        std::cerr << "\033[32m" << "Create Compute Shader success" << "\033[0m" << '\n'; // Green
+
+    VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
+    computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    computeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    computeShaderStageInfo.module = m_computeShader;
+    computeShaderStageInfo.pName = "main";
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &m_computeDescriptorSetLayout;
+
+    if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_computePipelineLayout) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create compute pipeline layout!");
+
+    VkComputePipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineInfo.layout = m_computePipelineLayout;
+    pipelineInfo.stage = computeShaderStageInfo;
+
+    if (vkCreateComputePipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_computePipeline) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create compute pipeline!");
+
+    vkDestroyShaderModule(m_device, m_computeShader, nullptr);
+}
+
 // void VulkanRenderer::CreateComputeDescriptorSetLayout()
 // {
 //     std::array<VkDescriptorSetLayoutBinding, 3> layoutBindings{};
@@ -2688,7 +2704,7 @@ void VulkanRenderer::CreateComputeResources()
 //     if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_computeDescriptorSetLayout) != VK_SUCCESS)
 //         throw std::runtime_error("Failed to create compute descriptor set layout!");
 // }
-//
+
 // void VulkanRenderer::CreateComputeDescriptorSets()
 // {
 //     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_computeDescriptorSetLayout);
@@ -2747,7 +2763,7 @@ void VulkanRenderer::CreateComputeResources()
 //         vkUpdateDescriptorSets(m_device, 3, descriptorWrites.data(), 0, nullptr);
 //     }
 // }
-//
+
 // void VulkanRenderer::CreateComputeCommandBuffers()
 // {
 //     m_computeCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -2761,7 +2777,7 @@ void VulkanRenderer::CreateComputeResources()
 //     if (vkAllocateCommandBuffers(m_device, &allocInfo, m_computeCommandBuffers.data()) != VK_SUCCESS)
 //         throw std::runtime_error("Failed to allocate compute command buffers!");
 // }
-//
+
 // void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const
 // {
 //     VkCommandBufferBeginInfo beginInfo{};
