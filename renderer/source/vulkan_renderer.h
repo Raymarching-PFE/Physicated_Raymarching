@@ -301,7 +301,7 @@ private:
     void InitVulkan();
     void MainLoop();
     void CleanupSwapChain() const;
-    void Cleanup() const;
+    void Cleanup();
     void RecreateSwapChain();
     void CreateInstance();
     static void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
@@ -354,6 +354,9 @@ private:
     void ReloadModel(const std::string& path);
     void DestroyModelResources();
 
+    void DestroyBinaryTreeResources();
+    void DestroyMeshBuffers();
+
 #if COMPUTE
     void CreateShaderStorageBuffers();
     void CreateComputePipeline();
@@ -384,11 +387,11 @@ private:
     // void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
     void CreateTextureSampler();
 
-    VkImage _storageImage;
-    VkDeviceMemory _storageImageMemory;
-    VkImageView _storageImageView;
-	VkSubmitInfo _computeSubmitInfo;
-    VkDescriptorPool _computeDescriptorPool;
+    VkImage m_storageImage = nullptr;
+    VkDeviceMemory m_storageImageMemory = nullptr;
+    VkImageView m_storageImageView = nullptr;
+	VkSubmitInfo m_computeSubmitInfo = {};
+    VkDescriptorPool m_computeDescriptorPool = nullptr;
 
     VkImage m_colorImage = nullptr;
     VkDeviceMemory m_colorImageMemory = nullptr;
@@ -398,9 +401,12 @@ private:
     VkDeviceMemory m_depthImageMemory = nullptr;
     VkImageView m_depthImageView = nullptr;
 
-    VkBuffer m_QuadIndexBuffer = nullptr;
-    VkDeviceMemory m_QuadindexBufferMemory = nullptr;
-
     VkImageView m_textureImageView = nullptr;
     VkSampler m_textureSampler = nullptr;
+
+    VkBuffer        m_nodeBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory  m_nodeBufferMemory = VK_NULL_HANDLE;
+    VkDescriptorSetLayout m_nodeDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool      m_nodeDescriptorPool = VK_NULL_HANDLE;
+
 };

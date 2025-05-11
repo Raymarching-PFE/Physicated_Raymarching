@@ -204,72 +204,40 @@ void VulkanRenderer::ProcessInput(GLFWwindow* window)
     }
 }
 
-//void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
-//{
-//    VulkanRenderer* app = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
-//
-//    if (app->m_isCursorCaptured)
-//    {
-//        if (app->m_firstMouse)
-//        {
-//            app->m_lastX = xpos;
-//            app->m_lastY = ypos;
-//            app->m_firstMouse = false;
-//        }
-//
-//        float xoffset = xpos - app->m_lastX;
-//        float yoffset = app->m_lastY - ypos;
-//        app->m_lastX = xpos;
-//        app->m_lastY = ypos;
-//
-//        float sensitivity = 0.1f;
-//        xoffset *= sensitivity;
-//        yoffset *= sensitivity;
-//
-//        app->m_yaw += xoffset;
-//        app->m_pitch -= yoffset;
-//
-//        if (app->m_pitch > 89.0f) app->m_pitch = 89.0f;
-//        if (app->m_pitch < -89.0f) app->m_pitch = -89.0f;
-//
-//        glm::vec3 front;
-//        front.x = cos(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
-//        front.y = sin(glm::radians(app->m_pitch));
-//        front.z = sin(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
-//        app->m_cameraFront = glm::normalize(front);
-//    }
-//}
-
 void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
     VulkanRenderer* app = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
-    if (app->m_firstMouse)
+
+    if (app->m_isCursorCaptured)
     {
+        if (app->m_firstMouse)
+        {
+            app->m_lastX = xpos;
+            app->m_lastY = ypos;
+            app->m_firstMouse = false;
+        }
+
+        float xoffset = xpos - app->m_lastX;
+        float yoffset = app->m_lastY - ypos;
         app->m_lastX = xpos;
         app->m_lastY = ypos;
-        app->m_firstMouse = false;
+
+        float sensitivity = 0.1f;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        app->m_yaw += xoffset;
+        app->m_pitch -= yoffset;
+
+        if (app->m_pitch > 89.0f) app->m_pitch = 89.0f;
+        if (app->m_pitch < -89.0f) app->m_pitch = -89.0f;
+
+        glm::vec3 front;
+        front.x = cos(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
+        front.y = sin(glm::radians(app->m_pitch));
+        front.z = sin(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
+        app->m_cameraFront = glm::normalize(front);
     }
-
-    float xoffset = xpos - app->m_lastX;
-    float yoffset = app->m_lastY - ypos;
-    app->m_lastX = xpos;
-    app->m_lastY = ypos;
-
-    float sensitivity = 0.1f;
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-
-    app->m_yaw += xoffset;
-    app->m_pitch -= yoffset;
-
-    if (app->m_pitch > 89.0f) app->m_pitch = 89.0f;
-    if (app->m_pitch < -89.0f) app->m_pitch = -89.0f;
-
-    glm::vec3 front;
-    front.x = cos(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
-    front.y = sin(glm::radians(app->m_pitch));
-    front.z = sin(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
-    app->m_cameraFront = glm::normalize(front);
 }
 
 void VulkanRenderer::DestroyModelResources()
@@ -380,121 +348,24 @@ void VulkanRenderer::CleanupSwapChain() const
     vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
 }
 
-//void VulkanRenderer::Cleanup() const
-//{
-//    vkDeviceWaitIdle(m_device);
-//
-//    ImGui_ImplVulkan_Shutdown();
-//    ImGui_ImplGlfw_Shutdown();
-//    ImGui::DestroyContext();
-//
-//    CleanupSwapChain();
-//
-//    vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
-//    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-//
-//#if COMPUTE
-//    vkDestroyPipeline(m_device, m_computePipeline, nullptr);
-//    vkDestroyPipelineLayout(m_device, m_computePipelineLayout, nullptr);
-//
-//    vkDestroyRenderPass(m_device, m_renderPass, nullptr);
-//
-//    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-//    {
-//        vkDestroyBuffer(m_device, m_uniformBuffers[i], nullptr);
-//        vkFreeMemory(m_device, m_uniformBuffersMemory[i], nullptr);
-//    }
-//
-//    vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
-//
-//    vkDestroyDescriptorSetLayout(m_device, m_computeDescriptorSetLayout, nullptr);
-//
-//    vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
-//    vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
-//
-//    vkDestroyBuffer(m_device, m_quadIndexBuffer, nullptr);
-//    vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
-//
-//    vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
-//    vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
-//
-//    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-//    {
-//        vkDestroyBuffer(m_device, m_shaderStorageBuffers[i], nullptr);
-//        vkFreeMemory(m_device, m_shaderStorageBuffersMemory[i], nullptr);
-//    }
-//
-//    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-//    {
-//        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
-//        vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
-//        vkDestroySemaphore(m_device, m_computeFinishedSemaphores[i], nullptr);
-//        vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
-//        vkDestroyFence(m_device, m_computeInFlightFences[i], nullptr);
-//    }
-//#else
-//    vkDestroyRenderPass(m_device, m_renderPass, nullptr);
-//
-//    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-//    {
-//        vkDestroyBuffer(m_device, m_uniformBuffers[i], nullptr);
-//        vkFreeMemory(m_device, m_uniformBuffersMemory[i], nullptr);
-//    }
-//
-//    vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
-//
-//    vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
-//
-//    vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
-//    vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
-//
-//    vkDestroyBuffer(m_device, m_quadIndexBuffer, nullptr);
-//    vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
-//
-//    vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
-//    vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
-//
-//    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-//    {
-//        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
-//        vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
-//        vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
-//    }
-//#endif
-//
-//    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-//
-//    vkDestroyDevice(m_device, nullptr);
-//
-//    if (enableValidationLayers)
-//        DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
-//
-//    vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-//    vkDestroyInstance(m_instance, nullptr);
-//
-//    glfwDestroyWindow(m_window);
-//
-//    glfwTerminate();
-//}
-
-void VulkanRenderer::Cleanup() const
+void VulkanRenderer::Cleanup()
 {
     vkDeviceWaitIdle(m_device);
+
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     CleanupSwapChain();
 
     vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
 
 #if COMPUTE
     vkDestroyPipeline(m_device, m_computePipeline, nullptr);
-#endif
+    vkDestroyPipelineLayout(m_device, m_computePipelineLayout, nullptr);
 
     vkDestroyPipeline(m_device, m_graphicsComputePipeline, nullptr);
-
-    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-#if COMPUTE
-    vkDestroyPipelineLayout(m_device, m_computePipelineLayout, nullptr);
-#endif
     vkDestroyPipelineLayout(m_device, m_graphicsComputePipelineLayout, nullptr);
 
     vkDestroyRenderPass(m_device, m_renderPass, nullptr);
@@ -503,48 +374,91 @@ void VulkanRenderer::Cleanup() const
     {
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
         {
-            vkDestroyBuffer(m_device, m_uniformBuffers[i + j * NUMBER_OF_UBO], nullptr);
-            vkFreeMemory(m_device, m_uniformBuffersMemory[i + j * NUMBER_OF_UBO], nullptr);
+            if (m_uniformBuffers[i + j * NUMBER_OF_UBO] != VK_NULL_HANDLE)
+                vkDestroyBuffer(m_device, m_uniformBuffers[i + j * NUMBER_OF_UBO], nullptr);
+            if (m_uniformBuffersMemory[i + j * NUMBER_OF_UBO] != VK_NULL_HANDLE)
+                vkFreeMemory(m_device, m_uniformBuffersMemory[i + j * NUMBER_OF_UBO], nullptr);
         }
+    }
+
+     if (m_descriptorPool != VK_NULL_HANDLE)
+        vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
+
+    if (m_descriptorSetLayout != VK_NULL_HANDLE)
+        vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
+    if (m_computeDescriptorSetLayout != VK_NULL_HANDLE)
+        vkDestroyDescriptorSetLayout(m_device, m_computeDescriptorSetLayout, nullptr);
+
+    if (m_textureSampler != VK_NULL_HANDLE)
+        vkDestroySampler(m_device, m_textureSampler, nullptr);
+
+    DestroyMeshBuffers();
+    DestroyBinaryTreeResources();
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        if (m_renderFinishedSemaphores[i] != VK_NULL_HANDLE)
+            vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
+        if (m_imageAvailableSemaphores[i] != VK_NULL_HANDLE)
+            vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
+        if (m_computeFinishedSemaphores[i] != VK_NULL_HANDLE)
+            vkDestroySemaphore(m_device, m_computeFinishedSemaphores[i], nullptr);
+        if (m_inFlightFences[i] != VK_NULL_HANDLE)
+            vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
+        if (m_computeInFlightFences[i] != VK_NULL_HANDLE)
+            vkDestroyFence(m_device, m_computeInFlightFences[i], nullptr);
+    }
+
+    if (m_storageImageView != VK_NULL_HANDLE)
+        vkDestroyImageView(m_device, m_storageImageView, nullptr);
+    if (m_storageImage != VK_NULL_HANDLE)
+        vkDestroyImage(m_device, m_storageImage, nullptr);
+    if (m_storageImageMemory != VK_NULL_HANDLE)
+        vkFreeMemory(m_device, m_storageImageMemory, nullptr);
+
+    if (m_colorImageView != VK_NULL_HANDLE)
+        vkDestroyImageView(m_device, m_colorImageView, nullptr);
+    if (m_colorImage != VK_NULL_HANDLE)
+        vkDestroyImage(m_device, m_colorImage, nullptr);
+    if (m_colorImageMemory != VK_NULL_HANDLE)
+        vkFreeMemory(m_device, m_colorImageMemory, nullptr);
+
+    if (m_depthImageView != VK_NULL_HANDLE)
+        vkDestroyImageView(m_device, m_depthImageView, nullptr);
+    if (m_depthImage != VK_NULL_HANDLE)
+        vkDestroyImage(m_device, m_depthImage, nullptr);
+    if (m_depthImageMemory != VK_NULL_HANDLE)
+        vkFreeMemory(m_device, m_depthImageMemory, nullptr);
+#else
+    vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        vkDestroyBuffer(m_device, m_uniformBuffers[i], nullptr);
+        vkFreeMemory(m_device, m_uniformBuffersMemory[i], nullptr);
     }
 
     vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
 
-    vkDestroySampler(m_device, m_textureSampler, nullptr);
-    vkDestroyImageView(m_device, m_textureImageView, nullptr);
-
-    /*vkDestroyImage(m_device, m_textureImage, nullptr);
-    vkFreeMemory(m_device, m_textureImageMemory, nullptr);*/
-
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
-
-#if COMPUTE
-    vkDestroyDescriptorSetLayout(m_device, m_computeDescriptorSetLayout, nullptr);
-#endif
 
     vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
     vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
 
-    vkDestroyBuffer(m_device, m_QuadIndexBuffer, nullptr);
-    vkFreeMemory(m_device, m_QuadindexBufferMemory, nullptr);
+    vkDestroyBuffer(m_device, m_quadIndexBuffer, nullptr);
+    vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
 
     vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
     vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
 
-    /*for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        vkDestroyBuffer(m_device, _shaderStorageBuffers[i], nullptr);
-        vkFreeMemory(m_device, _shaderStorageBuffersMemory[i], nullptr);
-    }*/
+    vkDestroySampler(m_device, m_textureSampler, nullptr);
+    vkDestroyImageView(m_device, m_textureImageView, nullptr);
 
-#if COMPUTE
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
-        vkDestroySemaphore(m_device, m_computeFinishedSemaphores[i], nullptr);
         vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
-        vkDestroyFence(m_device, m_computeInFlightFences[i], nullptr);
     }
 #endif
 
@@ -1291,6 +1205,17 @@ void VulkanRenderer::CreateGraphicsComputePipeline()
 #if COMPUTE
 void VulkanRenderer::CreateComputePipeline()
 {
+    if (m_computePipelineLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineLayout(m_device, m_computePipelineLayout, nullptr);
+        m_computePipelineLayout = VK_NULL_HANDLE;
+    }
+    if (m_computePipeline != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(m_device, m_computePipeline, nullptr);
+        m_computePipeline = VK_NULL_HANDLE;
+    }
+
     std::vector<char> computeShaderCode = ReadFile("shaders/raymarching.spv");
 
     VkShaderModule computeShaderModule = CreateShaderModule(computeShaderCode);
@@ -1600,6 +1525,8 @@ void VulkanRenderer::CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t 
 
 void VulkanRenderer::CreateVertexBuffer()
 {
+    DestroyMeshBuffers();
+
     const VkDeviceSize bufferSize = sizeof(m_vertices[0]) * m_vertices.size();
 
     VkBuffer stagingBuffer;
@@ -1621,21 +1548,23 @@ void VulkanRenderer::CreateVertexBuffer()
 
 void VulkanRenderer::CreateIndexBuffer()
 {
+    DestroyMeshBuffers();
+
     std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
 
     const VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
-    const VkDeviceSize QuadBufferSize = sizeof(uint32_t) * quadIndices.size();
+    const VkDeviceSize quadBufferSize = sizeof(uint32_t) * quadIndices.size();
 
     std::cout << "Index buffer size: " << bufferSize << std::endl;
-    std::cout << "Index buffer size: " << QuadBufferSize << std::endl;
+    std::cout << "Index buffer size: " << quadBufferSize << std::endl;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-    VkBuffer QuadstagingBuffer;
-    VkDeviceMemory QuadstagingBufferMemory;
-    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, QuadstagingBuffer, QuadstagingBufferMemory);
+    VkBuffer quadStagingBuffer;
+    VkDeviceMemory quadStagingBufferMemory;
+    CreateBuffer(quadBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, quadStagingBuffer, quadStagingBufferMemory);
 
     void* data;
     vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, &data);
@@ -1644,21 +1573,21 @@ void VulkanRenderer::CreateIndexBuffer()
     
     // Copie des indices dans le buffer
     void* quadData;
-    vkMapMemory(m_device, QuadstagingBufferMemory, 0, QuadBufferSize, 0, &quadData);
-    memcpy(quadData, quadIndices.data(), QuadBufferSize);
-    vkUnmapMemory(m_device, QuadstagingBufferMemory);
+    vkMapMemory(m_device, quadStagingBufferMemory, 0, quadBufferSize, 0, &quadData);
+    memcpy(quadData, quadIndices.data(), quadBufferSize);
+    vkUnmapMemory(m_device, quadStagingBufferMemory);
 
     CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
-    CreateBuffer(QuadBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_QuadIndexBuffer, m_QuadindexBufferMemory);
+    CreateBuffer(quadBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_quadIndexBuffer, m_quadIndexBufferMemory);
 
     CopyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
-    CopyBuffer(QuadstagingBuffer, m_QuadIndexBuffer, QuadBufferSize);
+    CopyBuffer(quadStagingBuffer, m_quadIndexBuffer, quadBufferSize);
 
     vkDestroyBuffer(m_device, stagingBuffer, nullptr);
     vkFreeMemory(m_device, stagingBufferMemory, nullptr);
 
-    vkDestroyBuffer(m_device, QuadstagingBuffer, nullptr);
-    vkFreeMemory(m_device, QuadstagingBufferMemory, nullptr);
+    vkDestroyBuffer(m_device, quadStagingBuffer, nullptr);
+    vkFreeMemory(m_device, quadStagingBufferMemory, nullptr);
 }
 
 void VulkanRenderer::CreateUniformBuffers()
@@ -1747,7 +1676,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-        imageInfo.imageView = _storageImageView;
+        imageInfo.imageView = m_storageImageView;
         imageInfo.sampler = VK_NULL_HANDLE;
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
@@ -1799,7 +1728,7 @@ void VulkanRenderer::CreateDescriptorSets()
         // --- Sampler image (binding 1) — on utilise _storageImageView ---
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = _storageImageView;
+        imageInfo.imageView = m_storageImageView;
         imageInfo.sampler = m_textureSampler;
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 #else
@@ -2001,7 +1930,7 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
     barrierToGeneral.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;    // to compute shader
     barrierToGeneral.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierToGeneral.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrierToGeneral.image = _storageImage;
+    barrierToGeneral.image = m_storageImage;
     barrierToGeneral.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrierToGeneral.subresourceRange.baseMipLevel = 0;
     barrierToGeneral.subresourceRange.levelCount = 1;
@@ -2023,7 +1952,7 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
 
     VkDescriptorImageInfo updatedImageInfo{};
     updatedImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    updatedImageInfo.imageView = _storageImageView;
+    updatedImageInfo.imageView = m_storageImageView;
     updatedImageInfo.sampler = VK_NULL_HANDLE;
 
     VkWriteDescriptorSet write{};
@@ -2058,7 +1987,7 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
     barrierToShaderRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     barrierToShaderRead.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrierToShaderRead.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrierToShaderRead.image = _storageImage;
+    barrierToShaderRead.image = m_storageImage;
     barrierToShaderRead.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrierToShaderRead.subresourceRange.baseMipLevel = 0;
     barrierToShaderRead.subresourceRange.levelCount = 1;
@@ -2230,7 +2159,7 @@ void VulkanRenderer::DrawFrame() const
     computeSubmitInfo.pSignalSemaphores = &m_computeFinishedSemaphores[m_currentFrame];
 
     TransitionImageLayout(
-        _storageImage,
+        m_storageImage,
         VK_FORMAT_R32G32B32A32_SFLOAT,
         VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -2277,7 +2206,7 @@ void VulkanRenderer::DrawFrame() const
 
 #if COMPUTE
     TransitionImageLayout(
-        _storageImage,
+        m_storageImage,
         VK_FORMAT_R32G32B32A32_SFLOAT,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         VK_IMAGE_LAYOUT_GENERAL,
@@ -2573,25 +2502,25 @@ void VulkanRenderer::CreateStorageImage()
         VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    if (vkCreateImage(m_device, &imageInfo, nullptr, &_storageImage) != VK_SUCCESS)
+    if (vkCreateImage(m_device, &imageInfo, nullptr, &m_storageImage) != VK_SUCCESS)
         throw std::runtime_error("Failed to create storage image!");
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(m_device, _storageImage, &memRequirements);
+    vkGetImageMemoryRequirements(m_device, m_storageImage, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    if (vkAllocateMemory(m_device, &allocInfo, nullptr, &_storageImageMemory) != VK_SUCCESS)
+    if (vkAllocateMemory(m_device, &allocInfo, nullptr, &m_storageImageMemory) != VK_SUCCESS)
         throw std::runtime_error("Failed to allocate storage image memory!");
 
-    vkBindImageMemory(m_device, _storageImage, _storageImageMemory, 0);
+    vkBindImageMemory(m_device, m_storageImage, m_storageImageMemory, 0);
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = _storageImage;
+    viewInfo.image = m_storageImage;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2600,14 +2529,14 @@ void VulkanRenderer::CreateStorageImage()
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
-    if (vkCreateImageView(m_device, &viewInfo, nullptr, &_storageImageView) != VK_SUCCESS)
+    if (vkCreateImageView(m_device, &viewInfo, nullptr, &m_storageImageView) != VK_SUCCESS)
         throw std::runtime_error("Failed to create storage image view!");
 
     // Transition UNDEFINED to TRANSFER_DST_OPTIMAL
-    TransitionImageLayout(_storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
+    TransitionImageLayout(m_storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
 
     // Transition TRANSFER_DST_OPTIMAL to GENERAL
-    TransitionImageLayout(_storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, 1);
+    TransitionImageLayout(m_storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, 1);
 }
 
 #if COMPUTE
@@ -2890,8 +2819,38 @@ void VulkanRenderer::CreateDescriptorSetLayout()
 
 
 #if COMPUTE
+void VulkanRenderer::DestroyBinaryTreeResources()
+{
+    if (m_nodeBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(m_device, m_nodeBuffer, nullptr);
+        m_nodeBuffer = VK_NULL_HANDLE;
+    }
+
+    if (m_nodeBufferMemory != VK_NULL_HANDLE)
+    {
+        vkFreeMemory(m_device, m_nodeBufferMemory, nullptr);
+        m_nodeBufferMemory = VK_NULL_HANDLE;
+    }
+
+    if (m_nodeDescriptorPool != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorPool(m_device, m_nodeDescriptorPool, nullptr);
+        m_nodeDescriptorPool = VK_NULL_HANDLE;
+    }
+
+    if (m_nodeDescriptorSetLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorSetLayout(m_device, m_nodeDescriptorSetLayout, nullptr);
+        m_nodeDescriptorSetLayout = VK_NULL_HANDLE;
+    }
+}
+
+
 void VulkanRenderer::SendBinaryTreeToCompute()
 {
+    DestroyBinaryTreeResources();
+
     // Create fake data
     std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
     BinaryTree fakeTree(fakePoints);
@@ -2903,12 +2862,11 @@ void VulkanRenderer::SendBinaryTreeToCompute()
     bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkBuffer nodeBuffer;
-    vkCreateBuffer(m_device, &bufferInfo, nullptr, &nodeBuffer);
+    vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_nodeBuffer);
 
     // Allocate GPU memory
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_device, nodeBuffer, &memRequirements);
+    vkGetBufferMemoryRequirements(m_device, m_nodeBuffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -2916,17 +2874,16 @@ void VulkanRenderer::SendBinaryTreeToCompute()
     allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    VkDeviceMemory nodeBufferMemory;
-    vkAllocateMemory(m_device, &allocInfo, nullptr, &nodeBufferMemory);
+    vkAllocateMemory(m_device, &allocInfo, nullptr, &m_nodeBufferMemory);
 
     // Link to memory
-    vkBindBufferMemory(m_device, nodeBuffer, nodeBufferMemory, 0);
+    vkBindBufferMemory(m_device, m_nodeBuffer, m_nodeBufferMemory, 0);
 
     // Send to GPU
     void* data;
-    vkMapMemory(m_device, nodeBufferMemory, 0, fakeTree.GPUReadyBuffer.size(), 0, &data);
+    vkMapMemory(m_device, m_nodeBufferMemory, 0, fakeTree.GPUReadyBuffer.size(), 0, &data);
     memcpy(data, fakeTree.GPUReadyBuffer.data(), fakeTree.GPUReadyBuffer.size());
-    vkUnmapMemory(m_device, nodeBufferMemory);
+    vkUnmapMemory(m_device, m_nodeBufferMemory);
 
     // Descriptor set layout
     VkDescriptorSetLayoutBinding nodeLayoutBinding{};
@@ -2936,7 +2893,7 @@ void VulkanRenderer::SendBinaryTreeToCompute()
     nodeLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkDescriptorBufferInfo bufferInfoD{};
-    bufferInfoD.buffer = nodeBuffer;
+    bufferInfoD.buffer = m_nodeBuffer;
     bufferInfoD.offset = 0;
     bufferInfoD.range = sizeof(Node) * fakeTree.GPUReadyBuffer.size();
 
@@ -2946,8 +2903,7 @@ void VulkanRenderer::SendBinaryTreeToCompute()
     layoutInfo.bindingCount = 1;
     layoutInfo.pBindings = &nodeLayoutBinding;
 
-    VkDescriptorSetLayout descriptorSetLayout;
-    vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &descriptorSetLayout);
+    vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_nodeDescriptorSetLayout);
 
     // 2. Créer un pool + allouer
     VkDescriptorPoolSize poolSize{};
@@ -2960,14 +2916,13 @@ void VulkanRenderer::SendBinaryTreeToCompute()
     poolInfo.pPoolSizes = &poolSize;
     poolInfo.maxSets = 1;
 
-    VkDescriptorPool descriptorPool;
-    vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &descriptorPool);
+    vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_nodeDescriptorPool);
 
     VkDescriptorSetAllocateInfo allocInfo_2{};
     allocInfo_2.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo_2.descriptorPool = descriptorPool;
+    allocInfo_2.descriptorPool = m_nodeDescriptorPool;
     allocInfo_2.descriptorSetCount = 1;
-    allocInfo_2.pSetLayouts = &descriptorSetLayout;
+    allocInfo_2.pSetLayouts = &m_nodeDescriptorSetLayout;
 
     VkDescriptorSet descriptorSet;
     vkAllocateDescriptorSets(m_device, &allocInfo_2, &descriptorSet);
@@ -2985,3 +2940,42 @@ void VulkanRenderer::SendBinaryTreeToCompute()
     vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
 }
 #endif
+
+void VulkanRenderer::DestroyMeshBuffers()
+{
+    if (m_vertexBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
+        m_vertexBuffer = VK_NULL_HANDLE;
+    }
+
+    if (m_vertexBufferMemory != VK_NULL_HANDLE)
+    {
+        vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
+        m_vertexBufferMemory = VK_NULL_HANDLE;
+    }
+
+    if (m_indexBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
+        m_indexBuffer = VK_NULL_HANDLE;
+    }
+
+    if (m_indexBufferMemory != VK_NULL_HANDLE)
+    {
+        vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
+        m_indexBufferMemory = VK_NULL_HANDLE;
+    }
+
+    if (m_quadIndexBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(m_device, m_quadIndexBuffer, nullptr);
+        m_quadIndexBuffer = VK_NULL_HANDLE;
+    }
+
+    if (m_quadIndexBufferMemory != VK_NULL_HANDLE)
+    {
+        vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
+        m_quadIndexBufferMemory = VK_NULL_HANDLE;
+    }
+}
