@@ -141,28 +141,27 @@ void VulkanRenderer::InitVulkan()
 
 #if COMPUTE
     CreateComputeDescriptorSetLayout();
-    CreateDescriptorSetLayout();
-    CreateGraphicsPipeline();
+    CreateDescriptorSetLayout(); // ?
+    CreateGraphicsPipeline(); // ?
     CreateComputePipeline();
 
     SendBinaryTreeToCompute();
 
     CreateCommandPool();
-    CreateColorResources();
-    CreateDepthResources();
     CreateFramebuffers();
     LoadModel(m_modelPaths[m_currentModelIndex]);
-    CreateVertexBuffer();
-    CreateIndexBuffer();
+    CreateVertexBuffer(); // ? ShaderStoragebuffer avant
+    CreateIndexBuffer(); // ?
     CreateUniformBuffers();
 
     // LoadGeneratedPoint();
 
     CreateDescriptorPool();
-    CreateComputeResources();
+    CreateStorageImage();
+    CreateComputeDescriptorSets();
     CreateTextureSampler();
-    CreateDescriptorSets();
-    CreateCommandBuffers();
+    CreateDescriptorSets(); // ?
+    CreateCommandBuffers(); // ?
     CreateComputeCommandBuffers();
 #else
     CreateTextureSampler();
@@ -267,20 +266,6 @@ void VulkanRenderer::Cleanup()
         vkDestroyImage(m_device, m_storageImage, nullptr);
     if (m_storageImageMemory != VK_NULL_HANDLE)
         vkFreeMemory(m_device, m_storageImageMemory, nullptr);
-
-    if (m_colorImageView != VK_NULL_HANDLE)
-        vkDestroyImageView(m_device, m_colorImageView, nullptr);
-    if (m_colorImage != VK_NULL_HANDLE)
-        vkDestroyImage(m_device, m_colorImage, nullptr);
-    if (m_colorImageMemory != VK_NULL_HANDLE)
-        vkFreeMemory(m_device, m_colorImageMemory, nullptr);
-
-    if (m_depthImageView != VK_NULL_HANDLE)
-        vkDestroyImageView(m_device, m_depthImageView, nullptr);
-    if (m_depthImage != VK_NULL_HANDLE)
-        vkDestroyImage(m_device, m_depthImage, nullptr);
-    if (m_depthImageMemory != VK_NULL_HANDLE)
-        vkFreeMemory(m_device, m_depthImageMemory, nullptr);
 #else
     vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 
@@ -1195,48 +1180,6 @@ void VulkanRenderer::CreateDescriptorSets()
 #endif
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
-}
-
-void VulkanRenderer::CreateColorResources()
-{
-    VkFormat colorFormat = m_swapChainImageFormat;
-
-    CreateImage(m_swapChainExtent.width, m_swapChainExtent.height, 1, VK_SAMPLE_COUNT_1_BIT, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_colorImage, m_colorImageMemory);
-    m_colorImageView = CreateImageView(m_colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
-}
-
-void VulkanRenderer::CreateDepthResources()
-{
-    VkFormat depthFormat = FindDepthFormat();
-
-    CreateImage(m_swapChainExtent.width, m_swapChainExtent.height, 1, VK_SAMPLE_COUNT_1_BIT, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
-    m_depthImageView = CreateImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
-    TransitionImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
-}
-
-VkFormat VulkanRenderer::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
-{
-    for (VkFormat format : candidates)
-    {
-        VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &props);
-
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
-            return format;
-        if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
-            return format;
-    }
-
-    throw std::runtime_error("Failed to find supported format!");
-}
-
-VkFormat VulkanRenderer::FindDepthFormat() const
-{
-    return FindSupportedFormat(
-        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
 }
 
 bool VulkanRenderer::HasStencilComponent(VkFormat format)
@@ -2195,13 +2138,6 @@ void VulkanRenderer::CreateStorageImage()
 
     // Transition TRANSFER_DST_OPTIMAL to GENERAL
     TransitionImageLayout(m_storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, 1);
-}
-
-void VulkanRenderer::CreateComputeResources()
-{
-    CreateStorageImage();
-    CreateComputeDescriptorSets();
-    CreateComputePipeline();
 }
 
 void VulkanRenderer::CreateComputePipeline()

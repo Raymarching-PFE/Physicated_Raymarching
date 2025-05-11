@@ -239,15 +239,6 @@ private:
     VkImageView m_textureImageView = VK_NULL_HANDLE;
     VkSampler   m_textureSampler   = VK_NULL_HANDLE;
 
-    // Render targets
-    VkImage        m_colorImage = VK_NULL_HANDLE;
-    VkDeviceMemory m_colorImageMemory = VK_NULL_HANDLE;
-    VkImageView    m_colorImageView = VK_NULL_HANDLE;
-
-    VkImage        m_depthImage = VK_NULL_HANDLE;
-    VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
-    VkImageView    m_depthImageView = VK_NULL_HANDLE;
-
     // Model loading
     ModelCache m_modelCache;
 
@@ -340,10 +331,6 @@ private:
     void CreateGraphicsPipeline();
     void CreateDescriptorSetLayout();
     void CreateDescriptorSets();
-    void CreateColorResources();
-    void CreateDepthResources();
-    VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
-    VkFormat FindDepthFormat() const;
     static bool HasStencilComponent(VkFormat format);
     void CreateFramebuffers();
     void CreateCommandPool();
@@ -395,7 +382,6 @@ private:
     // Compute
     #if COMPUTE
     void CreateStorageImage();
-    void CreateComputeResources();
     void CreateComputePipeline();
     void CreateComputeDescriptorSetLayout();
     void CreateComputeDescriptorSets();
