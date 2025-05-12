@@ -189,7 +189,7 @@ void VulkanRenderer::MainLoop()
         glfwPostEmptyEvent();
         ProcessInput(m_window);
 
-        //MainImGui();
+        MainImGui();
 
         BeginFrame();
         DrawFrame();
@@ -274,13 +274,10 @@ void VulkanRenderer::Cleanup()
             vkDestroyFence(m_device, m_computeInFlightFences[i], nullptr);
         if (m_transitionFinishedSemaphores[i] != VK_NULL_HANDLE)
             vkDestroySemaphore(m_device, m_transitionFinishedSemaphores[i], nullptr);
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        for (TransitionCmd& cmd : m_transitionCommandBuffers[i])
         {
-            for (int j = 0; j < 2; ++j)
-            {
-                if (m_transitionCommandBuffers[i][j].fence != VK_NULL_HANDLE)
-                    vkDestroyFence(m_device, m_transitionCommandBuffers[i][j].fence, nullptr);
-            }
+            if (cmd.fence != VK_NULL_HANDLE)
+                vkDestroyFence(m_device, cmd.fence, nullptr);
         }
 #endif
     }
@@ -327,6 +324,8 @@ void VulkanRenderer::RecreateSwapChain()
     CreateSwapChain();
     CreateImageViews();
     CreateFramebuffers();
+
+    ImGui_ImplVulkan_SetMinImageCount(m_minImageCount);
 }
 
 
@@ -349,13 +348,7 @@ void VulkanRenderer::InitImGui() const
     initInfo.PhysicalDevice = m_physicalDevice;
     initInfo.Device = m_device;
     initInfo.QueueFamily = m_queueFamily;
-
-#if COMPUTE
-    initInfo.Queue = m_computeQueue;
-#else
     initInfo.Queue = m_graphicsQueue;
-#endif
-
     initInfo.PipelineCache = VK_NULL_HANDLE;
     initInfo.DescriptorPool = m_descriptorPool;
     initInfo.RenderPass = m_renderPass;
@@ -1269,17 +1262,23 @@ void VulkanRenderer::CreateUniformBuffers()
 
 void VulkanRenderer::CreateDescriptorPool()
 {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = NUMBER_OF_UBO * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) + static_cast<uint32_t>(m_swapChainImages.size());
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    // Constantes lisibles et ajustables
+    constexpr uint32_t DESCRIPTORS_PER_TYPE = 64;         // Assez large pour ImGui + app
+    constexpr uint32_t MAX_IMGUI_OVERHEAD   = 64;         // Pour les besoins internes d'ImGui
+    constexpr uint32_t MAX_DESCRIPTOR_SETS  = MAX_FRAMES_IN_FLIGHT * 4 + MAX_IMGUI_OVERHEAD;
+
+    std::array<VkDescriptorPoolSize, 4> poolSizes{};
+    poolSizes[0] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         DESCRIPTORS_PER_TYPE };
+    poolSizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DESCRIPTORS_PER_TYPE };
+    poolSizes[2] = { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          DESCRIPTORS_PER_TYPE };
+    poolSizes[3] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         DESCRIPTORS_PER_TYPE };
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 2 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    poolInfo.maxSets = MAX_DESCRIPTOR_SETS;
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
     if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS)
         throw std::runtime_error("Failed to create descriptor pool!");

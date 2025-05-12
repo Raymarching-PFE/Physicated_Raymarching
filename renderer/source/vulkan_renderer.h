@@ -271,7 +271,7 @@ private:
         VkFence fence;
     };
 
-    TransitionCmd m_transitionCommandBuffers[MAX_FRAMES_IN_FLIGHT][2];
+    std::array<TransitionCmd, 2> m_transitionCommandBuffers[MAX_FRAMES_IN_FLIGHT];
 
     // Storage image (compute output)
     VkImage        m_storageImage = VK_NULL_HANDLE;
