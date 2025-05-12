@@ -258,21 +258,26 @@ private:
     // Descriptor set for compute
     VkDescriptorSetLayout           m_computeDescriptorSetLayout = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet>    m_computeDescriptorSets;
-    VkDescriptorPool                m_computeDescriptorPool = VK_NULL_HANDLE;
-
-    // Buffers (SSBOs)
-    std::vector<VkBuffer>       m_shaderStorageBuffers;
-    std::vector<VkDeviceMemory> m_shaderStorageBuffersMemory;
 
     // Command buffers & sync for compute
-    std::vector<VkCommandBuffer> m_computeCommandBuffers;
-    std::vector<VkSemaphore>     m_computeFinishedSemaphores;
-    std::vector<VkFence>         m_computeInFlightFences;
+    std::vector<VkCommandBuffer>    m_computeCommandBuffers;
+    std::vector<VkSemaphore>        m_computeFinishedSemaphores;
+    std::vector<VkFence>            m_computeInFlightFences;
+    std::vector<VkSemaphore>        m_transitionFinishedSemaphores;
+
+    struct TransitionCmd
+    {
+        VkCommandBuffer buffer;
+        VkFence fence;
+    };
+
+    TransitionCmd m_transitionCommandBuffers[MAX_FRAMES_IN_FLIGHT][2];
 
     // Storage image (compute output)
     VkImage        m_storageImage = VK_NULL_HANDLE;
     VkDeviceMemory m_storageImageMemory = VK_NULL_HANDLE;
     VkImageView    m_storageImageView = VK_NULL_HANDLE;
+    VkImageLayout  m_storageImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     // Node buffer (used for compute tree)
     VkBuffer              m_nodeBuffer = VK_NULL_HANDLE;
@@ -356,16 +361,11 @@ private:
     uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
     // Images
-    VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) const;
-    void CreateImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format,
-                     VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-                     VkImage& image, VkDeviceMemory& imageMemory) const;
     void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) const;
-    void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) const;
 
     // Render
     void BeginFrame();
-    void DrawFrame() const;
+    void DrawFrame();
     void EndFrame();
 
     // Models & Binary tree
@@ -387,6 +387,7 @@ private:
     void CreateComputeDescriptorSets();
     void CreateComputeCommandBuffers();
     void RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const;
+    void ComputeTransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkQueue queue, VkSemaphore waitOn, VkSemaphore signalOut, uint32_t index);
     void SendBinaryTreeToCompute();
     void DestroyBinaryTreeResources();
     #endif
