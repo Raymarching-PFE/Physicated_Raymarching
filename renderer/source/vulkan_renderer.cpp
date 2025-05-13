@@ -1385,17 +1385,10 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
     BinaryTree fakeTree(fakePoints);
 
-    //GPUNode myNodes[100];
-    //for (int i = 0; i < 100; i++)
-    //{
-    //    myNodes[i] = fakeTree.GPUReadyBuffer[i];
-    //}
-
     std::copy(fakeTree.GPUReadyBuffer.begin(), fakeTree.GPUReadyBuffer.begin() + std::min(fakeTree.GPUReadyBuffer.size(), size_t(100)), ubo.nodes);
-
 #endif
-    memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 
+    memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 void VulkanRenderer::CreateSyncObjects()

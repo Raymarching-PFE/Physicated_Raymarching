@@ -1,19 +1,10 @@
 #version 450
 
-struct Node
-{
-    int mortonNumber;
-
-//    vec3 boxPos;
-//    vec3 boxSize;
-
-    // Children
-    // TODO Change to get the index (morton number/ index in the array)
-//    int left;
-//    int right;
-
-    //constexpr int MAX_POINTS_PER_LEAVES = 16;
-//    vec3 cloudPoints[16];
+struct Node {
+    vec4 boxPos;
+    vec4 boxSize;
+    ivec4 children;
+    vec4 cloudPoints[16]; // .xyz used
 };
 
 layout(local_size_x = 16, local_size_y = 16) in;
@@ -27,7 +18,6 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 } ubo;
 
 layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D img_output;
-
 
 
 const int MAX_STEPS = 128;
@@ -167,12 +157,56 @@ void main() {
         color = vec4(getColor(ray, p, material), 1.0);
     }
 
-    //color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    //if (ubo.nodes[1].mortonNumber > 0 && ubo.nodes[1].mortonNumber < 2)
-    //{
-    //    // + red
-    //    color += vec4(1.0f, 0.0f, 0.0f, 0.0f);
-    //}
+    color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    if (
+    true
+    // left and right test on first element
+    && ubo.nodes[0].children.x > -1 && ubo.nodes[0].children.x < 1
+    && ubo.nodes[0].children.y > -1 && ubo.nodes[0].children.y < 1
+
+    // left and right test on second element
+    && ubo.nodes[1].children.x > 1 && ubo.nodes[1].children.x < 3
+    && ubo.nodes[1].children.y > 2 && ubo.nodes[1].children.y < 4
+
+    // left and right test on second element
+    && ubo.nodes[2].children.x > 3 && ubo.nodes[2].children.x < 5
+    && ubo.nodes[2].children.y > 4 && ubo.nodes[2].children.y < 6
+
+    // boxPos[0] test
+    && ubo.nodes[0].boxPos.x > -2.0f && ubo.nodes[0].boxPos.x < 0.0f
+    && ubo.nodes[0].boxPos.y > -2.0f && ubo.nodes[0].boxPos.y < 0.0f
+    && ubo.nodes[0].boxPos.z > -2.0f && ubo.nodes[0].boxPos.z < 0.0f
+
+    // boxPos[1] test
+    && ubo.nodes[1].boxPos.x > -2.0f && ubo.nodes[1].boxPos.x < 0.0f
+    && ubo.nodes[1].boxPos.y > -2.0f && ubo.nodes[1].boxPos.y < 0.0f
+    && ubo.nodes[1].boxPos.z > -2.0f && ubo.nodes[1].boxPos.z < 0.0f
+
+    // boxSize[0] test
+    && ubo.nodes[0].boxSize.x > -2.0f && ubo.nodes[0].boxSize.x < 0.0f
+    && ubo.nodes[0].boxSize.y > -2.0f && ubo.nodes[0].boxSize.y < 0.0f
+    && ubo.nodes[0].boxSize.z > -2.0f && ubo.nodes[0].boxSize.z < 0.0f
+
+    // boxSize[1] test
+    && ubo.nodes[1].boxSize.x > 1.0f && ubo.nodes[1].boxSize.x < 2.0f
+    && ubo.nodes[1].boxSize.y > 1.0f && ubo.nodes[1].boxSize.y < 2.0f
+    && ubo.nodes[1].boxSize.z > 1.0f && ubo.nodes[1].boxSize.z < 2.0f
+             
+    // cloudPoints[0]
+    && ubo.nodes[0].cloudPoints[0].x > -1.0f && ubo.nodes[0].cloudPoints[0].x < 1.0f
+    && ubo.nodes[0].cloudPoints[0].y > -1.0f && ubo.nodes[0].cloudPoints[0].y < 1.0f
+    && ubo.nodes[0].cloudPoints[0].z > -1.0f && ubo.nodes[0].cloudPoints[0].z < 1.0f
+
+    // cloudPoints[8] test
+    && ubo.nodes[8].cloudPoints[0].x > -1.0f && ubo.nodes[8].cloudPoints[0].x < 1.0f
+    && ubo.nodes[8].cloudPoints[0].y > -1.0f && ubo.nodes[8].cloudPoints[0].y < 1.0f
+    && ubo.nodes[8].cloudPoints[0].z > -1.0f && ubo.nodes[8].cloudPoints[0].z < 1.0f
+
+    )
+    {
+        // + red
+        color += vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    }
 
     imageStore(img_output, pixelCoord, color);
 }

@@ -89,6 +89,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
 
    glm::vec3 nearestPoint = GetNearestPoint(glm::vec3(50, 50, 50), 1, 0, root);
 
+
    //std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
 
    // glm::vec3* pointsArray = FillGPUPointsArray();
@@ -115,27 +116,33 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    for (int i = 0; i < buffer.size(); i++)
    {
       // Unchanged
-      // GPUReadyBuffer[i].boxPos = buffer[i].boxPos;
-      // GPUReadyBuffer[i].boxSize = buffer[i].boxSize;
-      GPUReadyBuffer[i].mortonNumber = buffer[i].mortonNumber;
-      // GPUReadyBuffer[i].cloudPoints = buffer[i].cloudPoints;
+       GPUReadyBuffer[i].boxPos = glm::vec4(buffer[i].boxPos, -1);
+      GPUReadyBuffer[i].boxSize = glm::vec4(buffer[i].boxSize, -1);
+
+      for(int j =0; j < 15; j++)
+        GPUReadyBuffer[i].cloudPoints[j] = glm::vec4(buffer[i].cloudPoints[j], -1);
 
       // left/right -> int index
-      // if (buffer[i].left != nullptr)
-         // GPUReadyBuffer[i].left = buffer[i].left->mortonNumber;
-      // else
-         // GPUReadyBuffer[i].left = 0;
+       if (buffer[i].left != nullptr)
+          GPUReadyBuffer[i].children.x = buffer[i].left->mortonNumber;
+       else
+          GPUReadyBuffer[i].children.x = 0;
 
-      // if (buffer[i].right != nullptr)
-         // GPUReadyBuffer[i].right = buffer[i].right->mortonNumber;
-      // else
-         // GPUReadyBuffer[i].right = 0;
+       if (buffer[i].right != nullptr)
+          GPUReadyBuffer[i].children.y = buffer[i].right->mortonNumber;
+       else
+          GPUReadyBuffer[i].children.y = 0;
    }
 
    //std::cout << "GPU buffer : " << GPUReadyBuffer.size() << std::endl;
    //for (int i = 0; i < GPUReadyBuffer.size(); i++)
    //{
-   //   std::cout << GPUReadyBuffer[i].mortonNumber << ", ";
+   //   //std::cout << GPUReadyBuffer[i].mortonNumber << ", ";
+   //   //std::cout << GPUReadyBuffer[i].left << "-" << GPUReadyBuffer[i].right << ", ";
+   //   //std::cout << "x:" << GPUReadyBuffer[i].boxPos.x << "y:" << GPUReadyBuffer[i].boxPos.y << "z:" << GPUReadyBuffer[i].boxPos.z << ", ";
+   //   //std::cout << "x:" << GPUReadyBuffer[i].boxSize.x << "y:" << GPUReadyBuffer[i].boxSize.y << "z:" << GPUReadyBuffer[i].boxSize.z << ", ";
+
+   //   //std::cout << "x:" << GPUReadyBuffer[i].cloudPoints[0].x << "y:" << GPUReadyBuffer[i].cloudPoints[0].y << "z:" << GPUReadyBuffer[i].cloudPoints[0].z << ", ";
    //}
 }
 
