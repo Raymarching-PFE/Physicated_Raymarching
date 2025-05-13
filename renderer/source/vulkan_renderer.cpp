@@ -1210,8 +1210,8 @@ void VulkanRenderer::CreateIndexBuffer()
     const VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
     const VkDeviceSize quadBufferSize = sizeof(uint32_t) * quadIndices.size();
 
-    std::cout << "Index buffer size: " << bufferSize << std::endl;
-    std::cout << "Index buffer size: " << quadBufferSize << std::endl;
+    //std::cout << "Index buffer size: " << bufferSize << std::endl;
+    //std::cout << "Index buffer size: " << quadBufferSize << std::endl;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;

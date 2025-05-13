@@ -12,7 +12,7 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, floa
 
    // static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 
-   std::cout << "Points :" << std::endl;
+   //std::cout << "Points :" << std::endl;
    for (int i = 0; i < numberOfValues; i++)
    {
       // Generate
@@ -22,9 +22,9 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, floa
       toReturn.push_back(value);
 
       // Print it
-      std::cout << "[" << value.x << ", " << value.y << ", " << value.z << "]" << std::endl;
+      //std::cout << "[" << value.x << ", " << value.y << ", " << value.z << "]" << std::endl;
    }
-   std::cout << std::endl;
+   //std::cout << std::endl;
 
    return toReturn;
 }
@@ -40,7 +40,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
 
    int generation = std::ceil(std::log2(pointCloudPoints.size() / static_cast<double>(MAX_POINTS_PER_LEAVES)));
 
-   std::cout << "Elements : " << pointCloudPoints.size() << ", Gen : " << generation << std::endl;
+   //std::cout << "Elements : " << pointCloudPoints.size() << ", Gen : " << generation << std::endl;
 
    // Create architecture from generation
    Node *root = new Node();
@@ -101,7 +101,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    //    std::cout << buffer[i].mortonNumber << ", ";
    // }
 
-   std::cout << std::endl;
+   //std::cout << std::endl;
    // std::cout << "Buffer points: " << buffer.size() << std::endl;
    // for (int i = 0; i < buffer.size(); i++)
    // {
@@ -132,11 +132,11 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
          // GPUReadyBuffer[i].right = 0;
    }
 
-   std::cout << "GPU buffer : " << GPUReadyBuffer.size() << std::endl;
-   for (int i = 0; i < GPUReadyBuffer.size(); i++)
-   {
-      std::cout << GPUReadyBuffer[i].mortonNumber << ", ";
-   }
+   //std::cout << "GPU buffer : " << GPUReadyBuffer.size() << std::endl;
+   //for (int i = 0; i < GPUReadyBuffer.size(); i++)
+   //{
+   //   std::cout << GPUReadyBuffer[i].mortonNumber << ", ";
+   //}
 }
 
 void BinaryTree::FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> &pointCloudPoints,
