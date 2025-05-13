@@ -174,12 +174,12 @@ void main() {
         color = vec4(getColor(ray, p, material), 1.0);
     }
 
-    color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    if (ubo.nodes[1].mortonNumber > 0 && ubo.nodes[1].mortonNumber < 2)
-    {
-        // + red
-        color += vec4(1.0f, 0.0f, 0.0f, 0.0f);
-    }
+    //color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    //if (ubo.nodes[1].mortonNumber > 0 && ubo.nodes[1].mortonNumber < 2)
+    //{
+    //    // + red
+    //    color += vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    //}
 
     imageStore(img_output, pixelCoord, color);
 }
