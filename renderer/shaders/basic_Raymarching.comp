@@ -35,13 +35,6 @@ const float MAX_DIST = 5.0;
 const float EPSILON = 0.001;
 const int MAX_RECURSION_DEPTH = 3;
 
-
-
-//layout(std430, binding = 2) buffer BinaryTreeBuffer
-//{
-//    Node nodes[100];//8192 pour le lapin
-//};
-
 struct Ray {
     vec3 origin;
     vec3 direction;

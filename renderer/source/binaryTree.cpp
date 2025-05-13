@@ -149,7 +149,6 @@ void BinaryTree::FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> &point
    }
    toReturn[node->mortonNumber] = *node;
 
-   // std::cout << "add : " << node->mortonNumber << std::endl;
 
    if (node->left != nullptr)
       FillGPUArrayRecursive(node->left, pointCloudPoints, toReturn);
