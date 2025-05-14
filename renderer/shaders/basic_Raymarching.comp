@@ -137,6 +137,53 @@ vec3 getColor(Ray ray, vec3 p, Material material) {
     return color;
 }
 
+vec4 rabbitTest(Node node_0, Node node_1)
+{
+    if (
+    true
+    // left and right test on first element
+    && node_0.children.x > -1 && node_0.children.x < 1
+    && node_0.children.y > -1 && node_0.children.y < 1
+    
+    // left and right test on second element
+    && node_1.children.x > 1 && node_1.children.x < 3
+    && node_1.children.y > 2 && node_1.children.y < 4
+    
+    // boxPos[0] test
+    && node_0.boxPos.x > -2.0f && node_0.boxPos.x < 0.0f
+    && node_0.boxPos.y > -2.0f && node_0.boxPos.y < 0.0f
+    && node_0.boxPos.z > -2.0f && node_0.boxPos.z < 0.0f
+    
+    // boxPos[1] test
+    && node_1.boxPos.x > -1.0f && node_1.boxPos.x < 0.0f
+    && node_1.boxPos.y > 0.0f && node_1.boxPos.y < 1.0f
+    && node_1.boxPos.z > -1.0f && node_1.boxPos.z < 0.0f
+    
+    // boxSize[0] test
+    && node_0.boxSize.x > -2.0f && node_0.boxSize.x < 0.0f
+    && node_0.boxSize.y > -2.0f && node_0.boxSize.y < 0.0f
+    && node_0.boxSize.z > -2.0f && node_0.boxSize.z < 0.0f
+    
+    // boxSize[1] test
+    && node_1.boxSize.x > 0.0f && node_1.boxSize.x < 1.0f
+    && node_1.boxSize.y > 0.0f && node_1.boxSize.y < 1.0f
+    && node_1.boxSize.z > 0.0f && node_1.boxSize.z < 1.0f
+             
+    // cloudPoints[0]
+    && node_0.cloudPoints[0].x > -1.0f && node_0.cloudPoints[0].x < 1.0f
+    && node_0.cloudPoints[0].y > -1.0f && node_0.cloudPoints[0].y < 1.0f
+    && node_0.cloudPoints[0].z > -1.0f && node_0.cloudPoints[0].z < 1.0f
+    
+    // cloudPoints[8] test
+    //&& ubo.nodes[8].cloudPoints[0].x > -1.0f && ubo.nodes[8].cloudPoints[0].x < 1.0f
+    //&& ubo.nodes[8].cloudPoints[0].y > -1.0f && ubo.nodes[8].cloudPoints[0].y < 1.0f
+    //&& ubo.nodes[8].cloudPoints[0].z > -1.0f && ubo.nodes[8].cloudPoints[0].z < 1.0f
+    )
+        return vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    else
+        return vec4(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
 void main() {
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
     ivec2 imageSize = imageSize(img_output);
@@ -157,52 +204,7 @@ void main() {
         color = vec4(getColor(ray, p, material), 1.0);
     }
 
-    color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    if (
-    true
-    // left and right test on first element
-    && ubo.nodes[0].children.x > -1 && ubo.nodes[0].children.x < 1
-    && ubo.nodes[0].children.y > -1 && ubo.nodes[0].children.y < 1
-    
-    // left and right test on second element
-    && ubo.nodes[1].children.x > 1 && ubo.nodes[1].children.x < 3
-    && ubo.nodes[1].children.y > 2 && ubo.nodes[1].children.y < 4
-    
-    // boxPos[0] test
-    && ubo.nodes[0].boxPos.x > -2.0f && ubo.nodes[0].boxPos.x < 0.0f
-    && ubo.nodes[0].boxPos.y > -2.0f && ubo.nodes[0].boxPos.y < 0.0f
-    && ubo.nodes[0].boxPos.z > -2.0f && ubo.nodes[0].boxPos.z < 0.0f
-    
-    // boxPos[1] test
-    && ubo.nodes[1].boxPos.x > -1.0f && ubo.nodes[1].boxPos.x < 0.0f
-    && ubo.nodes[1].boxPos.y > 0.0f && ubo.nodes[1].boxPos.y < 1.0f
-    && ubo.nodes[1].boxPos.z > -1.0f && ubo.nodes[1].boxPos.z < 0.0f
-    
-    // boxSize[0] test
-    && ubo.nodes[0].boxSize.x > -2.0f && ubo.nodes[0].boxSize.x < 0.0f
-    && ubo.nodes[0].boxSize.y > -2.0f && ubo.nodes[0].boxSize.y < 0.0f
-    && ubo.nodes[0].boxSize.z > -2.0f && ubo.nodes[0].boxSize.z < 0.0f
-    
-    // boxSize[1] test
-    && ubo.nodes[1].boxSize.x > 0.0f && ubo.nodes[1].boxSize.x < 1.0f
-    && ubo.nodes[1].boxSize.y > 0.0f && ubo.nodes[1].boxSize.y < 1.0f
-    && ubo.nodes[1].boxSize.z > 0.0f && ubo.nodes[1].boxSize.z < 1.0f
-             
-    // cloudPoints[0]
-    && ubo.nodes[0].cloudPoints[0].x > -1.0f && ubo.nodes[0].cloudPoints[0].x < 1.0f
-    && ubo.nodes[0].cloudPoints[0].y > -1.0f && ubo.nodes[0].cloudPoints[0].y < 1.0f
-    && ubo.nodes[0].cloudPoints[0].z > -1.0f && ubo.nodes[0].cloudPoints[0].z < 1.0f
-    
-    // cloudPoints[8] test
-    //&& ubo.nodes[8].cloudPoints[0].x > -1.0f && ubo.nodes[8].cloudPoints[0].x < 1.0f
-    //&& ubo.nodes[8].cloudPoints[0].y > -1.0f && ubo.nodes[8].cloudPoints[0].y < 1.0f
-    //&& ubo.nodes[8].cloudPoints[0].z > -1.0f && ubo.nodes[8].cloudPoints[0].z < 1.0f
-    
-    )
-    {
-        // + red
-        color += vec4(1.0f, 0.0f, 0.0f, 0.0f);
-    }
+    //color = rabbitTest(ubo.nodes[0], ubo.nodes[1]);
 
     imageStore(img_output, pixelCoord, color);
 }
