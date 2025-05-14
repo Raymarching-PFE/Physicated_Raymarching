@@ -71,22 +71,40 @@ float torusSDF(vec3 p, vec2 t) {
 }
 
 float sceneSDF(vec3 p, out Material material) {
-    vec3 torusPos = vec3(0.0, 0.0, -7.0);
-    vec3 spherePos = vec3(2.5 + 2.5 * sin(ubo.time), 0.0, -7.0);
+    vec3 spheres[4];
+    spheres[0] = vec3(-1.5,  1.0, -7.0);
+    spheres[1] = vec3( 1.5,  1.0, -7.0);
+    spheres[2] = vec3(-1.5, -1.0, -7.0);
+    spheres[3] = vec3( 1.5, -1.0, -7.0);
 
-    float torusDist = torusSDF(p - torusPos, vec2(1.0, 0.3));
-    float sphereDist = sphereSDF(p, spherePos, 0.5);
+    float r = 1.0;
+    float k = 0.5; // facteur de lissage
 
-    float k = 0.5;
-    float dist = smoothMin(torusDist, sphereDist, k);
+    // Initialisation
+    float dist = sphereSDF(p, spheres[0], r);
+    int id = 0;
 
-    if (dist == torusDist) {
-        material.color = vec3(1.0, 0.0, 0.0);
-        material.reflectivity = 0.5;
-    } else {
-        material.color = vec3(0.0, 0.0, 1.0);
-        material.reflectivity = 0.8;
+    for (int i = 1; i < 4; ++i) {
+        float d = sphereSDF(p, spheres[i], r);
+
+        // smooth union entre dist courant et prochain
+        float newDist = smoothMin(dist, d, k);
+
+        // Si d a contribué plus au smoothMin, on met à jour l'id
+        if (newDist < dist) {
+            id = i;
+        }
+
+        dist = newDist;
     }
+
+    // Couleur en fonction de l'ID majoritaire
+    float uniqueNumber  = float((99 * id + 1) % 5) / 5.0;
+    float uniqueNumber2 = float((99 * id + 2) % 5) / 5.0;
+    float uniqueNumber3 = float((99 * id + 3) % 5) / 5.0;
+
+    material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
+    material.reflectivity = 0.4;
 
     return dist;
 }
