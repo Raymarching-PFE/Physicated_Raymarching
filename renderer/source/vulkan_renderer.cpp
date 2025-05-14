@@ -1382,7 +1382,7 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 
 #if COMPUTE
 
-    size_t arrayMaxSize = 100;
+    size_t arrayMaxSize = 2526;
 
    // Update binary tree data
     // TODO put it in a SRV buffer instead

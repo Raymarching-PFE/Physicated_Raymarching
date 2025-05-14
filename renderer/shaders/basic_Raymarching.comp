@@ -13,7 +13,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
     float time;
     vec3 cameraPos;
     vec3 cameraFront;
-    Node nodes[100];//8192 pour le lapin
+    Node nodes[2526];//8192 pour le lapin
 
 } ubo;
 
@@ -70,21 +70,24 @@ float torusSDF(vec3 p, vec2 t) {
     return length(q) - t.y;
 }
 
-float sceneSDF(vec3 p, out Material material) {
-    vec3 spheres[4];
-    spheres[0] = vec3(-1.5,  1.0, -7.0);
-    spheres[1] = vec3( 1.5,  1.0, -7.0);
-    spheres[2] = vec3(-1.5, -1.0, -7.0);
-    spheres[3] = vec3( 1.5, -1.0, -7.0);
-
-    float r = 1.0;
+float sceneSDF(vec3 p, out Material material)
+{
+    vec3 spheres[16];
+    for(int i = 0; i < 16; i++)
+    {
+        spheres[i].x = 10 * ubo.nodes[2525].cloudPoints[i].x;
+        spheres[i].y = 10 * ubo.nodes[2525].cloudPoints[i].y;
+        spheres[i].z = 10 * ubo.nodes[2525].cloudPoints[i].z;
+    }
+    
+    float r = 0.01;
     float k = 0.5; // facteur de lissage
 
     // Initialisation
     float dist = sphereSDF(p, spheres[0], r);
     int id = 0;
 
-    for (int i = 1; i < 4; ++i) {
+    for (int i = 1; i < 16; ++i) {
         float d = sphereSDF(p, spheres[i], r);
 
         // smooth union entre dist courant et prochain
@@ -94,7 +97,6 @@ float sceneSDF(vec3 p, out Material material) {
         if (newDist < dist) {
             id = i;
         }
-
         dist = newDist;
     }
 
@@ -223,6 +225,9 @@ void main() {
     }
 
     //color = rabbitTest(ubo.nodes[0], ubo.nodes[1]);
+
+    //if(ubo.nodes[2525].cloudPoints[0].x > -0.5f && ubo.nodes[2525].cloudPoints[0].x < 0.0f)
+    //    color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 
     imageStore(img_output, pixelCoord, color);
 }
