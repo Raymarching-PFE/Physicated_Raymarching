@@ -25,6 +25,7 @@ const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NA
 #endif
 
 
+
 inline VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     const auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -248,6 +249,8 @@ private:
     uint32_t m_queueFamily   = (uint32_t)-1;
 
 #if COMPUTE
+    BinaryTree m_binary_tree;
+
     // Compute pipeline
     VkShaderModule   m_computeShader = VK_NULL_HANDLE;
     VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
@@ -373,7 +376,7 @@ private:
     void ReloadModel(const std::string& path);
     void DestroyModelResources();
     void DestroyMeshBuffers();
-    void LoadGeneratedPoint();
+    //void LoadGeneratedPoint();
 
     // Inputs & Timings
     float GetDeltaTime();
@@ -388,7 +391,7 @@ private:
     void CreateComputeCommandBuffers();
     void RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const;
     void ComputeTransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkQueue queue, VkSemaphore waitOn, VkSemaphore signalOut, uint32_t index);
-    void SendBinaryTreeToCompute();
+    //void SendBinaryTreeToCompute();
     void DestroyBinaryTreeResources();
     #endif
 #pragma endregion

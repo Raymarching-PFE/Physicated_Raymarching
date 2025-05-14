@@ -28,7 +28,7 @@ void VulkanRenderer::Run()
     m_modelPaths = LoadPLYFilePaths("point_clouds/");
     m_modelCache.LoadAllModelsInCache(m_modelPaths);
 
-    LoadGeneratedPoint();
+    //LoadGeneratedPoint();
 
     InitVulkan();
     InitImGui();
@@ -146,7 +146,7 @@ void VulkanRenderer::InitVulkan()
     CreateGraphicsPipeline();
     CreateComputePipeline();
 
-    SendBinaryTreeToCompute();
+    //SendBinaryTreeToCompute();
 
     CreateCommandPool();
     CreateFramebuffers();
@@ -168,7 +168,7 @@ void VulkanRenderer::InitVulkan()
     CreateCommandPool();
     CreateFramebuffers();
     LoadModel(m_modelPaths[m_currentModelIndex]);
-    LoadGeneratedPoint();
+    //LoadGeneratedPoint();
     CreateUniformBuffers();
     CreateDescriptorPool();
     CreateDescriptorSets();
@@ -1381,11 +1381,12 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     //std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
 
 #if COMPUTE
-    // Create fake data
-    std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
-    BinaryTree fakeTree(fakePoints);
 
-    std::copy(fakeTree.GPUReadyBuffer.begin(), fakeTree.GPUReadyBuffer.begin() + std::min(fakeTree.GPUReadyBuffer.size(), size_t(100)), ubo.nodes);
+    size_t arrayMaxSize = 100;
+
+   // Update binary tree data
+    // TODO put it in a SRV buffer instead
+   std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), arrayMaxSize), ubo.nodes);
 #endif
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -1793,7 +1794,6 @@ void VulkanRenderer::EndFrame()
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-
 // Models & Binary tree
 void VulkanRenderer::LoadModel(const std::string& path)
 {
@@ -1809,16 +1809,16 @@ void VulkanRenderer::LoadModel(const std::string& path)
     m_indices = cachedModel.m_cachedIndices;
     m_vertexNb = cachedModel.m_cachedVertexCount;
 
+#if COMPUTE
     // TODO fill binarytree with model vertices
     std::vector<glm::vec3> cloudPoints;
     for (int i  = 0; i < m_vertices.size(); i++)
     {
         cloudPoints.push_back(m_vertices[i].pos);
     }
-    BinaryTree binary_tree(cloudPoints);
 
-#if COMPUTE
-    SendBinaryTreeToCompute();
+    m_binary_tree = BinaryTree(cloudPoints);
+
 #endif
 
     CreateVertexBuffer();
@@ -1897,12 +1897,6 @@ void VulkanRenderer::DestroyMeshBuffers()
         vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
         m_quadIndexBufferMemory = VK_NULL_HANDLE;
     }
-}
-
-void VulkanRenderer::LoadGeneratedPoint()
-{
-    // BinaryTree binary_tree(FakeDataGenerator(8));
-    // GeneratedPoint = binary_tree.generatedPoints;
 }
 
 
@@ -2335,95 +2329,95 @@ void VulkanRenderer::DestroyBinaryTreeResources()
         m_nodeDescriptorSetLayout = VK_NULL_HANDLE;
     }
 }
-
-void VulkanRenderer::SendBinaryTreeToCompute()
-{
-    DestroyBinaryTreeResources();
-
-    // Create fake data
-    std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
-    BinaryTree fakeTree(fakePoints);
-
-    // Create buffer to send
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof(Node) * fakeTree.GPUReadyBuffer.size();
-    bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_nodeBuffer);
-
-    // Allocate GPU memory
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_device, m_nodeBuffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    vkAllocateMemory(m_device, &allocInfo, nullptr, &m_nodeBufferMemory);
-
-    // Link to memory
-    vkBindBufferMemory(m_device, m_nodeBuffer, m_nodeBufferMemory, 0);
-
-    // Send to GPU
-    void* data;
-    vkMapMemory(m_device, m_nodeBufferMemory, 0, fakeTree.GPUReadyBuffer.size(), 0, &data);
-    memcpy(data, fakeTree.GPUReadyBuffer.data(), fakeTree.GPUReadyBuffer.size());
-    vkUnmapMemory(m_device, m_nodeBufferMemory);
-
-    // Descriptor set layout
-    VkDescriptorSetLayoutBinding nodeLayoutBinding{};
-    nodeLayoutBinding.binding = 0;
-    nodeLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    nodeLayoutBinding.descriptorCount = 1;
-    nodeLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-    VkDescriptorBufferInfo bufferInfoD{};
-    bufferInfoD.buffer = m_nodeBuffer;
-    bufferInfoD.offset = 0;
-    bufferInfoD.range = sizeof(Node) * fakeTree.GPUReadyBuffer.size();
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &nodeLayoutBinding;
-
-    vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_nodeDescriptorSetLayout);
-
-    // 2. Créer un pool + allouer
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    poolSize.descriptorCount = 1;
-
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
-    poolInfo.maxSets = 1;
-
-    vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_nodeDescriptorPool);
-
-    VkDescriptorSetAllocateInfo allocInfo_2{};
-    allocInfo_2.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo_2.descriptorPool = m_nodeDescriptorPool;
-    allocInfo_2.descriptorSetCount = 1;
-    allocInfo_2.pSetLayouts = &m_nodeDescriptorSetLayout;
-
-    VkDescriptorSet descriptorSet;
-    vkAllocateDescriptorSets(m_device, &allocInfo_2, &descriptorSet);
-
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = descriptorSet;
-    write.dstBinding = 0;
-    write.dstArrayElement = 0;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    write.descriptorCount = 1;
-    write.pBufferInfo = &bufferInfoD;
-
-    vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
-}
+//
+//void VulkanRenderer::SendBinaryTreeToCompute()
+//{
+//    DestroyBinaryTreeResources();
+//
+//    // Create fake data
+//    std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
+//    BinaryTree fakeTree(fakePoints);
+//
+//    // Create buffer to send
+//    VkBufferCreateInfo bufferInfo{};
+//    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+//    bufferInfo.size = sizeof(GPUNode) * fakeTree.GPUReadyBuffer.size();
+//    bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+//    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+//
+//    vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_nodeBuffer);
+//
+//    // Allocate GPU memory
+//    VkMemoryRequirements memRequirements;
+//    vkGetBufferMemoryRequirements(m_device, m_nodeBuffer, &memRequirements);
+//
+//    VkMemoryAllocateInfo allocInfo{};
+//    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+//    allocInfo.allocationSize = memRequirements.size;
+//    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
+//        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+//
+//    vkAllocateMemory(m_device, &allocInfo, nullptr, &m_nodeBufferMemory);
+//
+//    // Link to memory
+//    vkBindBufferMemory(m_device, m_nodeBuffer, m_nodeBufferMemory, 0);
+//
+//    // Send to GPU
+//    void* data;
+//    vkMapMemory(m_device, m_nodeBufferMemory, 0, fakeTree.GPUReadyBuffer.size(), 0, &data);
+//    memcpy(data, fakeTree.GPUReadyBuffer.data(), fakeTree.GPUReadyBuffer.size());
+//    vkUnmapMemory(m_device, m_nodeBufferMemory);
+//
+//    // Descriptor set layout
+//    VkDescriptorSetLayoutBinding nodeLayoutBinding{};
+//    nodeLayoutBinding.binding = 0;
+//    nodeLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+//    nodeLayoutBinding.descriptorCount = 1;
+//    nodeLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+//
+//    VkDescriptorBufferInfo bufferInfoD{};
+//    bufferInfoD.buffer = m_nodeBuffer;
+//    bufferInfoD.offset = 0;
+//    bufferInfoD.range = sizeof(GPUNode) * fakeTree.GPUReadyBuffer.size();
+//
+//    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+//    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+//    layoutInfo.bindingCount = 1;
+//    layoutInfo.pBindings = &nodeLayoutBinding;
+//
+//    vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_nodeDescriptorSetLayout);
+//
+//    // 2. Créer un pool + allouer
+//    VkDescriptorPoolSize poolSize{};
+//    poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+//    poolSize.descriptorCount = 1;
+//
+//    VkDescriptorPoolCreateInfo poolInfo{};
+//    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+//    poolInfo.poolSizeCount = 1;
+//    poolInfo.pPoolSizes = &poolSize;
+//    poolInfo.maxSets = 1;
+//
+//    vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_nodeDescriptorPool);
+//
+//    VkDescriptorSetAllocateInfo allocInfo_2{};
+//    allocInfo_2.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+//    allocInfo_2.descriptorPool = m_nodeDescriptorPool;
+//    allocInfo_2.descriptorSetCount = 1;
+//    allocInfo_2.pSetLayouts = &m_nodeDescriptorSetLayout;
+//
+//    VkDescriptorSet descriptorSet;
+//    vkAllocateDescriptorSets(m_device, &allocInfo_2, &descriptorSet);
+//
+//    VkWriteDescriptorSet write{};
+//    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+//    write.dstSet = descriptorSet;
+//    write.dstBinding = 0;
+//    write.dstArrayElement = 0;
+//    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+//    write.descriptorCount = 1;
+//    write.pBufferInfo = &bufferInfoD;
+//
+//    vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
+//}
 #endif

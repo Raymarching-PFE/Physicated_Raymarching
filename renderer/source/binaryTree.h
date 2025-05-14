@@ -38,7 +38,8 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues, float min = -1, flo
 class BinaryTree
 {
 public:
-   BinaryTree(std::vector<glm::vec3> &pointCloudPoints);
+	BinaryTree(std::vector<glm::vec3>& pointCloudPoints);
+	BinaryTree() {};
 
    ~BinaryTree();
 
