@@ -70,9 +70,11 @@ float torusSDF(vec3 p, vec2 t) {
     return length(q) - t.y;
 }
 
-bool intersectAABB(vec3 p, vec3 boxCenter, vec3 boxHalfSize) {
-    vec3 minB = boxCenter - boxHalfSize;
-    vec3 maxB = boxCenter + boxHalfSize;
+bool intersectAABB(vec3 p, vec3 center, vec3 halfSize)
+{
+    float padding = 2.0; // élargit un peu la boîte, adapte selon ta scène
+    vec3 minB = center - halfSize - vec3(padding);
+    vec3 maxB = center + halfSize + vec3(padding);
     return all(greaterThanEqual(p, minB)) && all(lessThanEqual(p, maxB));
 }
 
@@ -86,8 +88,12 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
     float minDist = 1e5;
     int bestId = -1;
 
-    while (stackPtr > 0) {
+    int steps = 0;
+    while (stackPtr > 0 && steps < 1000)
+    {
         int nodeIndex = stack[--stackPtr];
+        steps++;
+
         Node node = ubo.nodes[nodeIndex];
 
         // Skip si hors de la boîte englobante
@@ -118,12 +124,13 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
     }
 
     outId = bestId;
+
     return minDist;
 }
 
 float sceneSDF(vec3 p, out Material material) {
     int id = -1;
-    float r = 0.1;
+    float r = 0.001;
     float k = 0.5;
 
     float dist = traverseBVH(p, r, k, id); // 0 = root node
@@ -134,7 +141,7 @@ float sceneSDF(vec3 p, out Material material) {
     float uniqueNumber3 = float((99 * id + 3) % 5) / 5.0;
 
     material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
-    material.reflectivity = 0.4;
+    material.reflectivity = 0.0;
 
     //for (int i = 50; i < 256; ++i)
     //{
@@ -263,11 +270,6 @@ void main() {
     }
 
     //color = rabbitTest(ubo.nodes[0], ubo.nodes[1]);
-
-    //if(ubo.nodes[2525].cloudPoints[0].x > -0.5f && ubo.nodes[2525].cloudPoints[0].x < 0.0f)
-    //    color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
-
-
 
     imageStore(img_output, pixelCoord, color);
 }
