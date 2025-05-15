@@ -13,7 +13,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
     float time;
     vec3 cameraPos;
     vec3 cameraFront;
-    Node nodes[2526];//8192 pour le lapin
+    Node nodes[512];//8192 pour le lapin
 
 } ubo;
 
@@ -72,35 +72,47 @@ float torusSDF(vec3 p, vec2 t) {
 
 float sceneSDF(vec3 p, out Material material)
 {
-    vec3 spheres[16];
-    for(int i = 0; i < 16; i++)
+    // TODO check for how many Nodes are with sphere and how many sphere are in a node
+    // TODO long story short => get the sphere number
+
+    const int nodesToRender = 25;
+    const int spherePerNode = 16;
+
+    const int totalSpheres = spherePerNode * nodesToRender;
+    vec3 spheres[totalSpheres];
+
+    for (int i = 0; i < nodesToRender; i++)
     {
-        spheres[i].x = 10 * ubo.nodes[2525].cloudPoints[i].x;
-        spheres[i].y = 10 * ubo.nodes[2525].cloudPoints[i].y;
-        spheres[i].z = 10 * ubo.nodes[2525].cloudPoints[i].z;
+        if(ubo.nodes[i].children.x + ubo.nodes[i].children.y > 0)
+        {
+            for (int j = 0; j < spherePerNode; j++)
+            {
+                spheres[i * spherePerNode + j] = ubo.nodes[i].cloudPoints[j].xyz;
+            }
+        }
     }
-    
+
     float r = 0.01;
-    float k = 0.5; // facteur de lissage
+    float k = 0.05;
 
     // Initialisation
     float dist = sphereSDF(p, spheres[0], r);
+    float minRawDist = dist;
     int id = 0;
 
-    for (int i = 1; i < 16; ++i) {
+    for (int i = 1; i < totalSpheres; i++) {
         float d = sphereSDF(p, spheres[i], r);
 
-        // smooth union entre dist courant et prochain
-        float newDist = smoothMin(dist, d, k);
+        // Smooth min combine
+        dist = smoothMin(dist, d, k);
 
-        // Si d a contribué plus au smoothMin, on met à jour l'id
-        if (newDist < dist) {
+        // On garde aussi l'ID de la sphère réellement la plus proche
+        if (d < minRawDist) {
+            minRawDist = d;
             id = i;
         }
-        dist = newDist;
     }
 
-    // Couleur en fonction de l'ID majoritaire
     float uniqueNumber  = float((99 * id + 1) % 5) / 5.0;
     float uniqueNumber2 = float((99 * id + 2) % 5) / 5.0;
     float uniqueNumber3 = float((99 * id + 3) % 5) / 5.0;

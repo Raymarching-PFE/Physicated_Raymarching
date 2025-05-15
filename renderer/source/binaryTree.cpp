@@ -137,15 +137,17 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    std::cout << "GPU buffer : " << GPUReadyBuffer.size() << std::endl;
    for (int i = 0; i < GPUReadyBuffer.size(); i++)
    {
-       //std::cout << GPUReadyBuffer[i].children.x << "-" << GPUReadyBuffer[i].children.x << ", ";
-       //std::cout << "x:" << GPUReadyBuffer[i].boxPos.x << "y:" << GPUReadyBuffer[i].boxPos.y << "z:" << GPUReadyBuffer[i].boxPos.z << ", ";
-       //std::cout << "x:" << GPUReadyBuffer[i].boxSize.x << "y:" << GPUReadyBuffer[i].boxSize.y << "z:" << GPUReadyBuffer[i].boxSize.z << ", ";
+       std::cout << "Children : " << GPUReadyBuffer[i].children.x << ", " << GPUReadyBuffer[i].children.x << ", ";
+       std::cout << "BoxPos : " << GPUReadyBuffer[i].boxPos.x << ", " << GPUReadyBuffer[i].boxPos.y << ", " << GPUReadyBuffer[i].boxPos.z << ", ";
+       std::cout << "BoxSize : " << GPUReadyBuffer[i].boxSize.x << ", " << GPUReadyBuffer[i].boxSize.y << ", " << GPUReadyBuffer[i].boxSize.z << ", ";
 
-       if (i == 2525)
-           for (int j = 0; j < 16; j++)
-           {
-               std::cout << "x:" << GPUReadyBuffer[i].cloudPoints[j].x << "y:" << GPUReadyBuffer[i].cloudPoints[j].y << "z:" << GPUReadyBuffer[i].cloudPoints[j].z << std::endl;
-           }
+       std::cout << std::endl;
+
+       //if (i == 2525)
+       //    for (int j = 0; j < 16; j++)
+       //    {
+       //        std::cout << "x:" << GPUReadyBuffer[i].cloudPoints[j].x << "y:" << GPUReadyBuffer[i].cloudPoints[j].y << "z:" << GPUReadyBuffer[i].cloudPoints[j].z << std::endl;
+       //    }
    }
 }
 

@@ -1341,6 +1341,8 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
         vkCmdDraw(commandBuffer, 6, 1, 0, 0);  // Quad complet
 
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+
     vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
@@ -1382,7 +1384,8 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 
 #if COMPUTE
 
-    size_t arrayMaxSize = 2526;
+
+    size_t arrayMaxSize = 512;
 
    // Update binary tree data
     // TODO put it in a SRV buffer instead
@@ -1810,6 +1813,13 @@ void VulkanRenderer::LoadModel(const std::string& path)
     m_vertexNb = cachedModel.m_cachedVertexCount;
 
 #if COMPUTE
+
+    /*if (m_binary_tree.GPUReadyBuffer.size() > 0)
+    {
+        m_binary_tree.GPUReadyBuffer.clear();
+
+    }*/
+
     // TODO fill binarytree with model vertices
     std::vector<glm::vec3> cloudPoints;
     for (int i  = 0; i < m_vertices.size(); i++)
