@@ -70,55 +70,81 @@ float torusSDF(vec3 p, vec2 t) {
     return length(q) - t.y;
 }
 
-float sceneSDF(vec3 p, out Material material)
-{
-    // TODO check for how many Nodes are with sphere and how many sphere are in a node
-    // TODO long story short => get the sphere number
+bool intersectAABB(vec3 p, vec3 boxCenter, vec3 boxHalfSize) {
+    vec3 minB = boxCenter - boxHalfSize;
+    vec3 maxB = boxCenter + boxHalfSize;
+    return all(greaterThanEqual(p, minB)) && all(lessThanEqual(p, maxB));
+}
 
-    const int nodesToRender = 25;
-    const int spherePerNode = 16;
+float traverseBVH(vec3 p, float r, float k, out int outId) {
+    const int MAX_STACK_SIZE = 512;
+    int stack[MAX_STACK_SIZE];
+    int stackPtr = 0;
 
-    const int totalSpheres = spherePerNode * nodesToRender;
-    vec3 spheres[totalSpheres];
+    stack[stackPtr++] = 1; // commencer à la racine (node 1)
 
-    for (int i = 0; i < nodesToRender; i++)
-    {
-        if(ubo.nodes[i].children.x + ubo.nodes[i].children.y > 0)
-        {
-            for (int j = 0; j < spherePerNode; j++)
-            {
-                spheres[i * spherePerNode + j] = ubo.nodes[i].cloudPoints[j].xyz;
+    float minDist = 1e5;
+    int bestId = -1;
+
+    while (stackPtr > 0) {
+        int nodeIndex = stack[--stackPtr];
+        Node node = ubo.nodes[nodeIndex];
+
+        // Skip si hors de la boîte englobante
+        if (!intersectAABB(p, node.boxPos.xyz, node.boxSize.xyz)) {
+            continue;
+        }
+
+        // Si feuille
+        if (node.children.x < 1 && node.children.y < 1) {
+            for (int i = 0; i < 16; ++i) {
+                vec3 cp = node.cloudPoints[i].xyz;
+                if (cp == vec3(0.0)) continue; // skip points vides
+                float d = sphereSDF(p, cp, r);
+                if (d < minDist)
+                {
+                    minDist = d;
+                    bestId = nodeIndex * 16 + i;
+                }
             }
+        } else {
+            // Empiler les enfants (droite puis gauche pour LIFO)
+            if (node.children.y >= 1 && stackPtr < MAX_STACK_SIZE)
+                stack[stackPtr++] = node.children.y;
+
+            if (node.children.x >= 1 && stackPtr < MAX_STACK_SIZE)
+                stack[stackPtr++] = node.children.x;
         }
     }
 
-    float r = 0.01;
-    float k = 0.05;
+    outId = bestId;
+    return minDist;
+}
 
-    // Initialisation
-    float dist = sphereSDF(p, spheres[0], r);
-    float minRawDist = dist;
-    int id = 0;
+float sceneSDF(vec3 p, out Material material) {
+    int id = -1;
+    float r = 0.1;
+    float k = 0.5;
 
-    for (int i = 1; i < totalSpheres; i++) {
-        float d = sphereSDF(p, spheres[i], r);
+    float dist = traverseBVH(p, r, k, id); // 0 = root node
 
-        // Smooth min combine
-        dist = smoothMin(dist, d, k);
-
-        // On garde aussi l'ID de la sphère réellement la plus proche
-        if (d < minRawDist) {
-            minRawDist = d;
-            id = i;
-        }
-    }
-
+    // Couleur en fonction de l’ID
     float uniqueNumber  = float((99 * id + 1) % 5) / 5.0;
     float uniqueNumber2 = float((99 * id + 2) % 5) / 5.0;
     float uniqueNumber3 = float((99 * id + 3) % 5) / 5.0;
 
     material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
     material.reflectivity = 0.4;
+
+    //for (int i = 50; i < 256; ++i)
+    //{
+    //    float d = sphereSDF(p, ubo.nodes[i].boxPos.xyz, length(ubo.nodes[i].boxSize));
+    //    if (d < dist)
+    //    {
+    //        dist = d;
+    //        material.color = vec3(1.0, 1.0, 0.0);
+    //    }
+    //}
 
     return dist;
 }
@@ -240,6 +266,8 @@ void main() {
 
     //if(ubo.nodes[2525].cloudPoints[0].x > -0.5f && ubo.nodes[2525].cloudPoints[0].x < 0.0f)
     //    color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+
+
 
     imageStore(img_output, pixelCoord, color);
 }
