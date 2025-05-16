@@ -329,6 +329,7 @@ void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *r
       return;
    }
 
+
    std::vector<std::vector<glm::vec3> > result = FillUpTree(data, root, deepness);
    const std::vector<glm::vec3> leftNodes = result[0];
    const std::vector<glm::vec3> rightNodes = result[1];

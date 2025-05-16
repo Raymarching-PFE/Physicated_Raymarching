@@ -1,6 +1,7 @@
 #version 450
 
 const int NUM_NODES = 512;
+const float SPHERE_RADIUS = 0.03;
 
 struct Node {
     vec4 boxPos;
@@ -95,6 +96,10 @@ bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
 }
 
 bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB) {
+    // take sphere radius into account
+    minB -= SPHERE_RADIUS;
+    maxB += SPHERE_RADIUS;
+    
     vec3 invDir = 1.0 / rd;
 
     vec3 t0s = (minB - ro) * invDir;
@@ -116,7 +121,10 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 
     stack[stackPtr++] = 1; // commencer à la racine (node 1)
 
+    vec3 bestSpherePos;
+
     float minDist = 1e5;
+    
     int bestId = -1;
 
     int steps = 0;
@@ -130,7 +138,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
         // Skip si hors de la boîte englobante
         if (!intersectRayAABB(rayOrigin, rayDir, node.boxPos.xyz, node.boxPos.xyz + node.boxSize.xyz)) {
             continue;
-}
+           }
 
         // Si feuille
         if (node.children.x < 1 && node.children.y < 1)
@@ -139,9 +147,16 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
             {
                 vec3 cp = node.cloudPoints[i].xyz;
                 if (cp == vec3(0.0)) continue; // skip points vides
+
                 float d = sphereSDF(p, cp, r);
+
+                //if(abs(minDist - d) < 1)
+                //    minDist = smoothMin(d, minDist, k);
+
                 if (d < minDist)
                 {
+                    //if(abs(minDist - d) < 1)
+                    //minDist = smoothMin(d, minDist, k);
                     minDist = d;
                     bestId = nodeIndex * 16 + i;
                 }
@@ -167,12 +182,23 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 
     outId = bestId;
 
+    //for(int i =0; i < 16; i++)
+    //{
+    //    minDist = smoothMin(minDist, secondMinDist[i], k);// blending between the two nearest points
+    //}
+
+    if(minDist > MAX_DIST)
+    {
+        return 0.0f;
+    }
+
     return minDist;
 }
 
 float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     int id = -1;
-    float r = 1.0;
+    //float r = 0.03;
+    float r = SPHERE_RADIUS;
     float k = 0.5;
 
     float dist = traverseBVH(rayOrigin, rayDir, p, r, k, id); // 0 = root node
@@ -182,7 +208,12 @@ float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     float uniqueNumber2 = float((99 * id + 2) % 5) / 5.0;
     float uniqueNumber3 = float((99 * id + 3) % 5) / 5.0;
 
-    material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
+    if(id == -1)
+        material.color = vec3(0, 0, 0);
+    else
+        material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
+
+
     material.reflectivity = 0.0;
 
     //for (int i = 50; i < 256; ++i)
@@ -314,6 +345,8 @@ void main() {
         color = vec4(getColor(ray, p, material), 1.0);
     }
 
+    // force nodes colors
+    ///color = vec4(material.color.xyz, 1.0f);
     //color = rabbitTest(ubo.nodes[0], ubo.nodes[1]);
 
     imageStore(img_output, pixelCoord, color);
