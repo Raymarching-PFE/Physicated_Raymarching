@@ -94,7 +94,22 @@ bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
     return all(greaterThanEqual(p, paddedMin)) && all(lessThanEqual(p, paddedMax));
 }
 
-float traverseBVH(vec3 p, float r, float k, out int outId) {
+bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB) {
+    vec3 invDir = 1.0 / rd;
+
+    vec3 t0s = (minB - ro) * invDir;
+    vec3 t1s = (maxB - ro) * invDir;
+
+    vec3 tsmaller = min(t0s, t1s);
+    vec3 tbigger  = max(t0s, t1s);
+
+    float tmin = max(max(tsmaller.x, tsmaller.y), tsmaller.z);
+    float tmax = min(min(tbigger.x, tbigger.y), tbigger.z);
+
+    return tmax >= max(tmin, 0.0);
+}
+
+float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out int outId) {
     const int MAX_STACK_SIZE = NUM_NODES;
     int stack[MAX_STACK_SIZE];
     int stackPtr = 0;
@@ -113,9 +128,9 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
         Node node = ubo.nodes[nodeIndex];
 
         // Skip si hors de la boîte englobante
-        if (!intersectAABB(p, node.boxPos.xyz, node.boxSize.xyz)) {
+        if (!intersectRayAABB(rayOrigin, rayDir, node.boxPos.xyz, node.boxPos.xyz + node.boxSize.xyz)) {
             continue;
-        }
+}
 
         // Si feuille
         if (node.children.x < 1 && node.children.y < 1)
@@ -123,7 +138,7 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
             for (int i = 0; i < 16; ++i)
             {
                 vec3 cp = node.cloudPoints[i].xyz;
-                //if (cp == vec3(0.0)) continue; // skip points vides
+                if (cp == vec3(0.0)) continue; // skip points vides
                 float d = sphereSDF(p, cp, r);
                 if (d < minDist)
                 {
@@ -155,12 +170,12 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
     return minDist;
 }
 
-float sceneSDF(vec3 p, out Material material) {
+float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     int id = -1;
     float r = 1.0;
     float k = 0.5;
 
-    float dist = traverseBVH(p, r, k, id); // 0 = root node
+    float dist = traverseBVH(rayOrigin, rayDir, p, r, k, id); // 0 = root node
 
     // Couleur en fonction de l’ID
     float uniqueNumber  = float((99 * id + 1) % 5) / 5.0;
@@ -187,44 +202,46 @@ float rayMarch(Ray ray, out Material material) {
     float distance = 0.0;
     for (int i = 0; i < MAX_STEPS; i++) {
         vec3 p = ray.origin + ray.direction * distance;
-        float d = sceneSDF(p, material);
-        if (d < EPSILON) return distance;
+        float d = sceneSDF(ray.origin, ray.direction, p, material);
+        if (d < EPSILON)
+            return distance;
         distance += d;
         if (distance > MAX_DIST) break;
     }
     return -1.0;
 }
 
-vec3 getNormal(vec3 p) {
-    vec2 e = vec2(EPSILON, 0.0);
-    Material dummyMaterial;
-    return normalize(vec3(
-        sceneSDF(p + e.xyy, dummyMaterial) - sceneSDF(p - e.xyy, dummyMaterial),
-        sceneSDF(p + e.yxy, dummyMaterial) - sceneSDF(p - e.yxy, dummyMaterial),
-        sceneSDF(p + e.yyx, dummyMaterial) - sceneSDF(p - e.yyx, dummyMaterial)
-    ));
-}
+//vec3 getNormal(vec3 p)
+//{
+//    vec2 e = vec2(EPSILON, 0.0);
+//    Material dummyMaterial;
+//    return normalize(vec3(
+//        sceneSDF(p + e.xyy, dummyMaterial) - sceneSDF(p - e.xyy, dummyMaterial),
+//        sceneSDF(p + e.yxy, dummyMaterial) - sceneSDF(p - e.yxy, dummyMaterial),
+//        sceneSDF(p + e.yyx, dummyMaterial) - sceneSDF(p - e.yyx, dummyMaterial)
+//    ));
+//}
 
 vec3 getColor(Ray ray, vec3 p, Material material) {
     vec3 color = vec3(0.0);
     vec3 attenuation = vec3(1.0);
 
-    for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
-        vec3 normal = getNormal(p);
-        vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
-        float diff = max(dot(normal, lightDir), 0.0);
-        vec3 diffuse = diff * material.color;
-
-        color += attenuation * diffuse;
-
-        vec3 reflectDir = reflect(ray.direction, normal);
-        ray = Ray(p + reflectDir * EPSILON, reflectDir);
-        float reflectDist = rayMarch(ray, material);
-        if (reflectDist < 0.0) break;
-
-        p = ray.origin + ray.direction * reflectDist;
-        attenuation *= material.reflectivity;
-    }
+    //for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
+    //    //vec3 normal = getNormal(p);
+    //    vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
+    //    float diff = max(dot(normal, lightDir), 0.0);
+    //    vec3 diffuse = diff * material.color;
+    //
+    //    color += attenuation * diffuse;
+    //
+    //    vec3 reflectDir = reflect(ray.direction, normal);
+    //    ray = Ray(p + reflectDir * EPSILON, reflectDir);
+    //    float reflectDist = rayMarch(ray, material);
+    //    if (reflectDist < 0.0) break;
+    //
+    //    p = ray.origin + ray.direction * reflectDist;
+    //    attenuation *= material.reflectivity;
+    //}
     return vec3(1.0, 1.0, 1.0);
 
     return color;
