@@ -11,7 +11,6 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, floa
    std::vector<glm::vec3> toReturn;
 
    // static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-
    //std::cout << "Points :" << std::endl;
    for (int i = 0; i < numberOfValues; i++)
    {

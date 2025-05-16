@@ -23,9 +23,9 @@ layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D img_output;
 
 
 const int MAX_STEPS = 128;
-const float MAX_DIST = 5.0;
+const float MAX_DIST = 100.0;
 const float EPSILON = 0.001;
-const int MAX_RECURSION_DEPTH = 3;
+const int MAX_RECURSION_DEPTH = 1;
 
 struct Ray {
     vec3 origin;
@@ -83,7 +83,7 @@ float boxSDF(vec3 p, vec3 center, vec3 size)
 
 bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
 {
-    float padding = 0.0; // adapte si besoin
+    float padding = 5.0; // adapte si besoin
 
     vec3 maxCorner = minCorner + size;
 
@@ -123,7 +123,7 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
             for (int i = 0; i < 16; ++i)
             {
                 vec3 cp = node.cloudPoints[i].xyz;
-                if (cp == vec3(0.0)) continue; // skip points vides
+                //if (cp == vec3(0.0)) continue; // skip points vides
                 float d = sphereSDF(p, cp, r);
                 if (d < minDist)
                 {
@@ -141,8 +141,8 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
         }
     }
 
-    // print the smaller boxes
-    //for (int i = 64; i < NUM_NODES; ++i)
+    //print the smaller boxes
+    //for (int i = 64; i < 129; ++i)
     //{
     //    float d = boxSDF(p, ubo.nodes[i].boxPos.xyz, ubo.nodes[i].boxSize.xyz);
     //    if (d < minDist) {
@@ -157,7 +157,7 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
 
 float sceneSDF(vec3 p, out Material material) {
     int id = -1;
-    float r = 0.001;
+    float r = 1.0;
     float k = 0.5;
 
     float dist = traverseBVH(p, r, k, id); // 0 = root node
