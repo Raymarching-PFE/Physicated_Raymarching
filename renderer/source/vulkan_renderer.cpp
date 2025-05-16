@@ -168,6 +168,25 @@ void VulkanRenderer::ProcessInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         m_cameraPos += glm::normalize(glm::cross(m_cameraFront, m_cameraUp)) * cameraSpeed;
 
+    VulkanRenderer* app = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
+    front.y = sin(glm::radians(app->m_pitch));
+    front.z = sin(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
+
+    float keyboardSensitivity = 0.2f;
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        app->m_yaw -= keyboardSensitivity;
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        app->m_yaw += keyboardSensitivity;
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        app->m_pitch += keyboardSensitivity;
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        app->m_pitch -= keyboardSensitivity;
+
+    app->m_cameraFront = glm::normalize(front);
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
         if (m_isCursorCaptured)
@@ -189,42 +208,6 @@ void VulkanRenderer::ProcessInput(GLFWwindow* window)
         }
     }
 }
-
-//void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
-//{
-//    VulkanRenderer* app = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
-//
-//    if (app->m_isCursorCaptured)
-//    {
-//        if (app->m_firstMouse)
-//        {
-//            app->m_lastX = xpos;
-//            app->m_lastY = ypos;
-//            app->m_firstMouse = false;
-//        }
-//
-//        float xoffset = xpos - app->m_lastX;
-//        float yoffset = app->m_lastY - ypos;
-//        app->m_lastX = xpos;
-//        app->m_lastY = ypos;
-//
-//        float sensitivity = 0.1f;
-//        xoffset *= sensitivity;
-//        yoffset *= sensitivity;
-//
-//        app->m_yaw += xoffset;
-//        app->m_pitch -= yoffset;
-//
-//        if (app->m_pitch > 89.0f) app->m_pitch = 89.0f;
-//        if (app->m_pitch < -89.0f) app->m_pitch = -89.0f;
-//
-//        glm::vec3 front;
-//        front.x = cos(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
-//        front.y = sin(glm::radians(app->m_pitch));
-//        front.z = sin(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
-//        app->m_cameraFront = glm::normalize(front);
-//    }
-//}
 
 void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -255,6 +238,7 @@ void VulkanRenderer::MouseCallback(GLFWwindow* window, double xpos, double ypos)
     front.x = cos(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
     front.y = sin(glm::radians(app->m_pitch));
     front.z = sin(glm::radians(app->m_yaw)) * cos(glm::radians(app->m_pitch));
+
     app->m_cameraFront = glm::normalize(front);
 }
 
