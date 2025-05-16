@@ -1994,6 +1994,7 @@ void VulkanRenderer::CreateStorageImage()
 
     vkBindImageMemory(m_device, m_storageImage, m_storageImageMemory, 0);
 
+
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = m_storageImage;
@@ -2053,6 +2054,7 @@ void VulkanRenderer::CreateComputePipeline()
     }
     else
         std::cerr << "\033[32m" << "Create Compute Shader success" << "\033[0m" << '\n'; // Green
+
 
     VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
     computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

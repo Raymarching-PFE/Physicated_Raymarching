@@ -1,5 +1,7 @@
 #version 450
 
+const int NUM_NODES = 512;
+
 struct Node {
     vec4 boxPos;
     vec4 boxSize;
@@ -13,7 +15,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
     float time;
     vec3 cameraPos;
     vec3 cameraFront;
-    Node nodes[512];//8192 pour le lapin
+    Node nodes[NUM_NODES];//8192 pour le lapin
 
 } ubo;
 
@@ -70,16 +72,30 @@ float torusSDF(vec3 p, vec2 t) {
     return length(q) - t.y;
 }
 
-bool intersectAABB(vec3 p, vec3 center, vec3 halfSize)
+float boxSDF(vec3 p, vec3 center, vec3 size)
 {
-    float padding = 2.0; // élargit un peu la boîte, adapte selon ta scène
-    vec3 minB = center - halfSize - vec3(padding);
-    vec3 maxB = center + halfSize + vec3(padding);
-    return all(greaterThanEqual(p, minB)) && all(lessThanEqual(p, maxB));
+    // because we send min.xyz and not the real center
+    center = center+size/2.0f;
+
+    vec3 d = abs(p - center) - size/2.0f;
+    return length(max(d, 0.0));
+}
+
+bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
+{
+    float padding = 0.0; // adapte si besoin
+
+    vec3 maxCorner = minCorner + size;
+
+    // Applique le padding des deux côtés
+    vec3 paddedMin = minCorner - vec3(padding);
+    vec3 paddedMax = maxCorner + vec3(padding);
+
+    return all(greaterThanEqual(p, paddedMin)) && all(lessThanEqual(p, paddedMax));
 }
 
 float traverseBVH(vec3 p, float r, float k, out int outId) {
-    const int MAX_STACK_SIZE = 512;
+    const int MAX_STACK_SIZE = NUM_NODES;
     int stack[MAX_STACK_SIZE];
     int stackPtr = 0;
 
@@ -102,8 +118,10 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
         }
 
         // Si feuille
-        if (node.children.x < 1 && node.children.y < 1) {
-            for (int i = 0; i < 16; ++i) {
+        if (node.children.x < 1 && node.children.y < 1)
+        {
+            for (int i = 0; i < 16; ++i)
+            {
                 vec3 cp = node.cloudPoints[i].xyz;
                 if (cp == vec3(0.0)) continue; // skip points vides
                 float d = sphereSDF(p, cp, r);
@@ -122,6 +140,15 @@ float traverseBVH(vec3 p, float r, float k, out int outId) {
                 stack[stackPtr++] = node.children.x;
         }
     }
+
+    // print the smaller boxes
+    //for (int i = 64; i < NUM_NODES; ++i)
+    //{
+    //    float d = boxSDF(p, ubo.nodes[i].boxPos.xyz, ubo.nodes[i].boxSize.xyz);
+    //    if (d < minDist) {
+    //        minDist = d;
+    //    }
+    //}
 
     outId = bestId;
 
@@ -198,6 +225,7 @@ vec3 getColor(Ray ray, vec3 p, Material material) {
         p = ray.origin + ray.direction * reflectDist;
         attenuation *= material.reflectivity;
     }
+    return vec3(1.0, 1.0, 1.0);
 
     return color;
 }
