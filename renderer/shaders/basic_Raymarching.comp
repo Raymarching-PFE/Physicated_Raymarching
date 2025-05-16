@@ -104,7 +104,8 @@ float sceneSDF(vec3 p, out Material material)
     return dist;
 }
 
-float rayMarch(Ray ray, out Material material) {
+float rayMarch(Ray ray, out Material material)
+{
     float distance = 0.0;
     for (int i = 0; i < MAX_STEPS; i++) {
         vec3 p = ray.origin + ray.direction * distance;
@@ -116,7 +117,8 @@ float rayMarch(Ray ray, out Material material) {
     return -1.0;
 }
 
-vec3 getNormal(vec3 p) {
+vec3 getNormal(vec3 p) 
+{
     vec2 e = vec2(EPSILON, 0.0);
     Material dummyMaterial;
     return normalize(vec3(
@@ -126,9 +128,10 @@ vec3 getNormal(vec3 p) {
     ));
 }
 
-vec3 skyColor(vec3 dir) {
+vec3 skyColor(vec3 dir) 
+{
     float t = 0.5 * (dir.y + 1.0);
-    return mix(vec3(1.0), vec3(0.5, 0.7, 1.0), t);
+    return mix(vec3(0.7, 0.7, 1.0), vec3(0.3, 0.5, 1.0), t);
 }
 
 vec3 getColor(Ray ray, vec3 p, Material material) 
@@ -142,19 +145,19 @@ vec3 getColor(Ray ray, vec3 p, Material material)
         bool outside = dot(ray.direction, normal) < 0.0;
         if (!outside) normal = -normal;
 
-        // Lumière directe simple
+        // directional light
         vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
         float diff = max(dot(normal, lightDir), 0.0);
         vec3 directLight = clamp(diff * material.color, 0.0, 1.0);
 
-        // Ajouter la lumière diffuse (pondérée par opacité)
+        // diffuse
         color += attenuation * (1.0 - material.reflectivity - material.transparency) * directLight;
 
-        // Réflexion et réfraction
+        // reflection and refraction
         vec3 reflectDir = reflect(ray.direction, normal);
         vec3 refractDir = refract(ray.direction, normal, outside ? (1.0 / material.ior) : material.ior);
 
-        // Choisir le type de rebond
+        //type of bounce
         bool useRefract = material.transparency > material.reflectivity && length(refractDir) > 0.001;
         ray = Ray(p + EPSILON * (useRefract ? refractDir : reflectDir),
                   useRefract ? refractDir : reflectDir);
@@ -194,7 +197,7 @@ void main()
         color = vec4(getColor(ray, p, material), 1.0);
     } 
     else 
-        color = vec4(skyColor(ray.direction), 1.0);
+        color = vec4(skyColor(ray.direction) + vec3(0.2, 0.2, 0.0), 1.0);
 
     imageStore(img_output, pixelCoord, color);
 }
