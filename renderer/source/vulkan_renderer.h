@@ -129,7 +129,7 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct SSBOData
+struct alignas(16) SSBOData
 {
     alignas(16) GPUNode SSBONodes[MAX_NODES_SSBO];
 
