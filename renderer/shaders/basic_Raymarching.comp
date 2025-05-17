@@ -1,19 +1,15 @@
 #version 450
 
-struct Node
-{
-    int mortonNumber;
+const int NUM_NODES = 512;
+const float SPHERE_RADIUS = 0.003;
+const float K_BLENDING = 0.5;
+const float K_BLENDING_MAX_DISTANCE = 0.5;
 
-//    vec3 boxPos;
-//    vec3 boxSize;
-
-    // Children
-    // TODO Change to get the index (morton number/ index in the array)
-//    int left;
-//    int right;
-
-    //constexpr int MAX_POINTS_PER_LEAVES = 16;
-//    vec3 cloudPoints[16];
+struct Node {
+    vec4 boxPos;
+    vec4 boxSize;
+    ivec4 children;
+    vec4 cloudPoints[16]; // .xyz used
 };
 
 layout(local_size_x = 16, local_size_y = 16) in;
@@ -22,25 +18,23 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
     float time;
     vec3 cameraPos;
     vec3 cameraFront;
-    Node nodes[100];//8192 pour le lapin
+    Node nodes[NUM_NODES];//8192 pour le lapin
 
 } ubo;
 
 layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D img_output;
+layout(std430, binding = 2) buffer MySSBO 
+{
+    Node SSBONodes[512];
 
+    vec4 SSBOSpheresArray[8];
+}ssbo;
 
 
 const int MAX_STEPS = 128;
-const float MAX_DIST = 5.0;
+const float MAX_DIST = 100.0;
 const float EPSILON = 0.001;
-const int MAX_RECURSION_DEPTH = 3;
-
-
-
-//layout(std430, binding = 2) buffer BinaryTreeBuffer
-//{
-//    Node nodes[100];//8192 pour le lapin
-//};
+const int MAX_RECURSION_DEPTH = 1;
 
 struct Ray {
     vec3 origin;
@@ -74,8 +68,8 @@ Ray generateRay(vec2 uv) {
 }
 
 float smoothMin(float a, float b, float k) {
-    float h = max(k - abs(a - b), 0.0) / k;
-    return min(a, b) - h * h * h * k * (1.0 / 6.0);
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
 }
 
 float sphereSDF(vec3 p, vec3 center, float radius) {
@@ -87,23 +81,143 @@ float torusSDF(vec3 p, vec2 t) {
     return length(q) - t.y;
 }
 
-float sceneSDF(vec3 p, out Material material) {
-    vec3 torusPos = vec3(0.0, 0.0, -7.0);
-    vec3 spherePos = vec3(2.5 + 2.5 * sin(ubo.time), 0.0, -7.0);
+float boxSDF(vec3 p, vec3 center, vec3 size)
+{
+    // because we send min.xyz and not the real center
+    center = center+size/2.0f;
 
-    float torusDist = torusSDF(p - torusPos, vec2(1.0, 0.3));
-    float sphereDist = sphereSDF(p, spherePos, 0.5);
+    vec3 d = abs(p - center) - size/2.0f;
+    return length(max(d, 0.0));
+}
 
-    float k = 0.5;
-    float dist = smoothMin(torusDist, sphereDist, k);
+//bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
+//{
+//    float padding = 5.0; // adapte si besoin
+//
+//    vec3 maxCorner = minCorner + size;
+//
+//    // Applique le padding des deux côtés
+//    vec3 paddedMin = minCorner - vec3(padding);
+//    vec3 paddedMax = maxCorner + vec3(padding);
+//
+//    return all(greaterThanEqual(p, paddedMin)) && all(lessThanEqual(p, paddedMax));
+//}
 
-    if (dist == torusDist) {
-        material.color = vec3(1.0, 0.0, 0.0);
-        material.reflectivity = 0.5;
-    } else {
-        material.color = vec3(0.0, 0.0, 1.0);
-        material.reflectivity = 0.8;
+bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB) {
+    // take sphere radius into account
+    minB -= SPHERE_RADIUS + K_BLENDING_MAX_DISTANCE;
+    maxB += SPHERE_RADIUS + K_BLENDING_MAX_DISTANCE;
+    
+    vec3 invDir = 1.0 / rd;
+
+    vec3 t0s = (minB - ro) * invDir;
+    vec3 t1s = (maxB - ro) * invDir;
+
+    vec3 tsmaller = min(t0s, t1s);
+    vec3 tbigger  = max(t0s, t1s);
+
+    float tmin = max(max(tsmaller.x, tsmaller.y), tsmaller.z);
+    float tmax = min(min(tbigger.x, tbigger.y), tbigger.z);
+
+    return tmax >= max(tmin, 0.0);
+}
+
+float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out int outId) {
+    const int MAX_STACK_SIZE = NUM_NODES;
+    int stack[MAX_STACK_SIZE];
+    int stackPtr = 0;
+
+    stack[stackPtr++] = 1; // commencer à la racine (node 1)
+
+    float minDist = 1e5;
+    int bestId = -1;
+
+    while (stackPtr > 0)
+    {
+        int nodeIndex = stack[--stackPtr];
+
+        Node node = ssbo.SSBONodes[nodeIndex];
+
+        // Skip si hors de la boîte englobante
+        if (!intersectRayAABB(rayOrigin, rayDir, node.boxPos.xyz, node.boxPos.xyz + node.boxSize.xyz)) {
+            continue;
+           }
+
+        // Si feuille
+        if (node.children.x < 1 && node.children.y < 1)
+        {
+            for (int i = 0; i < 16; ++i)
+            {
+                vec3 cp = node.cloudPoints[i].xyz;
+                float d = sphereSDF(p, cp, r);
+
+                // Applique smoothMin avec le blending courant
+                float blended = smoothMin(minDist, d, k);
+
+                // Si le current point a contribué à réduire la distance, on update l’ID
+                if (blended < minDist) {
+                    minDist = blended;
+                    bestId = nodeIndex * 16 + i;
+                }
+            }
+        } else {
+            // Empiler les enfants (droite puis gauche pour LIFO)
+            if (node.children.y >= 1 && stackPtr < MAX_STACK_SIZE)
+                stack[stackPtr++] = node.children.y;
+
+            if (node.children.x >= 1 && stackPtr < MAX_STACK_SIZE)
+                stack[stackPtr++] = node.children.x;
+        }
     }
+
+    //print the smaller boxes
+    //for (int i = 64; i < 129; ++i)
+    //{
+    //    float d = boxSDF(p, ssbo.SSBONodes[i].boxPos.xyz, ssbo.SSBONodes[i].boxSize.xyz);
+    //    if (d < minDist) {
+    //        minDist = d;
+    //    }
+    //}
+
+    outId = bestId;
+
+    if(outId == -1)
+    {
+        return 0.0f;
+    }
+
+    return minDist;
+}
+
+float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
+    int id = -1;
+    float r = SPHERE_RADIUS;
+    float k = K_BLENDING;
+
+    float dist = traverseBVH(rayOrigin, rayDir, p, r, k, id); // 0 = root node
+
+    // Couleur en fonction de l’ID
+    float uniqueNumber  = float((99 * id + 1) % 5) / 5.0;
+    float uniqueNumber2 = float((99 * id + 2) % 5) / 5.0;
+    float uniqueNumber3 = float((99 * id + 3) % 5) / 5.0;
+
+    if(id == -1)
+        material.color = vec3(0, 0, 0);
+    else
+        material.color = vec3(1, 1, 1);
+    //    material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
+
+    material.reflectivity = 0.0;
+
+    //for (int i = 50; i < 256; ++i)
+    //{
+    //    float d = sphereSDF(p, ssbo.SSBONodes[i].boxPos.xyz, length(ssbo.SSBONodes[i].boxSize));
+    //    if (d < dist)
+    //    {
+    //        dist = d;
+    //        material.color = vec3(1.0, 1.0, 0.0);
+    //    }
+    //}
 
     return dist;
 }
@@ -112,21 +226,23 @@ float rayMarch(Ray ray, out Material material) {
     float distance = 0.0;
     for (int i = 0; i < MAX_STEPS; i++) {
         vec3 p = ray.origin + ray.direction * distance;
-        float d = sceneSDF(p, material);
-        if (d < EPSILON) return distance;
+        float d = sceneSDF(ray.origin, ray.direction, p, material);
+        if (d < EPSILON)
+            return distance;
         distance += d;
         if (distance > MAX_DIST) break;
     }
     return -1.0;
 }
 
-vec3 getNormal(vec3 p) {
+vec3 getNormal(vec3 p, vec3 rayOrigin, vec3 rayDir)
+{
     vec2 e = vec2(EPSILON, 0.0);
     Material dummyMaterial;
     return normalize(vec3(
-        sceneSDF(p + e.xyy, dummyMaterial) - sceneSDF(p - e.xyy, dummyMaterial),
-        sceneSDF(p + e.yxy, dummyMaterial) - sceneSDF(p - e.yxy, dummyMaterial),
-        sceneSDF(p + e.yyx, dummyMaterial) - sceneSDF(p - e.yyx, dummyMaterial)
+        sceneSDF(rayOrigin, rayDir, p + e.xyy, dummyMaterial) - sceneSDF(rayOrigin, rayDir, p - e.xyy, dummyMaterial),
+        sceneSDF(rayOrigin, rayDir, p + e.yxy, dummyMaterial) - sceneSDF(rayOrigin, rayDir, p - e.yxy, dummyMaterial),
+        sceneSDF(rayOrigin, rayDir, p + e.yyx, dummyMaterial) - sceneSDF(rayOrigin, rayDir, p - e.yyx, dummyMaterial)
     ));
 }
 
@@ -134,24 +250,73 @@ vec3 getColor(Ray ray, vec3 p, Material material) {
     vec3 color = vec3(0.0);
     vec3 attenuation = vec3(1.0);
 
+    //return vec3(1, 1, 1);
+
     for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
-        vec3 normal = getNormal(p);
+        vec3 normal = getNormal(p, ray.origin, ray.direction);
         vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
         float diff = max(dot(normal, lightDir), 0.0);
         vec3 diffuse = diff * material.color;
-
+    
         color += attenuation * diffuse;
-
+    
         vec3 reflectDir = reflect(ray.direction, normal);
         ray = Ray(p + reflectDir * EPSILON, reflectDir);
         float reflectDist = rayMarch(ray, material);
         if (reflectDist < 0.0) break;
-
+    
         p = ray.origin + ray.direction * reflectDist;
         attenuation *= material.reflectivity;
     }
 
     return color;
+}
+
+vec4 rabbitTest(Node node_0, Node node_1)
+{
+    if (
+    true
+    // left and right test on first element
+    && node_0.children.x > -1 && node_0.children.x < 1
+    && node_0.children.y > -1 && node_0.children.y < 1
+    
+    // left and right test on second element
+    && node_1.children.x > 1 && node_1.children.x < 3
+    && node_1.children.y > 2 && node_1.children.y < 4
+    
+    // boxPos[0] test
+    && node_0.boxPos.x > -2.0f && node_0.boxPos.x < 0.0f
+    && node_0.boxPos.y > -2.0f && node_0.boxPos.y < 0.0f
+    && node_0.boxPos.z > -2.0f && node_0.boxPos.z < 0.0f
+    
+    // boxPos[1] test
+    && node_1.boxPos.x > -1.0f && node_1.boxPos.x < 0.0f
+    && node_1.boxPos.y > 0.0f && node_1.boxPos.y < 1.0f
+    && node_1.boxPos.z > -1.0f && node_1.boxPos.z < 0.0f
+    
+    // boxSize[0] test
+    && node_0.boxSize.x > -2.0f && node_0.boxSize.x < 0.0f
+    && node_0.boxSize.y > -2.0f && node_0.boxSize.y < 0.0f
+    && node_0.boxSize.z > -2.0f && node_0.boxSize.z < 0.0f
+    
+    // boxSize[1] test
+    && node_1.boxSize.x > 0.0f && node_1.boxSize.x < 1.0f
+    && node_1.boxSize.y > 0.0f && node_1.boxSize.y < 1.0f
+    && node_1.boxSize.z > 0.0f && node_1.boxSize.z < 1.0f
+             
+    // cloudPoints[0]
+    && node_0.cloudPoints[0].x > -1.0f && node_0.cloudPoints[0].x < 1.0f
+    && node_0.cloudPoints[0].y > -1.0f && node_0.cloudPoints[0].y < 1.0f
+    && node_0.cloudPoints[0].z > -1.0f && node_0.cloudPoints[0].z < 1.0f
+    
+    // cloudPoints[8] test
+    //&& ssbo.SSBONodes[8].cloudPoints[0].x > -1.0f && ssbo.SSBONodes[8].cloudPoints[0].x < 1.0f
+    //&& ssbo.SSBONodes[8].cloudPoints[0].y > -1.0f && ssbo.SSBONodes[8].cloudPoints[0].y < 1.0f
+    //&& ssbo.SSBONodes[8].cloudPoints[0].z > -1.0f && ssbo.SSBONodes[8].cloudPoints[0].z < 1.0f
+    )
+        return vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    else
+        return vec4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 void main() {
@@ -174,12 +339,9 @@ void main() {
         color = vec4(getColor(ray, p, material), 1.0);
     }
 
-    color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    if (ubo.nodes[1].mortonNumber > 0 && ubo.nodes[1].mortonNumber < 2)
-    {
-        // + red
-        color += vec4(1.0f, 0.0f, 0.0f, 0.0f);
-    }
+    // force nodes colors
+    ///color = vec4(material.color.xyz, 1.0f);
+    //color = rabbitTest(ssbo.SSBONodes[0], ssbo.SSBONodes[1]);
 
     imageStore(img_output, pixelCoord, color);
 }

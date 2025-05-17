@@ -6,19 +6,12 @@
 
 constexpr int MAX_POINTS_PER_LEAVES = 16;
 
+struct alignas(16) GPUNode {
+	glm::vec4 boxPos;         // .xyz used
+	glm::vec4 boxSize;        // .xyz used
+	glm::ivec4 children;      // .x = left, .y = right
 
-struct GPUNode
-{
-	alignas(16) int mortonNumber = 1;
-
-   // glm::vec3 boxPos = glm::vec3(-1, -1, -1);
-   // glm::vec3 boxSize = glm::vec3(-1, -1, -1);
-
-   // Children
-   // int left;
-   // int right;
-
-   // std::array<glm::vec3, MAX_POINTS_PER_LEAVES> cloudPoints;
+	glm::vec4 cloudPoints[16]; // .xyz = point, .w = unused
 };
 
 struct Node
@@ -45,7 +38,8 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues, float min = -1, flo
 class BinaryTree
 {
 public:
-   BinaryTree(std::vector<glm::vec3> &pointCloudPoints);
+	BinaryTree(std::vector<glm::vec3>& pointCloudPoints);
+	BinaryTree() {};
 
    ~BinaryTree();
 

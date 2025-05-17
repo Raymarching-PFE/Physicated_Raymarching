@@ -11,8 +11,7 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, floa
    std::vector<glm::vec3> toReturn;
 
    // static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-
-   std::cout << "Points :" << std::endl;
+   //std::cout << "Points :" << std::endl;
    for (int i = 0; i < numberOfValues; i++)
    {
       // Generate
@@ -22,9 +21,9 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, floa
       toReturn.push_back(value);
 
       // Print it
-      std::cout << "[" << value.x << ", " << value.y << ", " << value.z << "]" << std::endl;
+      //std::cout << "[" << value.x << ", " << value.y << ", " << value.z << "]" << std::endl;
    }
-   std::cout << std::endl;
+   //std::cout << std::endl;
 
    return toReturn;
 }
@@ -40,7 +39,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
 
    int generation = std::ceil(std::log2(pointCloudPoints.size() / static_cast<double>(MAX_POINTS_PER_LEAVES)));
 
-   std::cout << "Elements : " << pointCloudPoints.size() << ", Gen : " << generation << std::endl;
+   //std::cout << "Elements : " << pointCloudPoints.size() << ", Gen : " << generation << std::endl;
 
    // Create architecture from generation
    Node *root = new Node();
@@ -89,6 +88,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
 
    glm::vec3 nearestPoint = GetNearestPoint(glm::vec3(50, 50, 50), 1, 0, root);
 
+
    //std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
 
    // glm::vec3* pointsArray = FillGPUPointsArray();
@@ -101,7 +101,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    //    std::cout << buffer[i].mortonNumber << ", ";
    // }
 
-   std::cout << std::endl;
+   //std::cout << std::endl;
    // std::cout << "Buffer points: " << buffer.size() << std::endl;
    // for (int i = 0; i < buffer.size(); i++)
    // {
@@ -115,28 +115,39 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    for (int i = 0; i < buffer.size(); i++)
    {
       // Unchanged
-      // GPUReadyBuffer[i].boxPos = buffer[i].boxPos;
-      // GPUReadyBuffer[i].boxSize = buffer[i].boxSize;
-      GPUReadyBuffer[i].mortonNumber = buffer[i].mortonNumber;
-      // GPUReadyBuffer[i].cloudPoints = buffer[i].cloudPoints;
+       GPUReadyBuffer[i].boxPos = glm::vec4(buffer[i].boxPos, -1);
+      GPUReadyBuffer[i].boxSize = glm::vec4(buffer[i].boxSize, -1);
+
+      for(int j =0; j < 15; j++)
+        GPUReadyBuffer[i].cloudPoints[j] = glm::vec4(buffer[i].cloudPoints[j], -1);
 
       // left/right -> int index
-      // if (buffer[i].left != nullptr)
-         // GPUReadyBuffer[i].left = buffer[i].left->mortonNumber;
-      // else
-         // GPUReadyBuffer[i].left = 0;
+       if (buffer[i].left != nullptr)
+          GPUReadyBuffer[i].children.x = buffer[i].left->mortonNumber;
+       else
+          GPUReadyBuffer[i].children.x = 0;
 
-      // if (buffer[i].right != nullptr)
-         // GPUReadyBuffer[i].right = buffer[i].right->mortonNumber;
-      // else
-         // GPUReadyBuffer[i].right = 0;
+       if (buffer[i].right != nullptr)
+          GPUReadyBuffer[i].children.y = buffer[i].right->mortonNumber;
+       else
+          GPUReadyBuffer[i].children.y = 0;
    }
 
-   std::cout << "GPU buffer : " << GPUReadyBuffer.size() << std::endl;
-   for (int i = 0; i < GPUReadyBuffer.size(); i++)
-   {
-      std::cout << GPUReadyBuffer[i].mortonNumber << ", ";
-   }
+   //std::cout << "GPU buffer : " << GPUReadyBuffer.size() << std::endl;
+   //for (int i = 0; i < GPUReadyBuffer.size(); i++)
+   //{
+   //    std::cout << "Children : " << GPUReadyBuffer[i].children.x << ", " << GPUReadyBuffer[i].children.x << ", ";
+   //    std::cout << "BoxPos : " << GPUReadyBuffer[i].boxPos.x << ", " << GPUReadyBuffer[i].boxPos.y << ", " << GPUReadyBuffer[i].boxPos.z << ", ";
+   //    std::cout << "BoxSize : " << GPUReadyBuffer[i].boxSize.x << ", " << GPUReadyBuffer[i].boxSize.y << ", " << GPUReadyBuffer[i].boxSize.z << ", ";
+
+   //    std::cout << std::endl;
+
+   //    //if (i == 2525)
+   //    //    for (int j = 0; j < 16; j++)
+   //    //    {
+   //    //        std::cout << "x:" << GPUReadyBuffer[i].cloudPoints[j].x << "y:" << GPUReadyBuffer[i].cloudPoints[j].y << "z:" << GPUReadyBuffer[i].cloudPoints[j].z << std::endl;
+   //    //    }
+   //}
 }
 
 void BinaryTree::FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> &pointCloudPoints,
@@ -149,7 +160,6 @@ void BinaryTree::FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> &point
    }
    toReturn[node->mortonNumber] = *node;
 
-   // std::cout << "add : " << node->mortonNumber << std::endl;
 
    if (node->left != nullptr)
       FillGPUArrayRecursive(node->left, pointCloudPoints, toReturn);
@@ -318,6 +328,7 @@ void BinaryTree::FillUpTreeRecursive(const std::vector<glm::vec3> &data, Node *r
       root->left = nullptr;
       return;
    }
+
 
    std::vector<std::vector<glm::vec3> > result = FillUpTree(data, root, deepness);
    const std::vector<glm::vec3> leftNodes = result[0];

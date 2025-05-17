@@ -26,6 +26,7 @@ const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NA
 #endif
 
 
+
 inline VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     const auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -127,15 +128,20 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct SSBOData 
+{
+    GPUNode SSBONodes[512];
+
+    glm::vec4 SSBOSpheresArray[8];
+};
+
 struct UniformBufferObject
 {
 	alignas(16) float time;
     alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
-    alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+    alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
 
-#if COMPUTE
-    alignas(16) GPUNode nodes[100];
-#else
+#if !COMPUTE
     alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
 #endif
     alignas(16) int sphereNumber;
@@ -233,6 +239,9 @@ private:
     VkBuffer        m_quadIndexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory  m_quadIndexBufferMemory = VK_NULL_HANDLE;
 
+    VkBuffer m_ssboBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_ssboMemory = VK_NULL_HANDLE;
+
     std::vector<Vertex>     m_vertices;
     std::vector<uint32_t>   m_indices;
     size_t                  m_vertexNb = 0;
@@ -254,6 +263,8 @@ private:
     uint32_t m_queueFamily   = (uint32_t)-1;
 
 #if COMPUTE
+    BinaryTree m_binary_tree;
+
     // Compute pipeline
     VkShaderModule   m_computeShader = VK_NULL_HANDLE;
     VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
@@ -357,6 +368,7 @@ private:
     void CreateVertexBuffer();
     void CreateIndexBuffer();
     void CreateUniformBuffers();
+	void CreateSSBOBuffer();
     void CreateDescriptorPool();
     void CreateCommandBuffers();
     void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
@@ -382,7 +394,7 @@ private:
     void ReloadModel(const std::string& path);
     void DestroyModelResources();
     void DestroyMeshBuffers();
-    void LoadGeneratedPoint();
+    //void LoadGeneratedPoint();
 
     // Inputs & Timings
     float GetDeltaTime();
@@ -397,7 +409,7 @@ private:
     void CreateComputeCommandBuffers();
     void RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const;
     void ComputeTransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkQueue queue, VkSemaphore waitOn, VkSemaphore signalOut, uint32_t index);
-    void SendBinaryTreeToCompute();
+    //void SendBinaryTreeToCompute();
     void DestroyBinaryTreeResources();
     #endif
 #pragma endregion

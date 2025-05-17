@@ -28,7 +28,7 @@ void VulkanRenderer::Run()
     m_modelPaths = LoadPLYFilePaths("point_clouds/");
     m_modelCache.LoadAllModelsInCache(m_modelPaths);
 
-    LoadGeneratedPoint();
+    //LoadGeneratedPoint();
 
     InitVulkan();
     InitImGui();
@@ -146,7 +146,7 @@ void VulkanRenderer::InitVulkan()
     CreateGraphicsPipeline();
     CreateComputePipeline();
 
-    SendBinaryTreeToCompute();
+    //SendBinaryTreeToCompute();
 
     CreateCommandPool();
     CreateFramebuffers();
@@ -158,7 +158,8 @@ void VulkanRenderer::InitVulkan()
     CreateDescriptorPool();
     CreateStorageImage();
     CreateDescriptorSets();
-    CreateComputeDescriptorSets();
+    CreateSSBOBuffer();
+    CreateComputeDescriptorSets(); 
     CreateCommandBuffers();
     CreateComputeCommandBuffers();
 #else
@@ -168,7 +169,7 @@ void VulkanRenderer::InitVulkan()
     CreateCommandPool();
     CreateFramebuffers();
     LoadModel(m_modelPaths[m_currentModelIndex]);
-    LoadGeneratedPoint();
+    //LoadGeneratedPoint();
     CreateUniformBuffers();
     CreateDescriptorPool();
     CreateDescriptorSets();
@@ -1299,6 +1300,33 @@ void VulkanRenderer::CreateUniformBuffers()
     }
 }
 
+void VulkanRenderer::CreateSSBOBuffer()
+{
+    VkDeviceSize bufferSize = sizeof(GPUNode) * 512 + sizeof(glm::vec4) * 8;
+
+    SSBOData myDataArray = {};
+
+    // 2. Remplis ici myDataArray.nodes[...] et myDataArray.spheres[...]
+    // Par exemple :
+    // for (int i = 0; i < 512; ++i) myDataArray.nodes[i] = ...;
+    // for (int i = 0; i < 8; ++i) myDataArray.spheres[i] = ...;
+
+    std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), size_t(512)), myDataArray.SSBONodes);
+
+    // 3. Création du buffer Vulkan
+    CreateBuffer(bufferSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_ssboBuffer, m_ssboMemory);
+
+    // 4. Copie des données dans le buffer
+    void* data;
+    vkMapMemory(m_device, m_ssboMemory, 0, bufferSize, 0, &data);
+    memcpy(data, &myDataArray, sizeof(SSBOData));
+    vkUnmapMemory(m_device, m_ssboMemory);
+}
+
+
 void VulkanRenderer::CreateDescriptorPool()
 {
     // Constantes lisibles et ajustables
@@ -1413,9 +1441,7 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     // ubo.spheresArray[6] = glm::vec4(GeneratedPoint[6].x, GeneratedPoint[6].y, GeneratedPoint[6].z, 0.0f);
     // ubo.spheresArray[7] = glm::vec4(GeneratedPoint[7].x, GeneratedPoint[7].y, GeneratedPoint[7].z, 0.0f);
 
-#if COMPUTE
-#else
-
+#if !COMPUTE
     ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
     ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
     ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
@@ -1430,22 +1456,7 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
     //std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
 
-#if COMPUTE
-    // Create fake data
-    std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
-    BinaryTree fakeTree(fakePoints);
-
-    //GPUNode myNodes[100];
-    //for (int i = 0; i < 100; i++)
-    //{
-    //    myNodes[i] = fakeTree.GPUReadyBuffer[i];
-    //}
-
-    std::copy(fakeTree.GPUReadyBuffer.begin(), fakeTree.GPUReadyBuffer.begin() + std::min(fakeTree.GPUReadyBuffer.size(), size_t(100)), ubo.nodes);
-
-#endif
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-
 }
 
 void VulkanRenderer::CreateSyncObjects()
@@ -1855,7 +1866,6 @@ void VulkanRenderer::EndFrame()
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-
 // Models & Binary tree
 void VulkanRenderer::LoadModel(const std::string& path)
 {
@@ -1871,16 +1881,23 @@ void VulkanRenderer::LoadModel(const std::string& path)
     m_indices = cachedModel.m_cachedIndices;
     m_vertexNb = cachedModel.m_cachedVertexCount;
 
+#if COMPUTE
+
+    /*if (m_binary_tree.GPUReadyBuffer.size() > 0)
+    {
+        m_binary_tree.GPUReadyBuffer.clear();
+
+    }*/
+
     // TODO fill binarytree with model vertices
     std::vector<glm::vec3> cloudPoints;
     for (int i  = 0; i < m_vertices.size(); i++)
     {
         cloudPoints.push_back(m_vertices[i].pos);
     }
-    BinaryTree binary_tree(cloudPoints);
 
-#if COMPUTE
-    SendBinaryTreeToCompute();
+    m_binary_tree = BinaryTree(cloudPoints);
+
 #endif
 
     CreateVertexBuffer();
@@ -1959,12 +1976,6 @@ void VulkanRenderer::DestroyMeshBuffers()
         vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
         m_quadIndexBufferMemory = VK_NULL_HANDLE;
     }
-}
-
-void VulkanRenderer::LoadGeneratedPoint()
-{
-    // BinaryTree binary_tree(FakeDataGenerator(8));
-    // GeneratedPoint = binary_tree.generatedPoints;
 }
 
 
@@ -2052,6 +2063,7 @@ void VulkanRenderer::CreateStorageImage()
 
     vkBindImageMemory(m_device, m_storageImage, m_storageImageMemory, 0);
 
+
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = m_storageImage;
@@ -2112,6 +2124,7 @@ void VulkanRenderer::CreateComputePipeline()
     else
         std::cerr << "\033[32m" << "Create Compute Shader success" << "\033[0m" << '\n'; // Green
 
+
     VkPipelineShaderStageCreateInfo computeShaderStageInfo{};
     computeShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     computeShaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -2153,7 +2166,15 @@ void VulkanRenderer::CreateComputeDescriptorSetLayout()
     imageLayoutBinding.pImmutableSamplers = nullptr;
     imageLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, imageLayoutBinding };
+    VkDescriptorSetLayoutBinding ssboLayoutBinding{};
+    ssboLayoutBinding.binding = 2; // Doit correspondre au shader
+    ssboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    ssboLayoutBinding.descriptorCount = 1;
+    ssboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    ssboLayoutBinding.pImmutableSamplers = nullptr;
+
+
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, imageLayoutBinding, ssboLayoutBinding };
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -2189,22 +2210,36 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         imageInfo.imageView = m_storageImageView;
         imageInfo.sampler = VK_NULL_HANDLE;
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        VkDescriptorBufferInfo ssboBufferInfo{};
+        ssboBufferInfo.buffer = m_ssboBuffer;
+        ssboBufferInfo.offset = 0;
+        ssboBufferInfo.range = sizeof(Node) * 512 + sizeof(glm::vec4) * 8;
+
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+
+        // UBO
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = m_computeDescriptorSets[i];
         descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[0].descriptorCount = 1;
         descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
 
+        // Storage image
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = m_computeDescriptorSets[i];
         descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
+
+        // SSBO
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = m_computeDescriptorSets[i];
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pBufferInfo = &ssboBufferInfo;
 
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -2396,95 +2431,95 @@ void VulkanRenderer::DestroyBinaryTreeResources()
         m_nodeDescriptorSetLayout = VK_NULL_HANDLE;
     }
 }
-
-void VulkanRenderer::SendBinaryTreeToCompute()
-{
-    DestroyBinaryTreeResources();
-
-    // Create fake data
-    std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
-    BinaryTree fakeTree(fakePoints);
-
-    // Create buffer to send
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof(Node) * fakeTree.GPUReadyBuffer.size();
-    bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_nodeBuffer);
-
-    // Allocate GPU memory
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_device, m_nodeBuffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    vkAllocateMemory(m_device, &allocInfo, nullptr, &m_nodeBufferMemory);
-
-    // Link to memory
-    vkBindBufferMemory(m_device, m_nodeBuffer, m_nodeBufferMemory, 0);
-
-    // Send to GPU
-    void* data;
-    vkMapMemory(m_device, m_nodeBufferMemory, 0, fakeTree.GPUReadyBuffer.size(), 0, &data);
-    memcpy(data, fakeTree.GPUReadyBuffer.data(), fakeTree.GPUReadyBuffer.size());
-    vkUnmapMemory(m_device, m_nodeBufferMemory);
-
-    // Descriptor set layout
-    VkDescriptorSetLayoutBinding nodeLayoutBinding{};
-    nodeLayoutBinding.binding = 0;
-    nodeLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    nodeLayoutBinding.descriptorCount = 1;
-    nodeLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-
-    VkDescriptorBufferInfo bufferInfoD{};
-    bufferInfoD.buffer = m_nodeBuffer;
-    bufferInfoD.offset = 0;
-    bufferInfoD.range = sizeof(Node) * fakeTree.GPUReadyBuffer.size();
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &nodeLayoutBinding;
-
-    vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_nodeDescriptorSetLayout);
-
-    // 2. Créer un pool + allouer
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    poolSize.descriptorCount = 1;
-
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
-    poolInfo.maxSets = 1;
-
-    vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_nodeDescriptorPool);
-
-    VkDescriptorSetAllocateInfo allocInfo_2{};
-    allocInfo_2.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo_2.descriptorPool = m_nodeDescriptorPool;
-    allocInfo_2.descriptorSetCount = 1;
-    allocInfo_2.pSetLayouts = &m_nodeDescriptorSetLayout;
-
-    VkDescriptorSet descriptorSet;
-    vkAllocateDescriptorSets(m_device, &allocInfo_2, &descriptorSet);
-
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = descriptorSet;
-    write.dstBinding = 0;
-    write.dstArrayElement = 0;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    write.descriptorCount = 1;
-    write.pBufferInfo = &bufferInfoD;
-
-    vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
-}
+//
+//void VulkanRenderer::SendBinaryTreeToCompute()
+//{
+//    DestroyBinaryTreeResources();
+//
+//    // Create fake data
+//    std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
+//    BinaryTree fakeTree(fakePoints);
+//
+//    // Create buffer to send
+//    VkBufferCreateInfo bufferInfo{};
+//    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+//    bufferInfo.size = sizeof(GPUNode) * fakeTree.GPUReadyBuffer.size();
+//    bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+//    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+//
+//    vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_nodeBuffer);
+//
+//    // Allocate GPU memory
+//    VkMemoryRequirements memRequirements;
+//    vkGetBufferMemoryRequirements(m_device, m_nodeBuffer, &memRequirements);
+//
+//    VkMemoryAllocateInfo allocInfo{};
+//    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+//    allocInfo.allocationSize = memRequirements.size;
+//    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
+//        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+//
+//    vkAllocateMemory(m_device, &allocInfo, nullptr, &m_nodeBufferMemory);
+//
+//    // Link to memory
+//    vkBindBufferMemory(m_device, m_nodeBuffer, m_nodeBufferMemory, 0);
+//
+//    // Send to GPU
+//    void* data;
+//    vkMapMemory(m_device, m_nodeBufferMemory, 0, fakeTree.GPUReadyBuffer.size(), 0, &data);
+//    memcpy(data, fakeTree.GPUReadyBuffer.data(), fakeTree.GPUReadyBuffer.size());
+//    vkUnmapMemory(m_device, m_nodeBufferMemory);
+//
+//    // Descriptor set layout
+//    VkDescriptorSetLayoutBinding nodeLayoutBinding{};
+//    nodeLayoutBinding.binding = 0;
+//    nodeLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+//    nodeLayoutBinding.descriptorCount = 1;
+//    nodeLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+//
+//    VkDescriptorBufferInfo bufferInfoD{};
+//    bufferInfoD.buffer = m_nodeBuffer;
+//    bufferInfoD.offset = 0;
+//    bufferInfoD.range = sizeof(GPUNode) * fakeTree.GPUReadyBuffer.size();
+//
+//    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+//    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+//    layoutInfo.bindingCount = 1;
+//    layoutInfo.pBindings = &nodeLayoutBinding;
+//
+//    vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_nodeDescriptorSetLayout);
+//
+//    // 2. Créer un pool + allouer
+//    VkDescriptorPoolSize poolSize{};
+//    poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+//    poolSize.descriptorCount = 1;
+//
+//    VkDescriptorPoolCreateInfo poolInfo{};
+//    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+//    poolInfo.poolSizeCount = 1;
+//    poolInfo.pPoolSizes = &poolSize;
+//    poolInfo.maxSets = 1;
+//
+//    vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_nodeDescriptorPool);
+//
+//    VkDescriptorSetAllocateInfo allocInfo_2{};
+//    allocInfo_2.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+//    allocInfo_2.descriptorPool = m_nodeDescriptorPool;
+//    allocInfo_2.descriptorSetCount = 1;
+//    allocInfo_2.pSetLayouts = &m_nodeDescriptorSetLayout;
+//
+//    VkDescriptorSet descriptorSet;
+//    vkAllocateDescriptorSets(m_device, &allocInfo_2, &descriptorSet);
+//
+//    VkWriteDescriptorSet write{};
+//    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+//    write.dstSet = descriptorSet;
+//    write.dstBinding = 0;
+//    write.dstArrayElement = 0;
+//    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+//    write.descriptorCount = 1;
+//    write.pBufferInfo = &bufferInfoD;
+//
+//    vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
+//}
 #endif
