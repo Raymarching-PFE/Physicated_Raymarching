@@ -1263,7 +1263,7 @@ void VulkanRenderer::CreateUniformBuffers()
 
 void VulkanRenderer::CreateSSBOBuffer()
 {
-    VkDeviceSize bufferSize = sizeof(GPUNode) * 512 + sizeof(glm::vec4) * 8;
+    VkDeviceSize bufferSize = sizeof(GPUNode) * MAX_SPHERE_SSBO + sizeof(glm::vec4) * 8;
 
     SSBOData myDataArray = {};
 
@@ -1272,7 +1272,7 @@ void VulkanRenderer::CreateSSBOBuffer()
     // for (int i = 0; i < 512; ++i) myDataArray.nodes[i] = ...;
     // for (int i = 0; i < 8; ++i) myDataArray.spheres[i] = ...;
 
-    std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), size_t(512)), myDataArray.SSBONodes);
+    std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), size_t(MAX_SPHERE_SSBO)), myDataArray.SSBONodes);
 
     // 3. Création du buffer Vulkan
     CreateBuffer(bufferSize,
@@ -2160,7 +2160,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         VkDescriptorBufferInfo ssboBufferInfo{};
         ssboBufferInfo.buffer = m_ssboBuffer;
         ssboBufferInfo.offset = 0;
-        ssboBufferInfo.range = sizeof(Node) * 512 + sizeof(glm::vec4) * 8;
+        ssboBufferInfo.range = sizeof(GPUNode) * MAX_SPHERE_SSBO + sizeof(glm::vec4) * 8;
 
         std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
