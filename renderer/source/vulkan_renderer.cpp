@@ -1393,9 +1393,7 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     // ubo.spheresArray[6] = glm::vec4(GeneratedPoint[6].x, GeneratedPoint[6].y, GeneratedPoint[6].z, 0.0f);
     // ubo.spheresArray[7] = glm::vec4(GeneratedPoint[7].x, GeneratedPoint[7].y, GeneratedPoint[7].z, 0.0f);
 
-#if COMPUTE
-#else
-
+#if !COMPUTE
     ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
     ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
     ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
@@ -1409,16 +1407,6 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 	//std::cout << "Time: " << ubo.time << std::endl;
 	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
     //std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
-
-#if COMPUTE
-
-
-    size_t arrayMaxSize = 512;
-
-   // Update binary tree data
-    // TODO put it in a SRV buffer instead
-   //std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), arrayMaxSize), ubo.nodes);
-#endif
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

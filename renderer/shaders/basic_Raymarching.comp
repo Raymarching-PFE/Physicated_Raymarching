@@ -1,7 +1,9 @@
 #version 450
 
 const int NUM_NODES = 512;
-const float SPHERE_RADIUS = 0.03;
+const float SPHERE_RADIUS = 0.003;
+const float K_BLENDING = 0.5;
+const float K_BLENDING_MAX_DISTANCE = 0.5;
 
 struct Node {
     vec4 boxPos;
@@ -66,8 +68,8 @@ Ray generateRay(vec2 uv) {
 }
 
 float smoothMin(float a, float b, float k) {
-    float h = max(k - abs(a - b), 0.0) / k;
-    return min(a, b) - h * h * h * k * (1.0 / 6.0);
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
 }
 
 float sphereSDF(vec3 p, vec3 center, float radius) {
@@ -88,23 +90,23 @@ float boxSDF(vec3 p, vec3 center, vec3 size)
     return length(max(d, 0.0));
 }
 
-bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
-{
-    float padding = 5.0; // adapte si besoin
-
-    vec3 maxCorner = minCorner + size;
-
-    // Applique le padding des deux côtés
-    vec3 paddedMin = minCorner - vec3(padding);
-    vec3 paddedMax = maxCorner + vec3(padding);
-
-    return all(greaterThanEqual(p, paddedMin)) && all(lessThanEqual(p, paddedMax));
-}
+//bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
+//{
+//    float padding = 5.0; // adapte si besoin
+//
+//    vec3 maxCorner = minCorner + size;
+//
+//    // Applique le padding des deux côtés
+//    vec3 paddedMin = minCorner - vec3(padding);
+//    vec3 paddedMax = maxCorner + vec3(padding);
+//
+//    return all(greaterThanEqual(p, paddedMin)) && all(lessThanEqual(p, paddedMax));
+//}
 
 bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB) {
     // take sphere radius into account
-    minB -= SPHERE_RADIUS;
-    maxB += SPHERE_RADIUS;
+    minB -= SPHERE_RADIUS + K_BLENDING_MAX_DISTANCE;
+    maxB += SPHERE_RADIUS + K_BLENDING_MAX_DISTANCE;
     
     vec3 invDir = 1.0 / rd;
 
@@ -127,17 +129,12 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 
     stack[stackPtr++] = 1; // commencer à la racine (node 1)
 
-    vec3 bestSpherePos;
-
     float minDist = 1e5;
-    
     int bestId = -1;
 
-    int steps = 0;
-    while (stackPtr > 0 && steps < 1000)
+    while (stackPtr > 0)
     {
         int nodeIndex = stack[--stackPtr];
-        steps++;
 
         Node node = ssbo.SSBONodes[nodeIndex];
 
@@ -152,18 +149,14 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
             for (int i = 0; i < 16; ++i)
             {
                 vec3 cp = node.cloudPoints[i].xyz;
-                if (cp == vec3(0.0)) continue; // skip points vides
-
                 float d = sphereSDF(p, cp, r);
 
-                //if(abs(minDist - d) < 1)
-                //    minDist = smoothMin(d, minDist, k);
+                // Applique smoothMin avec le blending courant
+                float blended = smoothMin(minDist, d, k);
 
-                if (d < minDist)
-                {
-                    //if(abs(minDist - d) < 1)
-                    //minDist = smoothMin(d, minDist, k);
-                    minDist = d;
+                // Si le current point a contribué à réduire la distance, on update l’ID
+                if (blended < minDist) {
+                    minDist = blended;
                     bestId = nodeIndex * 16 + i;
                 }
             }
@@ -188,12 +181,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 
     outId = bestId;
 
-    //for(int i =0; i < 16; i++)
-    //{
-    //    minDist = smoothMin(minDist, secondMinDist[i], k);// blending between the two nearest points
-    //}
-
-    if(minDist > MAX_DIST)
+    if(outId == -1)
     {
         return 0.0f;
     }
@@ -203,9 +191,8 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 
 float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     int id = -1;
-    //float r = 0.03;
     float r = SPHERE_RADIUS;
-    float k = 0.5;
+    float k = K_BLENDING;
 
     float dist = traverseBVH(rayOrigin, rayDir, p, r, k, id); // 0 = root node
 
@@ -217,8 +204,8 @@ float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     if(id == -1)
         material.color = vec3(0, 0, 0);
     else
-        material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
-
+        material.color = vec3(1, 1, 1);
+    //    material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
 
     material.reflectivity = 0.0;
 
@@ -248,38 +235,39 @@ float rayMarch(Ray ray, out Material material) {
     return -1.0;
 }
 
-//vec3 getNormal(vec3 p)
-//{
-//    vec2 e = vec2(EPSILON, 0.0);
-//    Material dummyMaterial;
-//    return normalize(vec3(
-//        sceneSDF(p + e.xyy, dummyMaterial) - sceneSDF(p - e.xyy, dummyMaterial),
-//        sceneSDF(p + e.yxy, dummyMaterial) - sceneSDF(p - e.yxy, dummyMaterial),
-//        sceneSDF(p + e.yyx, dummyMaterial) - sceneSDF(p - e.yyx, dummyMaterial)
-//    ));
-//}
+vec3 getNormal(vec3 p, vec3 rayOrigin, vec3 rayDir)
+{
+    vec2 e = vec2(EPSILON, 0.0);
+    Material dummyMaterial;
+    return normalize(vec3(
+        sceneSDF(rayOrigin, rayDir, p + e.xyy, dummyMaterial) - sceneSDF(rayOrigin, rayDir, p - e.xyy, dummyMaterial),
+        sceneSDF(rayOrigin, rayDir, p + e.yxy, dummyMaterial) - sceneSDF(rayOrigin, rayDir, p - e.yxy, dummyMaterial),
+        sceneSDF(rayOrigin, rayDir, p + e.yyx, dummyMaterial) - sceneSDF(rayOrigin, rayDir, p - e.yyx, dummyMaterial)
+    ));
+}
 
 vec3 getColor(Ray ray, vec3 p, Material material) {
     vec3 color = vec3(0.0);
     vec3 attenuation = vec3(1.0);
 
-    //for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
-    //    //vec3 normal = getNormal(p);
-    //    vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
-    //    float diff = max(dot(normal, lightDir), 0.0);
-    //    vec3 diffuse = diff * material.color;
-    //
-    //    color += attenuation * diffuse;
-    //
-    //    vec3 reflectDir = reflect(ray.direction, normal);
-    //    ray = Ray(p + reflectDir * EPSILON, reflectDir);
-    //    float reflectDist = rayMarch(ray, material);
-    //    if (reflectDist < 0.0) break;
-    //
-    //    p = ray.origin + ray.direction * reflectDist;
-    //    attenuation *= material.reflectivity;
-    //}
-    return vec3(1.0, 1.0, 1.0);
+    //return vec3(1, 1, 1);
+
+    for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
+        vec3 normal = getNormal(p, ray.origin, ray.direction);
+        vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
+        float diff = max(dot(normal, lightDir), 0.0);
+        vec3 diffuse = diff * material.color;
+    
+        color += attenuation * diffuse;
+    
+        vec3 reflectDir = reflect(ray.direction, normal);
+        ray = Ray(p + reflectDir * EPSILON, reflectDir);
+        float reflectDist = rayMarch(ray, material);
+        if (reflectDist < 0.0) break;
+    
+        p = ray.origin + ray.direction * reflectDist;
+        attenuation *= material.reflectivity;
+    }
 
     return color;
 }
