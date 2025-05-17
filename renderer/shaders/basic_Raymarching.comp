@@ -1,7 +1,7 @@
 #version 450
 
-const int NUM_NODES = 512;
-const float SPHERE_RADIUS = 0.03;
+const int NUM_NODES = 256;
+const float SPHERE_RADIUS = 0.1;
 
 struct Node {
     vec4 boxPos;
@@ -82,18 +82,18 @@ float boxSDF(vec3 p, vec3 center, vec3 size)
     return length(max(d, 0.0));
 }
 
-bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
-{
-    float padding = 5.0; // adapte si besoin
-
-    vec3 maxCorner = minCorner + size;
-
-    // Applique le padding des deux côtés
-    vec3 paddedMin = minCorner - vec3(padding);
-    vec3 paddedMax = maxCorner + vec3(padding);
-
-    return all(greaterThanEqual(p, paddedMin)) && all(lessThanEqual(p, paddedMax));
-}
+//bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
+//{
+//    float padding = 5.0; // adapte si besoin
+//
+//    vec3 maxCorner = minCorner + size;
+//
+//    // Applique le padding des deux côtés
+//    vec3 paddedMin = minCorner - vec3(padding);
+//    vec3 paddedMax = maxCorner + vec3(padding);
+//
+//    return all(greaterThanEqual(p, paddedMin)) && all(lessThanEqual(p, paddedMax));
+//}
 
 bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB) {
     // take sphere radius into account
@@ -121,17 +121,12 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 
     stack[stackPtr++] = 1; // commencer à la racine (node 1)
 
-    vec3 bestSpherePos;
-
     float minDist = 1e5;
-    
     int bestId = -1;
 
-    int steps = 0;
-    while (stackPtr > 0 && steps < 1000)
+    while (stackPtr > 0)
     {
         int nodeIndex = stack[--stackPtr];
-        steps++;
 
         Node node = ubo.nodes[nodeIndex];
 
@@ -146,20 +141,39 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
             for (int i = 0; i < 16; ++i)
             {
                 vec3 cp = node.cloudPoints[i].xyz;
-                if (cp == vec3(0.0)) continue; // skip points vides
 
+                // Dans la feuille :
                 float d = sphereSDF(p, cp, r);
 
-                //if(abs(minDist - d) < 1)
-                //    minDist = smoothMin(d, minDist, k);
+                // Applique smoothMin avec le blending courant
+                float blended = smoothMin(minDist, d, k);
 
-                if (d < minDist)
-                {
-                    //if(abs(minDist - d) < 1)
-                    //minDist = smoothMin(d, minDist, k);
-                    minDist = d;
+                // Si `d` a contribué à réduire la distance, on update l’ID
+                if (blended < minDist) {
+                    minDist = blended;
                     bestId = nodeIndex * 16 + i;
                 }
+
+                //if (cp == vec3(0.0)) continue; // skip points vides
+                //
+                //float d = sphereSDF(p, cp, r);
+
+                //minDist = smoothMin(d, minDist, k);
+                
+                //if (d < minDist)
+                //{
+                //    minDist = d;
+                //    bestId = nodeIndex * 16 + i;
+                //}
+
+                //if (d < minDist + SPHERE_RADIUS)
+                //{
+                //    minDist = smoothMin(d, minDist, k);
+                //    minDist = d;
+                //
+                //    if (d < minDist)
+                //        bestId = nodeIndex * 16 + i;
+                //}
             }
         } else {
             // Empiler les enfants (droite puis gauche pour LIFO)
