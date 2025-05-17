@@ -141,39 +141,16 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
             for (int i = 0; i < 16; ++i)
             {
                 vec3 cp = node.cloudPoints[i].xyz;
-
-                // Dans la feuille :
                 float d = sphereSDF(p, cp, r);
 
                 // Applique smoothMin avec le blending courant
                 float blended = smoothMin(minDist, d, k);
 
-                // Si `d` a contribué à réduire la distance, on update l’ID
+                // Si le current point a contribué à réduire la distance, on update l’ID
                 if (blended < minDist) {
                     minDist = blended;
                     bestId = nodeIndex * 16 + i;
                 }
-
-                //if (cp == vec3(0.0)) continue; // skip points vides
-                //
-                //float d = sphereSDF(p, cp, r);
-
-                //minDist = smoothMin(d, minDist, k);
-                
-                //if (d < minDist)
-                //{
-                //    minDist = d;
-                //    bestId = nodeIndex * 16 + i;
-                //}
-
-                //if (d < minDist + SPHERE_RADIUS)
-                //{
-                //    minDist = smoothMin(d, minDist, k);
-                //    minDist = d;
-                //
-                //    if (d < minDist)
-                //        bestId = nodeIndex * 16 + i;
-                //}
             }
         } else {
             // Empiler les enfants (droite puis gauche pour LIFO)
@@ -196,12 +173,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 
     outId = bestId;
 
-    //for(int i =0; i < 16; i++)
-    //{
-    //    minDist = smoothMin(minDist, secondMinDist[i], k);// blending between the two nearest points
-    //}
-
-    if(minDist > MAX_DIST)
+    if(outId == -1)
     {
         return 0.0f;
     }
@@ -211,7 +183,6 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 
 float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     int id = -1;
-    //float r = 0.03;
     float r = SPHERE_RADIUS;
     float k = 0.5;
 
@@ -256,38 +227,37 @@ float rayMarch(Ray ray, out Material material) {
     return -1.0;
 }
 
-//vec3 getNormal(vec3 p)
-//{
-//    vec2 e = vec2(EPSILON, 0.0);
-//    Material dummyMaterial;
-//    return normalize(vec3(
-//        sceneSDF(p + e.xyy, dummyMaterial) - sceneSDF(p - e.xyy, dummyMaterial),
-//        sceneSDF(p + e.yxy, dummyMaterial) - sceneSDF(p - e.yxy, dummyMaterial),
-//        sceneSDF(p + e.yyx, dummyMaterial) - sceneSDF(p - e.yyx, dummyMaterial)
-//    ));
-//}
+vec3 getNormal(vec3 p, vec3 rayOrigin, vec3 rayDir)
+{
+    vec2 e = vec2(EPSILON, 0.0);
+    Material dummyMaterial;
+    return normalize(vec3(
+        sceneSDF(rayOrigin, rayDir, p + e.xyy, dummyMaterial) - sceneSDF(rayOrigin, rayDir, p - e.xyy, dummyMaterial),
+        sceneSDF(rayOrigin, rayDir, p + e.yxy, dummyMaterial) - sceneSDF(rayOrigin, rayDir, p - e.yxy, dummyMaterial),
+        sceneSDF(rayOrigin, rayDir, p + e.yyx, dummyMaterial) - sceneSDF(rayOrigin, rayDir, p - e.yyx, dummyMaterial)
+    ));
+}
 
 vec3 getColor(Ray ray, vec3 p, Material material) {
     vec3 color = vec3(0.0);
     vec3 attenuation = vec3(1.0);
 
-    //for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
-    //    //vec3 normal = getNormal(p);
-    //    vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
-    //    float diff = max(dot(normal, lightDir), 0.0);
-    //    vec3 diffuse = diff * material.color;
-    //
-    //    color += attenuation * diffuse;
-    //
-    //    vec3 reflectDir = reflect(ray.direction, normal);
-    //    ray = Ray(p + reflectDir * EPSILON, reflectDir);
-    //    float reflectDist = rayMarch(ray, material);
-    //    if (reflectDist < 0.0) break;
-    //
-    //    p = ray.origin + ray.direction * reflectDist;
-    //    attenuation *= material.reflectivity;
-    //}
-    return vec3(1.0, 1.0, 1.0);
+    for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
+        vec3 normal = getNormal(p, ray.origin, ray.direction);
+        vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
+        float diff = max(dot(normal, lightDir), 0.0);
+        vec3 diffuse = diff * material.color;
+    
+        color += attenuation * diffuse;
+    
+        vec3 reflectDir = reflect(ray.direction, normal);
+        ray = Ray(p + reflectDir * EPSILON, reflectDir);
+        float reflectDist = rayMarch(ray, material);
+        if (reflectDist < 0.0) break;
+    
+        p = ray.origin + ray.direction * reflectDist;
+        attenuation *= material.reflectivity;
+    }
 
     return color;
 }
