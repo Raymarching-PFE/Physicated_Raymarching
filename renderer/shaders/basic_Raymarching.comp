@@ -1,8 +1,6 @@
 #version 450
 
 const int NUM_NODES = 2048;
-//const float SPHERE_RADIUS = 0.0000001;
-const float K_BLENDING = 0.002;
 const float K_BLENDING_MAX_DISTANCE = 0.00001;
 
 struct Node {
@@ -17,6 +15,7 @@ layout(local_size_x = 16, local_size_y = 16) in;
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     float sphereRadius;
     float time;
+    float blendingFactor;
 
     vec3 cameraPos;
     vec3 cameraFront;
@@ -193,7 +192,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     int id = -1;
     float r = ubo.sphereRadius;
-    float k = K_BLENDING;
+    float k = ubo.blendingFactor;
 
     float dist = traverseBVH(rayOrigin, rayDir, p, r, k, id);
 

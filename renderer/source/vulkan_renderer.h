@@ -140,6 +140,7 @@ struct UniformBufferObject
 {
     alignas(4) float sphereRadius;
     alignas(4) float time;
+    alignas(4) float blendingFactor;
 
     alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -162,6 +163,8 @@ private:
 
     // Sphere Size
     float m_sphereRadius = 0.0000001f;
+
+    float m_blendingFactor = 0.002f;
 
     // Camera
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
