@@ -133,7 +133,7 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
           GPUReadyBuffer[i].children.y = 0;
    }
 
-   //std::cout << "GPU buffer : " << GPUReadyBuffer.size() << std::endl;
+   std::cout << "GPU buffer nodes : " << GPUReadyBuffer.size() << std::endl;
    //for (int i = 0; i < GPUReadyBuffer.size(); i++)
    //{
    //    std::cout << "Children : " << GPUReadyBuffer[i].children.x << ", " << GPUReadyBuffer[i].children.x << ", ";

@@ -15,7 +15,7 @@ constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
 constexpr int MAX_FRAMES_IN_FLIGHT = 1;
 
-constexpr int MAX_SPHERE_SSBO = 512;
+constexpr int MAX_NODES_SSBO = 2048;
 
 const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -129,11 +129,11 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct SSBOData 
+struct SSBOData
 {
-    GPUNode SSBONodes[MAX_SPHERE_SSBO];
+    alignas(16) GPUNode SSBONodes[MAX_NODES_SSBO];
 
-    glm::vec4 SSBOSpheresArray[8];
+    //glm::vec4 SSBOSpheresArray[8];
 };
 
 struct UniformBufferObject
@@ -143,9 +143,9 @@ struct UniformBufferObject
     alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
 
 #if !COMPUTE
-    alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
+    //alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
 #endif
-    alignas(16) int sphereNumber;
+    //alignas(16) int sphereNumber;
 };
 
 class VulkanRenderer
