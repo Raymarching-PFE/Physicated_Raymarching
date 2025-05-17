@@ -400,8 +400,10 @@ void VulkanRenderer::MainImGui()
 
         ImGui::Checkbox("lighting", &m_lighting);
         ImGui::Checkbox("boxDebug", &m_boxDebug);
+        ImGui::Checkbox("randomColor", &m_randomColor);
         
         ImGui::SliderFloat3("lightDir", &m_lightingDir.x, -1.0f, 1.0f);
+        ImGui::SliderFloat3("objectColor", &m_objectColor.x, -1.0f, 1.0f);
 
         ImGuiIO& io = ImGui::GetIO();
         float clampedFPS = std::min(io.Framerate, 144.0f);
@@ -1402,6 +1404,8 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     ubo.boxDebug = m_boxDebug;
     ubo.reflectivity = m_reflectivity;
     ubo.lightingDir = m_lightingDir;
+    ubo.objectColor = m_objectColor;
+    ubo.randomColor = m_randomColor;
 
     // ubo.spheresArray[0] = glm::vec4(GeneratedPoint[0].x, GeneratedPoint[0].y, GeneratedPoint[0].z, 0.0f);
     // ubo.spheresArray[1] = glm::vec4(GeneratedPoint[1].x, GeneratedPoint[1].y, GeneratedPoint[1].z, 0.0f);

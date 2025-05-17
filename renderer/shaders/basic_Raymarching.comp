@@ -15,12 +15,14 @@ layout(local_size_x = 16, local_size_y = 16) in;
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     int lighting;
     int boxDebug;
+    int randomColor;
     float sphereRadius;
     float time;
     float blendingFactor;
     float far;
     float reflectivity;
     vec3 lightingDir;
+    vec3 objectColor;
 
     vec3 cameraPos;
     vec3 cameraFront;
@@ -39,7 +41,7 @@ layout(std430, binding = 2) buffer MySSBO
 const int MAX_STEPS = 128;
 //const float MAX_DIST = 100.0;
 const float EPSILON = 0.001;
-const int MAX_RECURSION_DEPTH = 1;
+const int MAX_RECURSION_DEPTH = 3;
 
 struct Ray {
     vec3 origin;
@@ -223,10 +225,11 @@ float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     float uniqueNumber3 = float((99 * id + 3) % 5) / 5.0;
 
     if(id == -1)
-        material.color = vec3(0, 0, 0);
+        material.color = vec3(0, 0, 0); // background color
+    else if (ubo.randomColor == 1)
+        material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
     else
-        material.color = vec3(1.0, 1.0, 1.0);
-        //material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
+        material.color = ubo.objectColor;
 
     material.reflectivity = ubo.reflectivity;
 
@@ -269,7 +272,7 @@ vec3 getNormal(vec3 p, vec3 rayOrigin, vec3 rayDir)
 
 vec3 getColor(Ray ray, vec3 p, Material material) {
     if(ubo.lighting == 0)
-        return vec3(1.0f, 1.0f, 1.0f);
+        return material.color;
 
     vec3 color = vec3(0.0);
     vec3 attenuation = vec3(1.0);

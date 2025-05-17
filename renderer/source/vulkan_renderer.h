@@ -140,12 +140,14 @@ struct UniformBufferObject
 {
     alignas(4) int lighting;
     alignas(4) int boxDebug;
+    alignas(4) int randomColor;
     alignas(4) float sphereRadius;
     alignas(4) float time;
     alignas(4) float blendingFactor;
     alignas(4) float far;
     alignas(4) float reflectivity;
     alignas(16) glm::vec3 lightingDir;
+    alignas(16) glm::vec3 objectColor;
 
     alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -172,8 +174,10 @@ private:
 
     bool m_lighting = true;
     bool m_boxDebug = false;
+    bool m_randomColor = false;
     float m_reflectivity = 0.0f;
     glm::vec3 m_lightingDir = glm::vec3(1.0, -1.0, -1.0);
+    glm::vec3 m_objectColor = glm::vec3(1.0, 1.0, 1.0);
 
     // Camera
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
