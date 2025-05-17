@@ -1384,10 +1384,10 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 
 #if COMPUTE
 
-    size_t arrayMaxSize = 256;
+    size_t arrayMaxSize = 512;
 
    // Update binary tree data
-    // TODO put it in a SRV buffer instead
+    // TODO put it in a SSBO buffer instead
    std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), arrayMaxSize), ubo.nodes);
 #endif
 

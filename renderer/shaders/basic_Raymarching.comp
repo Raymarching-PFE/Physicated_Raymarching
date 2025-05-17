@@ -1,7 +1,9 @@
 #version 450
 
-const int NUM_NODES = 256;
-const float SPHERE_RADIUS = 0.1;
+const int NUM_NODES = 512;
+const float SPHERE_RADIUS = 0.003;
+const float K_BLENDING = 0.5;
+const float K_BLENDING_MAX_DISTANCE = 0.5;
 
 struct Node {
     vec4 boxPos;
