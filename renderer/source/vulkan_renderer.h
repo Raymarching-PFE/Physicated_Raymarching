@@ -138,8 +138,8 @@ struct alignas(16) SSBOData
 
 struct UniformBufferObject
 {
-    alignas(4) bool lighting;
-    alignas(4) bool boxDebug;
+    alignas(4) int lighting;
+    alignas(4) int boxDebug;
     alignas(4) float sphereRadius;
     alignas(4) float time;
     alignas(4) float blendingFactor;
