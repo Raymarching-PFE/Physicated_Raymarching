@@ -393,8 +393,15 @@ void VulkanRenderer::MainImGui()
         ImGui::Text("Number of points: %zu", m_vertexNb);
 
         ImGui::SliderFloat("Sphere radius", &m_sphereRadius, 0.00001f, 1.f, "%.5f");
-
         ImGui::SliderFloat("BlendingFactor", &m_blendingFactor, 0.00000f, 1.f);
+
+        ImGui::SliderFloat("Far", &m_far, 0.00000f, 1000.f);
+        ImGui::SliderFloat("Reflectivity", &m_reflectivity, 0.0f, 1.0f);
+
+        ImGui::Checkbox("lighting", &m_lighting);
+        ImGui::Checkbox("boxDebug", &m_boxDebug);
+        
+        ImGui::SliderFloat3("lightDir", &m_lightingDir.x, -1.0f, 1.0f);
 
         ImGuiIO& io = ImGui::GetIO();
         float clampedFPS = std::min(io.Framerate, 144.0f);
@@ -404,7 +411,6 @@ void VulkanRenderer::MainImGui()
 
     ImGui::Render();
 }
-
 
 // Instance / Device / Surface / Debug
 void VulkanRenderer::CreateInstance()
@@ -1390,6 +1396,12 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 
     ubo.sphereRadius = m_sphereRadius;
     ubo.blendingFactor = m_blendingFactor;
+
+    ubo.far = m_far;
+    ubo.lighting = m_lighting;
+    ubo.boxDebug = m_boxDebug;
+    ubo.reflectivity = m_reflectivity;
+    ubo.lightingDir = m_lightingDir;
 
     // ubo.spheresArray[0] = glm::vec4(GeneratedPoint[0].x, GeneratedPoint[0].y, GeneratedPoint[0].z, 0.0f);
     // ubo.spheresArray[1] = glm::vec4(GeneratedPoint[1].x, GeneratedPoint[1].y, GeneratedPoint[1].z, 0.0f);

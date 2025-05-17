@@ -138,14 +138,17 @@ struct alignas(16) SSBOData
 
 struct UniformBufferObject
 {
+    alignas(4) bool lighting;
+    alignas(4) bool boxDebug;
     alignas(4) float sphereRadius;
     alignas(4) float time;
     alignas(4) float blendingFactor;
+    alignas(4) float far;
+    alignas(4) float reflectivity;
+    alignas(16) glm::vec3 lightingDir;
 
     alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
-
-
 #if !COMPUTE
     //alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
 #endif
@@ -165,6 +168,12 @@ private:
     float m_sphereRadius = 0.0000001f;
 
     float m_blendingFactor = 0.002f;
+    float m_far = 100;
+
+    bool m_lighting = true;
+    bool m_boxDebug = false;
+    float m_reflectivity = 0.0f;
+    glm::vec3 m_lightingDir = glm::vec3(1.0, -1.0, -1.0);
 
     // Camera
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
