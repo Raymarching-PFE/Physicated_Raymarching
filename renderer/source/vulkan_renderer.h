@@ -127,6 +127,13 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct SSBOData 
+{
+    GPUNode SSBONodes[512];
+
+    glm::vec4 SSBOSpheresArray[8];
+};
+
 struct UniformBufferObject
 {
 	alignas(16) float time;
@@ -227,6 +234,9 @@ private:
     VkDeviceMemory  m_indexBufferMemory = VK_NULL_HANDLE;
     VkBuffer        m_quadIndexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory  m_quadIndexBufferMemory = VK_NULL_HANDLE;
+
+    VkBuffer m_ssboBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_ssboMemory = VK_NULL_HANDLE;
 
     std::vector<Vertex>     m_vertices;
     std::vector<uint32_t>   m_indices;
@@ -351,6 +361,7 @@ private:
     void CreateVertexBuffer();
     void CreateIndexBuffer();
     void CreateUniformBuffers();
+	void CreateSSBOBuffer();
     void CreateDescriptorPool();
     void CreateCommandBuffers();
     void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;

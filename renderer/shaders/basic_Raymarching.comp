@@ -21,6 +21,12 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 } ubo;
 
 layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D img_output;
+layout(std430, binding = 2) buffer MySSBO 
+{
+    Node SSBONodes[512];
+
+    vec4 SSBOSpheresArray[8];
+}ssbo;
 
 
 const int MAX_STEPS = 128;
@@ -133,7 +139,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
         int nodeIndex = stack[--stackPtr];
         steps++;
 
-        Node node = ubo.nodes[nodeIndex];
+        Node node = ssbo.SSBONodes[nodeIndex];
 
         // Skip si hors de la boîte englobante
         if (!intersectRayAABB(rayOrigin, rayDir, node.boxPos.xyz, node.boxPos.xyz + node.boxSize.xyz)) {
@@ -174,7 +180,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
     //print the smaller boxes
     //for (int i = 64; i < 129; ++i)
     //{
-    //    float d = boxSDF(p, ubo.nodes[i].boxPos.xyz, ubo.nodes[i].boxSize.xyz);
+    //    float d = boxSDF(p, ssbo.SSBONodes[i].boxPos.xyz, ssbo.SSBONodes[i].boxSize.xyz);
     //    if (d < minDist) {
     //        minDist = d;
     //    }
@@ -218,7 +224,7 @@ float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
 
     //for (int i = 50; i < 256; ++i)
     //{
-    //    float d = sphereSDF(p, ubo.nodes[i].boxPos.xyz, length(ubo.nodes[i].boxSize));
+    //    float d = sphereSDF(p, ssbo.SSBONodes[i].boxPos.xyz, length(ssbo.SSBONodes[i].boxSize));
     //    if (d < dist)
     //    {
     //        dist = d;
@@ -316,9 +322,9 @@ vec4 rabbitTest(Node node_0, Node node_1)
     && node_0.cloudPoints[0].z > -1.0f && node_0.cloudPoints[0].z < 1.0f
     
     // cloudPoints[8] test
-    //&& ubo.nodes[8].cloudPoints[0].x > -1.0f && ubo.nodes[8].cloudPoints[0].x < 1.0f
-    //&& ubo.nodes[8].cloudPoints[0].y > -1.0f && ubo.nodes[8].cloudPoints[0].y < 1.0f
-    //&& ubo.nodes[8].cloudPoints[0].z > -1.0f && ubo.nodes[8].cloudPoints[0].z < 1.0f
+    //&& ssbo.SSBONodes[8].cloudPoints[0].x > -1.0f && ssbo.SSBONodes[8].cloudPoints[0].x < 1.0f
+    //&& ssbo.SSBONodes[8].cloudPoints[0].y > -1.0f && ssbo.SSBONodes[8].cloudPoints[0].y < 1.0f
+    //&& ssbo.SSBONodes[8].cloudPoints[0].z > -1.0f && ssbo.SSBONodes[8].cloudPoints[0].z < 1.0f
     )
         return vec4(1.0f, 0.0f, 0.0f, 0.0f);
     else
@@ -347,7 +353,7 @@ void main() {
 
     // force nodes colors
     ///color = vec4(material.color.xyz, 1.0f);
-    //color = rabbitTest(ubo.nodes[0], ubo.nodes[1]);
+    //color = rabbitTest(ssbo.SSBONodes[0], ssbo.SSBONodes[1]);
 
     imageStore(img_output, pixelCoord, color);
 }

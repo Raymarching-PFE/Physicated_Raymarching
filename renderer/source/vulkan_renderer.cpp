@@ -158,7 +158,8 @@ void VulkanRenderer::InitVulkan()
     CreateDescriptorPool();
     CreateStorageImage();
     CreateDescriptorSets();
-    CreateComputeDescriptorSets();
+    CreateSSBOBuffer();
+    CreateComputeDescriptorSets(); 
     CreateCommandBuffers();
     CreateComputeCommandBuffers();
 #else
@@ -1260,6 +1261,33 @@ void VulkanRenderer::CreateUniformBuffers()
     }
 }
 
+void VulkanRenderer::CreateSSBOBuffer()
+{
+    VkDeviceSize bufferSize = sizeof(GPUNode) * 512 + sizeof(glm::vec4) * 8;
+
+    SSBOData myDataArray = {};
+
+    // 2. Remplis ici myDataArray.nodes[...] et myDataArray.spheres[...]
+    // Par exemple :
+    // for (int i = 0; i < 512; ++i) myDataArray.nodes[i] = ...;
+    // for (int i = 0; i < 8; ++i) myDataArray.spheres[i] = ...;
+
+    std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), size_t(512)), myDataArray.SSBONodes);
+
+    // 3. Création du buffer Vulkan
+    CreateBuffer(bufferSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_ssboBuffer, m_ssboMemory);
+
+    // 4. Copie des données dans le buffer
+    void* data;
+    vkMapMemory(m_device, m_ssboMemory, 0, bufferSize, 0, &data);
+    memcpy(data, &myDataArray, sizeof(SSBOData));
+    vkUnmapMemory(m_device, m_ssboMemory);
+}
+
+
 void VulkanRenderer::CreateDescriptorPool()
 {
     // Constantes lisibles et ajustables
@@ -1389,7 +1417,7 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 
    // Update binary tree data
     // TODO put it in a SRV buffer instead
-   std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), arrayMaxSize), ubo.nodes);
+   //std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), arrayMaxSize), ubo.nodes);
 #endif
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -2097,7 +2125,15 @@ void VulkanRenderer::CreateComputeDescriptorSetLayout()
     imageLayoutBinding.pImmutableSamplers = nullptr;
     imageLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, imageLayoutBinding };
+    VkDescriptorSetLayoutBinding ssboLayoutBinding{};
+    ssboLayoutBinding.binding = 2; // Doit correspondre au shader
+    ssboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    ssboLayoutBinding.descriptorCount = 1;
+    ssboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    ssboLayoutBinding.pImmutableSamplers = nullptr;
+
+
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, imageLayoutBinding, ssboLayoutBinding };
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -2133,22 +2169,36 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         imageInfo.imageView = m_storageImageView;
         imageInfo.sampler = VK_NULL_HANDLE;
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        VkDescriptorBufferInfo ssboBufferInfo{};
+        ssboBufferInfo.buffer = m_ssboBuffer;
+        ssboBufferInfo.offset = 0;
+        ssboBufferInfo.range = sizeof(Node) * 512 + sizeof(glm::vec4) * 8;
+
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+
+        // UBO
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = m_computeDescriptorSets[i];
         descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[0].descriptorCount = 1;
         descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
 
+        // Storage image
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = m_computeDescriptorSets[i];
         descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
+
+        // SSBO
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = m_computeDescriptorSets[i];
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pBufferInfo = &ssboBufferInfo;
 
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
