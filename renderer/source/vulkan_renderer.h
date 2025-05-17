@@ -138,9 +138,12 @@ struct alignas(16) SSBOData
 
 struct UniformBufferObject
 {
-	alignas(16) float time;
+    alignas(4) float sphereRadius;
+    alignas(4) float time;
+
     alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
+
 
 #if !COMPUTE
     //alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
@@ -156,6 +159,10 @@ public:
 private:
 
 #pragma region VARIABLES
+
+    // Sphere Size
+    float m_sphereRadius = 0.0000001f;
+
     // Camera
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -171,7 +178,6 @@ private:
 
     // Binary tree
     GPUNode myNodes[100];
-    std::vector<glm::vec3> GeneratedPoint;
 
     // Application
     int                      m_currentModelIndex = 0;

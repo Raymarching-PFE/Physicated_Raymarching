@@ -392,6 +392,8 @@ void VulkanRenderer::MainImGui()
 
         ImGui::Text("Number of points: %zu", m_vertexNb);
 
+        ImGui::SliderFloat("Sphere radius", &m_sphereRadius, 0.00001f, 1.f);
+
         ImGuiIO& io = ImGui::GetIO();
         float clampedFPS = std::min(io.Framerate, 144.0f);
         ImGui::Text("Application average: %.3f ms/frame (%.1f FPS)", 1000.0f / clampedFPS, clampedFPS);
@@ -1383,6 +1385,8 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     ubo.cameraPos = m_cameraPos;
     ubo.cameraFront = m_cameraFront;
     ubo.time = static_cast<float>(glfwGetTime());
+
+    ubo.sphereRadius = m_sphereRadius;
 
     // ubo.spheresArray[0] = glm::vec4(GeneratedPoint[0].x, GeneratedPoint[0].y, GeneratedPoint[0].z, 0.0f);
     // ubo.spheresArray[1] = glm::vec4(GeneratedPoint[1].x, GeneratedPoint[1].y, GeneratedPoint[1].z, 0.0f);

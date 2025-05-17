@@ -1,7 +1,7 @@
 #version 450
 
 const int NUM_NODES = 2048;
-const float SPHERE_RADIUS = 0.0000001;
+//const float SPHERE_RADIUS = 0.0000001;
 const float K_BLENDING = 0.002;
 const float K_BLENDING_MAX_DISTANCE = 0.00001;
 
@@ -15,10 +15,11 @@ struct Node {
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(set = 0, binding = 0) uniform UniformBufferObject {
+    float sphereRadius;
     float time;
+
     vec3 cameraPos;
     vec3 cameraFront;
-    //Node nodes[NUM_NODES];//8192 pour le lapin
 
 } ubo;
 
@@ -105,8 +106,8 @@ float boxSDF(vec3 p, vec3 center, vec3 size)
 
 bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB) {
     // take sphere radius into account
-    minB -= SPHERE_RADIUS + K_BLENDING_MAX_DISTANCE;
-    maxB += SPHERE_RADIUS + K_BLENDING_MAX_DISTANCE;
+    minB -= ubo.sphereRadius + K_BLENDING_MAX_DISTANCE;
+    maxB += ubo.sphereRadius + K_BLENDING_MAX_DISTANCE;
     
     vec3 invDir = 1.0 / rd;
 
@@ -191,7 +192,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 
 float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     int id = -1;
-    float r = SPHERE_RADIUS;
+    float r = ubo.sphereRadius;
     float k = K_BLENDING;
 
     float dist = traverseBVH(rayOrigin, rayDir, p, r, k, id);
@@ -342,6 +343,8 @@ void main() {
     // force nodes colors
     ///color = vec4(material.color.xyz, 1.0f);
     //color = rabbitTest(ssbo.SSBONodes[0], ssbo.SSBONodes[1]);
+
+    //color = vec4(ubo.sphereRadius, ubo.sphereRadius, ubo.sphereRadius, 1);
 
     imageStore(img_output, pixelCoord, color);
 }
