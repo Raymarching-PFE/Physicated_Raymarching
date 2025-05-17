@@ -8,7 +8,7 @@
 #define NUMBER_OF_UBO 1
 
 #if defined(__clang__) || defined(__GNUC__)
-    #define TracyFunction __PRETTY_FUNCTION__
+    // #define TracyFunction __PRETTY_FUNCTION__
 #elif defined(_MSC_VER)
     #define TracyFunction __FUNCSIG__
     #define TRACY_IMPORTS
@@ -175,6 +175,7 @@ void VulkanRenderer::InitVulkan()
     CreateCommandBuffers();
 #endif
 
+    InitTracy();
     CreateSyncObjects();
 
     glfwSetCursorPosCallback(m_window, MouseCallback);
@@ -204,6 +205,13 @@ void VulkanRenderer::Cleanup()
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+#if COMPUTE
+    TracyVkDestroy(m_computeTracyVkCtx);
+#endif
+
+    TracyVkDestroy(m_graphicTracyVkCtx);
+
 
     CleanupSwapChain();
 
@@ -329,6 +337,40 @@ void VulkanRenderer::RecreateSwapChain()
 }
 
 
+// Tracy
+void VulkanRenderer::InitTracy()
+{
+    VkCommandPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.queueFamilyIndex = m_queueFamily;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    VkCommandPool tracyCommandPool;
+    if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &tracyCommandPool) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create Tracy command pool!");
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = tracyCommandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer tracyCmd;
+    if (vkAllocateCommandBuffers(m_device, &allocInfo, &tracyCmd) != VK_SUCCESS)
+        throw std::runtime_error("Failed to allocate Tracy init command buffer!");
+
+    m_graphicTracyVkCtx = TracyVkContext(m_physicalDevice, m_device, m_graphicsQueue, tracyCmd);
+#if COMPUTE
+    m_computeTracyVkCtx = TracyVkContext(m_physicalDevice, m_device, m_computeQueue, tracyCmd);
+#endif
+
+    vkQueueWaitIdle(m_graphicsQueue);
+
+    vkFreeCommandBuffers(m_device, tracyCommandPool, 1, &tracyCmd);
+    vkDestroyCommandPool(m_device, tracyCommandPool, nullptr);
+}
+
+
 // ImGui
 void VulkanRenderer::InitImGui() const
 {
@@ -353,7 +395,7 @@ void VulkanRenderer::InitImGui() const
     initInfo.DescriptorPool = m_descriptorPool;
     initInfo.RenderPass = m_renderPass;
     initInfo.Subpass = 0;
-    initInfo.MinImageCount = m_minImageCount;
+    initInfo.MinImageCount = std::max(2u, m_minImageCount);
     initInfo.ImageCount = m_imageCount;
     initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     initInfo.Allocator = nullptr;
@@ -1210,9 +1252,6 @@ void VulkanRenderer::CreateIndexBuffer()
     const VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
     const VkDeviceSize quadBufferSize = sizeof(uint32_t) * quadIndices.size();
 
-    std::cout << "Index buffer size: " << bufferSize << std::endl;
-    std::cout << "Index buffer size: " << quadBufferSize << std::endl;
-
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
@@ -1300,27 +1339,34 @@ void VulkanRenderer::CreateCommandBuffers()
 
 void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const
 {
+    if (vkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT) != VK_SUCCESS)
+        throw std::runtime_error("Failed to reset command buffer!");
+
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
-        throw std::runtime_error("Failed to begin recording graphics command buffer!");
+        throw std::runtime_error("Failed to begin recording command buffer!");
 
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.framebuffer = m_swapChainFramebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = m_swapChainExtent;
+    {
+        TracyVkCollect(m_graphicTracyVkCtx, commandBuffer);
+        TracyVkNamedZone(m_graphicTracyVkCtx, drawFrameZone, commandBuffer, "Draw Frame Commands", true);
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-    clearValues[1].depthStencil = { 1.0f, 0 };
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = m_renderPass;
+        renderPassInfo.framebuffer = m_swapChainFramebuffers[imageIndex];
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = m_swapChainExtent;
 
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
+        std::array<VkClearValue, 2> clearValues{};
+        clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+        clearValues[1].depthStencil = { 1.0f, 0 };
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
 
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         VkViewport viewport{};
         viewport.x = 0.0f;
@@ -1336,14 +1382,16 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
         scissor.extent = m_swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        // Dessin
+        TracyVkNamedZone(m_graphicTracyVkCtx, drawZone, commandBuffer, "Draw", true);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
         vkCmdDraw(commandBuffer, 6, 1, 0, 0);  // Quad complet
 
+        TracyVkNamedZone(m_graphicTracyVkCtx, imguiZone, commandBuffer, "Render ImGui", true);
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
-    vkCmdEndRenderPass(commandBuffer);
+        vkCmdEndRenderPass(commandBuffer);
+    }
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
         throw std::runtime_error("Failed to record command buffer!");
@@ -1695,6 +1743,10 @@ void VulkanRenderer::BeginFrame()
 
 void VulkanRenderer::DrawFrame()
 {
+    if (enableValidationLayers)
+        std::cerr << "Frame: " << m_currentFrame << ", ImageIndex: " << m_imageIndex << std::endl;
+
+    ZoneScopedN("DrawFrame");
     UpdateUniformBuffer(m_currentFrame);
 
 #if COMPUTE
@@ -1750,7 +1802,6 @@ void VulkanRenderer::DrawFrame()
 
     if (vkQueueSubmit(m_graphicsQueue, 1, &graphicsSubmitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS)
         throw std::runtime_error("Failed to submit draw command buffer!");
-
 #else
     // --- Graphics only ---
     RecordCommandBuffer(m_commandBuffers[m_currentFrame], m_imageIndex);
@@ -1774,7 +1825,9 @@ void VulkanRenderer::DrawFrame()
 
     if (vkQueueSubmit(m_graphicsQueue, 1, &graphicsSubmitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS)
         throw std::runtime_error("Failed to submit draw command buffer!");
+
 #endif
+    FrameMark;
 }
 
 void VulkanRenderer::EndFrame()
@@ -2316,7 +2369,6 @@ void VulkanRenderer::ComputeTransitionImageLayout(VkImage image, VkFormat format
 
     if (vkQueueSubmit(queue, 1, &submitInfo, cmd.fence) != VK_SUCCESS)
         throw std::runtime_error("Failed to submit transition command buffer!");
-}
 
 void VulkanRenderer::DestroyBinaryTreeResources()
 {

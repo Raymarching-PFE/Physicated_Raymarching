@@ -9,6 +9,7 @@
 
 #include "model_parser.h"
 #include "binaryTree.h"
+#include "tracy/TracyVulkan.hpp"
 
 
 constexpr uint32_t WIDTH = 800;
@@ -148,6 +149,11 @@ public:
 private:
 
 #pragma region VARIABLES
+    TracyVkCtx m_graphicTracyVkCtx = nullptr;
+#if COMPUTE
+    TracyVkCtx m_computeTracyVkCtx = nullptr;
+#endif
+
     // Camera
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
     glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -304,6 +310,9 @@ private:
     void MainLoop();
     void Cleanup();
     void RecreateSwapChain();
+
+    // Tracy
+    void InitTracy();
 
     // ImGui
     void InitImGui() const;
