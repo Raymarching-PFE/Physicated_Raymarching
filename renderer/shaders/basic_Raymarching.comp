@@ -132,7 +132,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
     int stack[MAX_STACK_SIZE];
     int stackPtr = 0;
 
-    stack[stackPtr++] = 1; // commencer à la racine (node 1)
+    stack[stackPtr++] = 1;
 
     float minDist = 1e5;
     int bestId = -1;
@@ -140,28 +140,29 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
     while (stackPtr > 0)
     {
         int nodeIndex = stack[--stackPtr];
-
         Node node = ssbo.SSBONodes[nodeIndex];
 
         // Skip si hors de la boîte englobante
-        if (!intersectRayAABB(rayOrigin, rayDir, node.boxPos.xyz, node.boxPos.xyz + node.boxSize.xyz)) {
+        if (!intersectRayAABB(rayOrigin, rayDir, node.boxPos.xyz, node.boxPos.xyz + node.boxSize.xyz))
+        {
             continue;
-           }
+        }
 
         // Si feuille
         if (node.children.x < 1 && node.children.y < 1)
         {
-            //if(ubo.boxDebug)
-            //{
-            //    // show AABB
-            //    float d = boxSDF(p, ssbo.SSBONodes[nodeIndex].boxPos.xyz, ssbo.SSBONodes[nodeIndex].boxSize.xyz);
-            //    if (d < minDist)
-            //    {
-            //        minDist = d;
-            //    }
-            //}
-            //else
-            //{
+            if(ubo.boxDebug == 1)
+            {
+                // show AABB
+                float d = boxSDF(p, ssbo.SSBONodes[nodeIndex].boxPos.xyz, ssbo.SSBONodes[nodeIndex].boxSize.xyz);
+                if (d < minDist)
+                {
+                    minDist = d;
+                    bestId = nodeIndex;
+                }
+            }
+            else
+            {
                 for (int i = 0; i < 16; ++i)
                 {
                     vec3 cp = node.cloudPoints[i].xyz;
@@ -177,7 +178,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
                         bestId = nodeIndex;
                     }
                 }
-             //}
+             }
         }
         
         else {
