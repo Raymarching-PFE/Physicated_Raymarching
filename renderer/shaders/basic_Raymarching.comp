@@ -97,8 +97,8 @@ float boxSDF(vec3 p, vec3 center, vec3 size)
 
 bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB) {
     // take sphere radius into account
-    minB -= SPHERE_RADIUS;
-    maxB += SPHERE_RADIUS;
+    minB -= SPHERE_RADIUS + K_BLENDING_MAX_DISTANCE;
+    maxB += SPHERE_RADIUS + K_BLENDING_MAX_DISTANCE;
     
     vec3 invDir = 1.0 / rd;
 
@@ -184,7 +184,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
 float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     int id = -1;
     float r = SPHERE_RADIUS;
-    float k = 0.5;
+    float k = K_BLENDING;
 
     float dist = traverseBVH(rayOrigin, rayDir, p, r, k, id); // 0 = root node
 
@@ -196,8 +196,8 @@ float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
     if(id == -1)
         material.color = vec3(0, 0, 0);
     else
-        material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
-
+        material.color = vec3(1, 1, 1);
+    //    material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
 
     material.reflectivity = 0.0;
 
@@ -241,6 +241,8 @@ vec3 getNormal(vec3 p, vec3 rayOrigin, vec3 rayDir)
 vec3 getColor(Ray ray, vec3 p, Material material) {
     vec3 color = vec3(0.0);
     vec3 attenuation = vec3(1.0);
+
+    //return vec3(1, 1, 1);
 
     for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
         vec3 normal = getNormal(p, ray.origin, ray.direction);
