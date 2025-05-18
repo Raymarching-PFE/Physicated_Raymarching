@@ -7,13 +7,6 @@
 
 #define NUMBER_OF_UBO 1
 
-#if defined(__clang__) || defined(__GNUC__)
-    // #define TracyFunction __PRETTY_FUNCTION__
-#elif defined(_MSC_VER)
-    #define TracyFunction __FUNCSIG__
-    #define TRACY_IMPORTS
-#endif
-
 #include "tracy/Tracy.hpp"
 
 #include "imgui.h"
@@ -191,6 +184,9 @@ void VulkanRenderer::MainLoop()
         glfwPostEmptyEvent();
         ProcessInput(m_window);
 
+        auto now = std::chrono::high_resolution_clock::now();
+        m_deltaTime = std::chrono::duration<float>(now - m_lastTime).count();
+        m_lastTime = now;
         MainImGui();
 
         BeginFrame();
@@ -413,11 +409,17 @@ void VulkanRenderer::MainImGui()
 {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
+
+    ImGuiIO& io = ImGui::GetIO();
+    io.DeltaTime = std::max(m_deltaTime, 0.0001f);;
+
     ImGui::NewFrame();
 
     ImGui::Begin("Physicated Raymarching");
 
         ProcessInput(m_window);
+
+        ImGui::SeparatorText("Models");
 
         if (!m_modelPaths.empty())
         {
@@ -435,16 +437,36 @@ void VulkanRenderer::MainImGui()
                 }
             }
         }
-
         ImGui::Text("Number of points: %zu", m_vertexNb);
 
-        ImGuiIO& io = ImGui::GetIO();
-        float clampedFPS = std::min(io.Framerate, 144.0f);
-        ImGui::Text("Application average: %.3f ms/frame (%.1f FPS)", 1000.0f / clampedFPS, clampedFPS);
+        ShowCustomMetricsWindow();
 
     ImGui::End();
 
     ImGui::Render();
+}
+
+void VulkanRenderer::ShowCustomMetricsWindow()
+{
+    ImGuiIO& io = ImGui::GetIO();
+
+    ImGui::SeparatorText("General");
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+    static bool vsync = m_vsyncEnabled;
+    if (ImGui::Checkbox("Enable VSync", &vsync))
+    {
+        if (vsync != m_vsyncEnabled)
+        {
+            m_vsyncEnabled = vsync;
+            RecreateSwapChain(); // force une reconstruction immédiate
+        }
+    }
+
+    ImGui::SeparatorText("Tracy Profiling");
+    ImGui::Text("Use Tracy viewer for full CPU/GPU breakdown.");
+    ImGui::Text("Tracy connected: %s", tracy::GetProfiler().IsConnected() ? "Yes" : "No");
 }
 
 
@@ -855,10 +877,13 @@ VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const std::vector<VkS
 
 VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
-    for (const VkPresentModeKHR& availablePresentMode : availablePresentModes)
+    if (!m_vsyncEnabled)
     {
-        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-            return availablePresentMode;
+        for (const VkPresentModeKHR& mode : availablePresentModes)
+        {
+            if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
+                return mode; // VSync OFF
+        }
     }
 
     return VK_PRESENT_MODE_FIFO_KHR;
@@ -1986,7 +2011,7 @@ float VulkanRenderer::GetDeltaTime()
 
 void VulkanRenderer::ProcessInput(GLFWwindow* window)
 {
-    float cameraSpeed = 2.5f * GetDeltaTime();
+    float cameraSpeed = 2.5f * m_deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         m_cameraPos += cameraSpeed * m_cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)

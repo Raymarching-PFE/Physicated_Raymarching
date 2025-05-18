@@ -173,6 +173,9 @@ private:
     bool  m_firstMouse = true;
     bool  m_isCursorCaptured = true;
 
+    // ImGui
+    bool m_vsyncEnabled = true;
+
     // Binary tree
     GPUNode myNodes[100];
     std::vector<glm::vec3> GeneratedPoint;
@@ -180,7 +183,10 @@ private:
     // Application
     int                      m_currentModelIndex = 0;
     std::vector<std::string> m_modelPaths;
+
+    float m_deltaTime = 0.016f;
     std::chrono::high_resolution_clock::time_point m_lastTime;
+
     GLFWwindow* m_window = nullptr;
 
     VkBuffer m_ssboBuffer = VK_NULL_HANDLE;
@@ -327,6 +333,7 @@ private:
     // ImGui
     void InitImGui() const;
     void MainImGui();
+    void ShowCustomMetricsWindow();
 
     // Instance / Device / Surface / Debug
     void CreateInstance();
@@ -347,7 +354,7 @@ private:
     SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device) const;
     VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
     static VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    static VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     void CleanupSwapChain() const;
 
     // Render Pass / Pipelines
