@@ -440,6 +440,21 @@ void VulkanRenderer::MainImGui()
         ImGui::Text("Number of points: %zu", m_vertexNb);
 
         ShowCustomMetricsWindow();
+        
+        ImGui::SeparatorText("Settings");
+        
+        ImGui::SliderFloat("Sphere radius", &m_sphereRadius, 0.00001f, 1.f, "%.5f");
+        ImGui::SliderFloat("BlendingFactor", &m_blendingFactor, 0.00000f, 1.f);
+
+        ImGui::SliderFloat("Far", &m_far, 0.00000f, 1000.f);
+        ImGui::SliderFloat("Reflectivity", &m_reflectivity, 0.0f, 1.0f);
+
+        ImGui::Checkbox("lighting", &m_lighting);
+        ImGui::Checkbox("boxDebug", &m_boxDebug);
+        ImGui::Checkbox("randomColor", &m_randomColor);
+        
+        ImGui::SliderFloat3("lightDir", &m_lightingDir.x, -1.0f, 1.0f);
+        ImGui::SliderFloat3("objectColor", &m_objectColor.x, -1.0f, 1.0f);
 
     ImGui::End();
 
@@ -1334,7 +1349,7 @@ void VulkanRenderer::CreateUniformBuffers()
 
 void VulkanRenderer::CreateSSBOBuffer()
 {
-    VkDeviceSize bufferSize = sizeof(GPUNode) * 512 + sizeof(glm::vec4) * 8;
+    VkDeviceSize bufferSize = sizeof(GPUNode) * MAX_NODES_SSBO + sizeof(glm::vec4) * 8;
 
     SSBOData myDataArray = {};
 
@@ -1343,7 +1358,7 @@ void VulkanRenderer::CreateSSBOBuffer()
     // for (int i = 0; i < 512; ++i) myDataArray.nodes[i] = ...;
     // for (int i = 0; i < 8; ++i) myDataArray.spheres[i] = ...;
 
-    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(512)), myDataArray.SSBONodes);
+    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)), myDataArray.SSBONodes);
 
     // 3. Création du buffer Vulkan
     CreateBuffer(bufferSize,
@@ -1460,21 +1475,41 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 {
     UniformBufferObject ubo{};
     ubo.time = static_cast<float>(glfwGetTime());
-    ubo.cameraPos = glm::vec4(m_cameraPos, 0.0f);
-    ubo.cameraFront = glm::vec4(m_cameraFront, 0.0f);
+
+    ubo.sphereRadius = m_sphereRadius;
+    ubo.blendingFactor = m_blendingFactor;
+
+    ubo.far = m_far;
+    ubo.lighting = m_lighting;
+    ubo.boxDebug = m_boxDebug;
+    ubo.reflectivity = m_reflectivity;
+    ubo.lightingDir = m_lightingDir;
+    ubo.objectColor = m_objectColor;
+    ubo.randomColor = m_randomColor;
+
+    // ubo.spheresArray[0] = glm::vec4(GeneratedPoint[0].x, GeneratedPoint[0].y, GeneratedPoint[0].z, 0.0f);
+    // ubo.spheresArray[1] = glm::vec4(GeneratedPoint[1].x, GeneratedPoint[1].y, GeneratedPoint[1].z, 0.0f);
+    // ubo.spheresArray[2] = glm::vec4(GeneratedPoint[2].x, GeneratedPoint[2].y, GeneratedPoint[2].z, 0.0f);
+    // ubo.spheresArray[3] = glm::vec4(GeneratedPoint[3].x, GeneratedPoint[3].y, GeneratedPoint[3].z, 0.0f);
+    // ubo.spheresArray[4] = glm::vec4(GeneratedPoint[4].x, GeneratedPoint[4].y, GeneratedPoint[4].z, 0.0f);
+    // ubo.spheresArray[5] = glm::vec4(GeneratedPoint[5].x, GeneratedPoint[5].y, GeneratedPoint[5].z, 0.0f);
+    // ubo.spheresArray[6] = glm::vec4(GeneratedPoint[6].x, GeneratedPoint[6].y, GeneratedPoint[6].z, 0.0f);
+    // ubo.spheresArray[7] = glm::vec4(GeneratedPoint[7].x, GeneratedPoint[7].y, GeneratedPoint[7].z, 0.0f);
 
 #if !COMPUTE
-    ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
-    ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
-    ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
-    ubo.spheresArray[3] = glm::vec4(3.0f, 0.0f, -7.0f, 0.5f);
-    ubo.spheresArray[4] = glm::vec4(-1.0f, 0.0f, -7.0f, 0.5f);
-    ubo.spheresArray[5] = glm::vec4(-2.0f, 0.0f, -7.0f, 0.5f);
-    ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
-    ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
+    //ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
+    //ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
+    //ubo.spheresArray[3] = glm::vec4(3.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[4] = glm::vec4(-1.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[5] = glm::vec4(-2.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
+    //ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
 #endif
-
-    ubo.sphereInfo = glm::ivec4(6, 0, 0, 0);
+    //ubo.sphereNumber = 6;
+	//std::cout << "Time: " << ubo.time << std::endl;
+	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
+    //std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
@@ -2231,7 +2266,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         VkDescriptorBufferInfo ssboBufferInfo{};
         ssboBufferInfo.buffer = m_ssboBuffer;
         ssboBufferInfo.offset = 0;
-        ssboBufferInfo.range = sizeof(Node) * 512 + sizeof(glm::vec4) * 8;
+        ssboBufferInfo.range = sizeof(GPUNode) * MAX_NODES_SSBO + sizeof(glm::vec4) * 8;
 
         std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 

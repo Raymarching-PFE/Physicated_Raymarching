@@ -16,6 +16,8 @@ constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
 constexpr int MAX_FRAMES_IN_FLIGHT = 1;
 
+constexpr int MAX_NODES_SSBO = 2048;
+
 const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -128,23 +130,32 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct SSBOData 
+struct alignas(16) SSBOData
 {
-    GPUNode SSBONodes[512];
+    alignas(16) GPUNode SSBONodes[MAX_NODES_SSBO];
 
-    glm::vec4 SSBOSpheresArray[8];
+    //glm::vec4 SSBOSpheresArray[8];
 };
 
 struct UniformBufferObject
 {
-	alignas(16) float time;
-    alignas(16) glm::vec4 cameraPos = glm::vec4(0.0f, 0.0f, -3.0f, 0.0f);
-    alignas(16) glm::vec4 cameraFront = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+    alignas(4) int lighting;
+    alignas(4) int boxDebug;
+    alignas(4) int randomColor;
+    alignas(4) float sphereRadius;
+    alignas(4) float time;
+    alignas(4) float blendingFactor;
+    alignas(4) float far;
+    alignas(4) float reflectivity;
+    alignas(16) glm::vec3 lightingDir;
+    alignas(16) glm::vec3 objectColor;
 
+    alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
+    alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
 #if !COMPUTE
-    alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
+    //alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
 #endif
-    alignas(16) glm::ivec4 sphereInfo = glm::ivec4(1, 0, 0, 0); // .x = sphere count
+    //alignas(16) int sphereNumber;
 };
 
 class VulkanRenderer
@@ -159,6 +170,19 @@ private:
 #if COMPUTE
     TracyVkCtx m_computeTracyVkCtx = nullptr;
 #endif
+
+    // Sphere Size
+    float m_sphereRadius = 0.0000001f;
+
+    float m_blendingFactor = 0.002f;
+    float m_far = 100;
+
+    bool m_lighting = true;
+    bool m_boxDebug = false;
+    bool m_randomColor = false;
+    float m_reflectivity = 0.0f;
+    glm::vec3 m_lightingDir = glm::vec3(1.0, -1.0, -1.0);
+    glm::vec3 m_objectColor = glm::vec3(1.0, 1.0, 1.0);
 
     // Camera
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
@@ -178,7 +202,6 @@ private:
 
     // Binary tree
     GPUNode myNodes[100];
-    std::vector<glm::vec3> GeneratedPoint;
 
     // Application
     int                      m_currentModelIndex = 0;

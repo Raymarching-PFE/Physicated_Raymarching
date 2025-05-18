@@ -4,9 +4,31 @@ const int MAX_SPHERE_NUMBER = 8;
 
 layout(set = 0, binding = 0, std140) uniform UniformBufferObject
 {
-    float time;
+// Bloc de flags entiers dans un vec4
+    vec4 settings1;
+// x = lighting (int)
+// y = boxDebug (int)
+// z = randomColor (int)
+// w = unused
+
+// Bloc de floats divers
+    vec4 settings2;
+// x = sphereRadius
+// y = time
+// z = blendingFactor
+// w = far
+
+// Reflectivity et padding
+    vec4 settings3;
+// x = reflectivity
+// yzw = unused
+
+    vec4 lightingDir;
+    vec4 objectColor;
+
     vec4 cameraPos;
     vec4 cameraFront;
+
     vec4 spheresArray[MAX_SPHERE_NUMBER]; // .xyz = center, .w = radius
     ivec4 sphereInfo; // x = number of spheres
 } ubo;
@@ -15,7 +37,7 @@ layout(location = 0) out vec4 outColor;
 layout(location = 0) in vec2 fragUV;
 
 const int MAX_STEPS = 128;
-const float MAX_DIST = 5.0;
+const float MAX_DIST = 50.0;
 const float EPSILON = 0.001;
 const int MAX_RECURSION_DEPTH = 3;
 
