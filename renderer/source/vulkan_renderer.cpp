@@ -449,10 +449,12 @@ void VulkanRenderer::MainImGui()
         ImGui::SliderFloat("Far", &m_far, 0.00000f, 1000.f);
         ImGui::SliderFloat("Reflectivity", &m_reflectivity, 0.0f, 1.0f);
 
+#if COMPUTE
         ImGui::Checkbox("lighting", &m_lighting);
         ImGui::Checkbox("boxDebug", &m_boxDebug);
         ImGui::Checkbox("randomColor", &m_randomColor);
-        
+#endif
+
         ImGui::SliderFloat3("lightDir", &m_lightingDir.x, -1.0f, 1.0f);
         ImGui::SliderFloat3("objectColor", &m_objectColor.x, -1.0f, 1.0f);
 
@@ -2110,7 +2112,6 @@ void VulkanRenderer::CreateStorageImage()
     viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
-
 
     if (vkCreateImageView(m_device, &viewInfo, nullptr, &m_storageImageView) != VK_SUCCESS)
         throw std::runtime_error("Failed to create storage image view!");
