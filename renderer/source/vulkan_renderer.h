@@ -139,23 +139,34 @@ struct alignas(16) SSBOData
 
 struct UniformBufferObject
 {
-    alignas(4) int lighting;
-    alignas(4) int boxDebug;
-    alignas(4) int randomColor;
-    alignas(4) float sphereRadius;
-    alignas(4) float time;
-    alignas(4) float blendingFactor;
-    alignas(4) float far;
-    alignas(4) float reflectivity;
-    alignas(16) glm::vec3 lightingDir;
-    alignas(16) glm::vec3 objectColor;
+    // Groupe 1 : flags (regroupés dans un vec4)
+    alignas(16) glm::vec4 settings1;
+    // x = lighting (int)
+    // y = boxDebug (int)
+    // z = randomColor (int)
+    // w = unused
 
-    alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
-    alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
+    // Groupe 2 : floats divers
+    alignas(16) glm::vec4 settings2;
+    // x = sphereRadius
+    // y = time
+    // z = blendingFactor
+    // w = far
+
+    // Groupe 3 : reflectivity et padding
+    alignas(16) glm::vec4 settings3;
+    // x = reflectivity
+    // yzw = unused
+
+    alignas(16) glm::vec4 lightingDir;
+    alignas(16) glm::vec4 objectColor;
+
+    alignas(16) glm::vec4 cameraPos = glm::vec4(0.0f, 0.0f, -3.0f, 0.0f);
+    alignas(16) glm::vec4 cameraFront = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
 #if !COMPUTE
-    //alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
+    alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
+    alignas(16) glm::ivec4 sphereNumber;
 #endif
-    //alignas(16) int sphereNumber;
 };
 
 class VulkanRenderer

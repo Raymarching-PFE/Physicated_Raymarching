@@ -3,7 +3,8 @@
 const int NUM_NODES = 2048;
 const float K_BLENDING_MAX_DISTANCE = 0.00001;
 
-struct Node {
+struct Node
+{
     vec4 boxPos;
     vec4 boxSize;
     ivec4 children;
@@ -12,22 +13,51 @@ struct Node {
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(set = 0, binding = 0) uniform UniformBufferObject {
-    int lighting;
-    int boxDebug;
-    int randomColor;
-    float sphereRadius;
-    float time;
-    float blendingFactor;
-    float far;
-    float reflectivity;
-    vec3 lightingDir;
-    vec3 objectColor;
+layout(set = 0, binding = 0, std140) uniform UniformBufferObject
+{
+// Bloc de flags entiers dans un vec4
+    vec4 settings1;
+// x = lighting (int)
+// y = boxDebug (int)
+// z = randomColor (int)
+// w = unused
 
-    vec3 cameraPos;
-    vec3 cameraFront;
+// Bloc de floats divers
+    vec4 settings2;
+// x = sphereRadius
+// y = time
+// z = blendingFactor
+// w = far
+
+// Reflectivity et padding
+    vec4 settings3;
+// x = reflectivity
+// yzw = unused
+
+    vec4 lightingDir;
+    vec4 objectColor;
+
+    vec4 cameraPos;
+    vec4 cameraFront;
 
 } ubo;
+
+#define ubo_lighting         int(ubo.settings1.x)
+#define ubo_boxDebug         int(ubo.settings1.y)
+#define ubo_randomColor      int(ubo.settings1.z)
+
+#define ubo_sphereRadius     ubo.settings2.x
+#define ubo_time             ubo.settings2.y
+#define ubo_blendingFactor   ubo.settings2.z
+#define ubo_far              ubo.settings2.w
+
+#define ubo_reflectivity     ubo.settings3.x
+
+#define ubo_cameraPos        ubo.cameraPos.xyz
+#define ubo_cameraFront      normalize(ubo.cameraFront.xyz)
+#define ubo_lightingDir      normalize(ubo.lightingDir.xyz)
+#define ubo_objectColor      ubo.objectColor.xyz
+
 
 layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D img_output;
 layout(std430, binding = 2) buffer MySSBO 
@@ -35,7 +65,7 @@ layout(std430, binding = 2) buffer MySSBO
     Node SSBONodes[NUM_NODES];
 
     //vec4 SSBOSpheresArray[8];
-}ssbo;
+} ssbo;
 
 
 const int MAX_STEPS = 128;
@@ -43,77 +73,58 @@ const int MAX_STEPS = 128;
 const float EPSILON = 0.001;
 const int MAX_RECURSION_DEPTH = 3;
 
-struct Ray {
+struct Ray
+{
     vec3 origin;
     vec3 direction;
 };
 
-struct Material {
+struct Material
+{
     vec3 color;
     float reflectivity;
 };
 
-mat3 rotateX(float angle) {
-    float c = cos(angle);
-    float s = sin(angle);
-    return mat3(
-        1.0, 0.0, 0.0,
-        0.0, c, -s,
-        0.0, s, c
-    );
-}
+Ray generateRay(vec2 uv)
+{
+    vec3 forward = normalize(ubo.cameraFront.xyz);
+    if (length(forward) < 0.001 || isnan(forward.x))
+        forward = vec3(0.0, 0.0, -1.0);
 
-Ray generateRay(vec2 uv) {
-    vec3 right = normalize(cross(ubo.cameraFront, vec3(0.0, 1.0, 0.0)));
-    vec3 up = normalize(cross(right, ubo.cameraFront));
+    vec3 right = normalize(cross(forward, vec3(0.0, 1.0, 0.0)));
+    vec3 up = normalize(cross(right, forward));
 
-    float fov = radians(90.0);
     float aspectRatio = 16.0 / 9.0;
 
-    vec3 rayDir = normalize(ubo.cameraFront + uv.x * right * aspectRatio + uv.y * up);
-    return Ray(ubo.cameraPos, rayDir);
+    vec3 rayDir = normalize(forward + uv.x * right * aspectRatio + uv.y * up);
+    return Ray(ubo_cameraPos, rayDir);
 }
 
-float smoothMin(float a, float b, float k) {
+float smoothMin(float a, float b, float k)
+{
     float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
     return mix(b, a, h) - k * h * (1.0 - h);
 }
 
-float sphereSDF(vec3 p, vec3 center, float radius) {
+float sphereSDF(vec3 p, vec3 center, float radius)
+{
     return length(p - center) - radius;
-}
-
-float torusSDF(vec3 p, vec2 t) {
-    vec2 q = vec2(length(p.xz) - t.x, p.y);
-    return length(q) - t.y;
 }
 
 float boxSDF(vec3 p, vec3 center, vec3 size)
 {
     // because we send min.xyz and not the real center
-    center = center+size/2.0f;
+    center = center+size / 2.0f;
 
-    vec3 d = abs(p - center) - size/2.0f;
+    vec3 d = abs(p - center) - size / 2.0f;
     return length(max(d, 0.0));
 }
 
-//bool intersectAABB(vec3 p, vec3 minCorner, vec3 size)
-//{
-//    float padding = 5.0; // adapte si besoin
-//
-//    vec3 maxCorner = minCorner + size;
-//
-//    // Applique le padding des deux côtés
-//    vec3 paddedMin = minCorner - vec3(padding);
-//    vec3 paddedMax = maxCorner + vec3(padding);
-//
-//    return all(greaterThanEqual(p, paddedMin)) && all(lessThanEqual(p, paddedMax));
-//}
-
-bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB) {
+bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB)
+{
     // take sphere radius into account
-    minB -= ubo.sphereRadius + K_BLENDING_MAX_DISTANCE;
-    maxB += ubo.sphereRadius + K_BLENDING_MAX_DISTANCE;
+    minB -= ubo_sphereRadius + K_BLENDING_MAX_DISTANCE;
+    maxB += ubo_sphereRadius + K_BLENDING_MAX_DISTANCE;
     
     vec3 invDir = 1.0 / rd;
 
@@ -129,7 +140,8 @@ bool intersectRayAABB(vec3 ro, vec3 rd, vec3 minB, vec3 maxB) {
     return tmax >= max(tmin, 0.0);
 }
 
-float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out int outId) {
+float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k, out int outId)
+{
     const int MAX_STACK_SIZE = NUM_NODES;
     int stack[MAX_STACK_SIZE];
     int stackPtr = 0;
@@ -144,7 +156,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
         int nodeIndex = stack[--stackPtr];
         Node node = ssbo.SSBONodes[nodeIndex];
 
-        // Skip si hors de la boîte englobante
+        // Skip si hors de la boï¿½te englobante
         if (!intersectRayAABB(rayOrigin, rayDir, node.boxPos.xyz, node.boxPos.xyz + node.boxSize.xyz))
         {
             continue;
@@ -153,7 +165,7 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
         // Si feuille
         if (node.children.x < 1 && node.children.y < 1)
         {
-            if(ubo.boxDebug == 1)
+            if(ubo_boxDebug == 1)
             {
                 // show AABB
                 float d = boxSDF(p, ssbo.SSBONodes[nodeIndex].boxPos.xyz, ssbo.SSBONodes[nodeIndex].boxSize.xyz);
@@ -173,17 +185,19 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
                     // Applique smoothMin avec le blending courant
                     float blended = smoothMin(minDist, d, k);
 
-                    // Si le current point a contribué à réduire la distance, on update l’ID
-                    if (blended < minDist) {
+                    // Si le current point a contribuï¿½ ï¿½ rï¿½duire la distance, on update lï¿½ID
+                    if (blended < minDist)
+                    {
                         minDist = blended;
                         //bestId = nodeIndex * 16 + i;
                         bestId = nodeIndex;
                     }
                 }
-             }
+            }
         }
         
-        else {
+        else
+        {
             // Empiler les enfants (droite puis gauche pour LIFO)
             if (node.children.y >= 1 && stackPtr < MAX_STACK_SIZE)
                 stack[stackPtr++] = node.children.y;
@@ -192,15 +206,6 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
                 stack[stackPtr++] = node.children.x;
         }
     }
-
-    // Print the smaller boxes
-    //for (int i = 64; i < 129; ++i)
-    //{
-    //    float d = boxSDF(p, ssbo.SSBONodes[i].boxPos.xyz, ssbo.SSBONodes[i].boxSize.xyz);
-    //    if (d < minDist) {
-    //        minDist = d;
-    //    }
-    //}
 
     outId = bestId;
 
@@ -212,49 +217,45 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k,  out in
     return minDist;
 }
 
-float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material) {
+float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material)
+{
     int id = -1;
-    float r = ubo.sphereRadius;
-    float k = ubo.blendingFactor;
+    float r = ubo_sphereRadius;
+    float k = ubo_blendingFactor;
 
     float dist = traverseBVH(rayOrigin, rayDir, p, r, k, id);
 
-    // Couleur en fonction de l’ID
+    // Couleur en fonction de l'ID
     float uniqueNumber  = float((99 * id + 1) % 5) / 5.0;
     float uniqueNumber2 = float((99 * id + 2) % 5) / 5.0;
     float uniqueNumber3 = float((99 * id + 3) % 5) / 5.0;
 
     if(id == -1)
-        material.color = vec3(0, 0, 0); // background color
-    else if (ubo.randomColor == 1)
+    {
+        material.color = vec3(0, 0, 0);// background color
+        return dist;
+    }
+    else if (ubo_randomColor == 1)
         material.color = vec3(uniqueNumber, uniqueNumber2, uniqueNumber3);
     else
-        material.color = ubo.objectColor;
+        material.color = ubo_objectColor;
 
-    material.reflectivity = ubo.reflectivity;
-
-    //for (int i = 50; i < 256; ++i)
-    //{
-    //    float d = sphereSDF(p, ssbo.SSBONodes[i].boxPos.xyz, length(ssbo.SSBONodes[i].boxSize));
-    //    if (d < dist)
-    //    {
-    //        dist = d;
-    //        material.color = vec3(1.0, 1.0, 0.0);
-    //    }
-    //}
+    material.reflectivity = ubo_reflectivity;
 
     return dist;
 }
 
-float rayMarch(Ray ray, out Material material) {
+float rayMarch(Ray ray, out Material material)
+{
     float distance = 0.0;
-    for (int i = 0; i < MAX_STEPS; i++) {
+    for (int i = 0; i < MAX_STEPS; i++)
+    {
         vec3 p = ray.origin + ray.direction * distance;
         float d = sceneSDF(ray.origin, ray.direction, p, material);
         if (d < EPSILON)
             return distance;
         distance += d;
-        if (distance > ubo.far) break;
+        if (distance > ubo_far) break;
     }
     return -1.0;
 }
@@ -270,16 +271,18 @@ vec3 getNormal(vec3 p, vec3 rayOrigin, vec3 rayDir)
     ));
 }
 
-vec3 getColor(Ray ray, vec3 p, Material material) {
-    if(ubo.lighting == 0)
+vec3 getColor(Ray ray, vec3 p, Material material)
+{
+    if(ubo_lighting == 0)
         return material.color;
 
     vec3 color = vec3(0.0);
     vec3 attenuation = vec3(1.0);
 
-    for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++) {
+    for (int depth = 0; depth < MAX_RECURSION_DEPTH; depth++)
+    {
         vec3 normal = getNormal(p, ray.origin, ray.direction);
-        vec3 lightDir = normalize(ubo.lightingDir);
+        vec3 lightDir = normalize(ubo_lightingDir);
         float diff = max(dot(normal, lightDir), 0.0);
         vec3 diffuse = diff * material.color;
     
@@ -297,7 +300,8 @@ vec3 getColor(Ray ray, vec3 p, Material material) {
     return color;
 }
 
-void main() {
+void main()
+{
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
     ivec2 imageSize = imageSize(img_output);
 
@@ -312,7 +316,8 @@ void main() {
     float dist = rayMarch(ray, material);
 
     vec4 color = vec4(0.0);
-    if (dist > 0.0) {
+    if (dist > 0.0)
+    {
         vec3 p = ray.origin + ray.direction * dist;
         color = vec4(getColor(ray, p, material), 1.0);
     }

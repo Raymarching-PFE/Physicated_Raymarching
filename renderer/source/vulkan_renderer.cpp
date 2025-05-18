@@ -1474,42 +1474,25 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 {
     UniformBufferObject ubo{};
-    ubo.time = static_cast<float>(glfwGetTime());
-
-    ubo.sphereRadius = m_sphereRadius;
-    ubo.blendingFactor = m_blendingFactor;
-
-    ubo.far = m_far;
-    ubo.lighting = m_lighting;
-    ubo.boxDebug = m_boxDebug;
-    ubo.reflectivity = m_reflectivity;
-    ubo.lightingDir = m_lightingDir;
-    ubo.objectColor = m_objectColor;
-    ubo.randomColor = m_randomColor;
-
-    // ubo.spheresArray[0] = glm::vec4(GeneratedPoint[0].x, GeneratedPoint[0].y, GeneratedPoint[0].z, 0.0f);
-    // ubo.spheresArray[1] = glm::vec4(GeneratedPoint[1].x, GeneratedPoint[1].y, GeneratedPoint[1].z, 0.0f);
-    // ubo.spheresArray[2] = glm::vec4(GeneratedPoint[2].x, GeneratedPoint[2].y, GeneratedPoint[2].z, 0.0f);
-    // ubo.spheresArray[3] = glm::vec4(GeneratedPoint[3].x, GeneratedPoint[3].y, GeneratedPoint[3].z, 0.0f);
-    // ubo.spheresArray[4] = glm::vec4(GeneratedPoint[4].x, GeneratedPoint[4].y, GeneratedPoint[4].z, 0.0f);
-    // ubo.spheresArray[5] = glm::vec4(GeneratedPoint[5].x, GeneratedPoint[5].y, GeneratedPoint[5].z, 0.0f);
-    // ubo.spheresArray[6] = glm::vec4(GeneratedPoint[6].x, GeneratedPoint[6].y, GeneratedPoint[6].z, 0.0f);
-    // ubo.spheresArray[7] = glm::vec4(GeneratedPoint[7].x, GeneratedPoint[7].y, GeneratedPoint[7].z, 0.0f);
+    ubo.settings1 = glm::vec4(m_lighting, m_boxDebug, m_randomColor, 0);
+    ubo.settings2 = glm::vec4(m_sphereRadius, static_cast<float>(glfwGetTime()), m_blendingFactor, m_far);
+    ubo.settings3 = glm::vec4(m_reflectivity, 0.0f, 0.0f, 0.0f);
+    ubo.lightingDir = glm::vec4(m_lightingDir, 0.0f);
+    ubo.objectColor = glm::vec4(m_objectColor, 0.0f);
+    ubo.cameraPos = glm::vec4(m_cameraPos, 0.0f);
+    ubo.cameraFront = glm::vec4(m_cameraFront, 0.0f);
 
 #if !COMPUTE
-    //ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
-    //ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
-    //ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
-    //ubo.spheresArray[3] = glm::vec4(3.0f, 0.0f, -7.0f, 0.5f);
-    //ubo.spheresArray[4] = glm::vec4(-1.0f, 0.0f, -7.0f, 0.5f);
-    //ubo.spheresArray[5] = glm::vec4(-2.0f, 0.0f, -7.0f, 0.5f);
-    //ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
-    //ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
+    ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
+    ubo.spheresArray[1] = glm::vec4(-3.0f, -1.5f, -7.0f, 0.5f);// min
+    ubo.spheresArray[2] = glm::vec4(3.0f, 1.5f, -5.0f, 0.5f);// max
+    ubo.spheresArray[3] = glm::vec4(3.0f, 0.0f, -7.0f, 0.5f);
+    ubo.spheresArray[4] = glm::vec4(-1.0f, 0.0f, -7.0f, 0.5f);
+    ubo.spheresArray[5] = glm::vec4(-2.0f, 0.0f, -7.0f, 0.5f);
+    ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
+    ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
+    ubo.sphereNumber = glm::ivec4(6, 0, 0, 0);;
 #endif
-    //ubo.sphereNumber = 6;
-	//std::cout << "Time: " << ubo.time << std::endl;
-	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
-    //std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
@@ -2127,6 +2110,7 @@ void VulkanRenderer::CreateStorageImage()
     viewInfo.subresourceRange.levelCount = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
+
 
     if (vkCreateImageView(m_device, &viewInfo, nullptr, &m_storageImageView) != VK_SUCCESS)
         throw std::runtime_error("Failed to create storage image view!");
