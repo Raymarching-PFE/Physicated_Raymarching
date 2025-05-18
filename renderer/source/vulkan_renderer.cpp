@@ -213,7 +213,6 @@ void VulkanRenderer::Cleanup()
 
     TracyVkDestroy(m_graphicTracyVkCtx);
 
-
     CleanupSwapChain();
 
 #if COMPUTE
@@ -727,8 +726,11 @@ void VulkanRenderer::CreateSwapChain()
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    m_minImageCount = swapChainSupport.capabilities.minImageCount;
-    m_imageCount = imageCount;
+    // m_minImageCount = swapChainSupport.capabilities.minImageCount;
+    // m_imageCount = imageCount;
+    m_imageCount = std::max(swapChainSupport.capabilities.minImageCount + 1, 2u);
+    m_minImageCount = std::max(swapChainSupport.capabilities.minImageCount, 2u);
+
 
     const QueueFamilyIndices indices = FindQueueFamilies(m_physicalDevice);
     const uint32_t queueFamilyIndices[] = {indices.graphicsAndComputeFamily.value(), indices.presentFamily.value()};
@@ -1311,7 +1313,7 @@ void VulkanRenderer::CreateSSBOBuffer()
     // for (int i = 0; i < 512; ++i) myDataArray.nodes[i] = ...;
     // for (int i = 0; i < 8; ++i) myDataArray.spheres[i] = ...;
 
-    std::copy(m_binary_tree.GPUReadyBuffer.begin(), m_binary_tree.GPUReadyBuffer.begin() + std::min(m_binary_tree.GPUReadyBuffer.size(), size_t(512)), myDataArray.SSBONodes);
+    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(512)), myDataArray.SSBONodes);
 
     // 3. Création du buffer Vulkan
     CreateBuffer(bufferSize,
@@ -1325,7 +1327,6 @@ void VulkanRenderer::CreateSSBOBuffer()
     memcpy(data, &myDataArray, sizeof(SSBOData));
     vkUnmapMemory(m_device, m_ssboMemory);
 }
-
 
 void VulkanRenderer::CreateDescriptorPool()
 {
@@ -1428,18 +1429,9 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 {
     UniformBufferObject ubo{};
-    ubo.cameraPos = m_cameraPos;
-    ubo.cameraFront = m_cameraFront;
     ubo.time = static_cast<float>(glfwGetTime());
-
-    // ubo.spheresArray[0] = glm::vec4(GeneratedPoint[0].x, GeneratedPoint[0].y, GeneratedPoint[0].z, 0.0f);
-    // ubo.spheresArray[1] = glm::vec4(GeneratedPoint[1].x, GeneratedPoint[1].y, GeneratedPoint[1].z, 0.0f);
-    // ubo.spheresArray[2] = glm::vec4(GeneratedPoint[2].x, GeneratedPoint[2].y, GeneratedPoint[2].z, 0.0f);
-    // ubo.spheresArray[3] = glm::vec4(GeneratedPoint[3].x, GeneratedPoint[3].y, GeneratedPoint[3].z, 0.0f);
-    // ubo.spheresArray[4] = glm::vec4(GeneratedPoint[4].x, GeneratedPoint[4].y, GeneratedPoint[4].z, 0.0f);
-    // ubo.spheresArray[5] = glm::vec4(GeneratedPoint[5].x, GeneratedPoint[5].y, GeneratedPoint[5].z, 0.0f);
-    // ubo.spheresArray[6] = glm::vec4(GeneratedPoint[6].x, GeneratedPoint[6].y, GeneratedPoint[6].z, 0.0f);
-    // ubo.spheresArray[7] = glm::vec4(GeneratedPoint[7].x, GeneratedPoint[7].y, GeneratedPoint[7].z, 0.0f);
+    ubo.cameraPos = glm::vec4(m_cameraPos, 0.0f);
+    ubo.cameraFront = glm::vec4(m_cameraFront, 0.0f);
 
 #if !COMPUTE
     ubo.spheresArray[0] = glm::vec4(0.0f, 0.0f, -7.0f, 0.5f);// center
@@ -1451,10 +1443,8 @@ void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     ubo.spheresArray[6] = glm::vec4(-3.0f, 0.0f, -7.0f, 0.5f);
     ubo.spheresArray[7] = glm::vec4(-4.0f, 0.0f, -7.0f, 0.5f);
 #endif
-    ubo.sphereNumber = 6;
-	//std::cout << "Time: " << ubo.time << std::endl;
-	//std::cout << "Position along time: " << 2.5f + 7.5f * sin(ubo.time) << std::endl;
-    //std::cout << "Frame: " << m_currentFrame << ", Time: " << ubo.time << std::endl;
+
+    ubo.sphereInfo = glm::ivec4(6, 0, 0, 0);
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
@@ -1754,9 +1744,6 @@ void VulkanRenderer::BeginFrame()
 
 void VulkanRenderer::DrawFrame()
 {
-    if (enableValidationLayers)
-        std::cerr << "Frame: " << m_currentFrame << ", ImageIndex: " << m_imageIndex << std::endl;
-
     ZoneScopedN("DrawFrame");
     UpdateUniformBuffer(m_currentFrame);
 
@@ -1866,6 +1853,7 @@ void VulkanRenderer::EndFrame()
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
+
 // Models & Binary tree
 void VulkanRenderer::LoadModel(const std::string& path)
 {
@@ -1883,9 +1871,9 @@ void VulkanRenderer::LoadModel(const std::string& path)
 
 #if COMPUTE
 
-    /*if (m_binary_tree.GPUReadyBuffer.size() > 0)
+    /*if (m_binaryTree.GPUReadyBuffer.size() > 0)
     {
-        m_binary_tree.GPUReadyBuffer.clear();
+        m_binaryTree.GPUReadyBuffer.clear();
 
     }*/
 
@@ -1896,7 +1884,7 @@ void VulkanRenderer::LoadModel(const std::string& path)
         cloudPoints.push_back(m_vertices[i].pos);
     }
 
-    m_binary_tree = BinaryTree(cloudPoints);
+    m_binaryTree = BinaryTree(cloudPoints);
 
 #endif
 
@@ -2404,6 +2392,7 @@ void VulkanRenderer::ComputeTransitionImageLayout(VkImage image, VkFormat format
 
     if (vkQueueSubmit(queue, 1, &submitInfo, cmd.fence) != VK_SUCCESS)
         throw std::runtime_error("Failed to submit transition command buffer!");
+}
 
 void VulkanRenderer::DestroyBinaryTreeResources()
 {

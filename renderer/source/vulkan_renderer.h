@@ -138,13 +138,13 @@ struct SSBOData
 struct UniformBufferObject
 {
 	alignas(16) float time;
-    alignas(16) glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
-    alignas(16) glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, 1.0f);
+    alignas(16) glm::vec4 cameraPos = glm::vec4(0.0f, 0.0f, -3.0f, 0.0f);
+    alignas(16) glm::vec4 cameraFront = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
 
 #if !COMPUTE
     alignas(16) glm::vec4 spheresArray[8];// w values are for sizes
 #endif
-    alignas(16) int sphereNumber;
+    alignas(16) glm::ivec4 sphereInfo = glm::ivec4(1, 0, 0, 0); // .x = sphere count
 };
 
 class VulkanRenderer
@@ -182,6 +182,10 @@ private:
     std::vector<std::string> m_modelPaths;
     std::chrono::high_resolution_clock::time_point m_lastTime;
     GLFWwindow* m_window = nullptr;
+
+    VkBuffer m_ssboBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_ssboMemory = VK_NULL_HANDLE;
+    BinaryTree m_binaryTree;
 
     // Vulkan base
     VkInstance               m_instance = VK_NULL_HANDLE;
@@ -239,9 +243,6 @@ private:
     VkBuffer        m_quadIndexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory  m_quadIndexBufferMemory = VK_NULL_HANDLE;
 
-    VkBuffer m_ssboBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_ssboMemory = VK_NULL_HANDLE;
-
     std::vector<Vertex>     m_vertices;
     std::vector<uint32_t>   m_indices;
     size_t                  m_vertexNb = 0;
@@ -263,8 +264,6 @@ private:
     uint32_t m_queueFamily   = (uint32_t)-1;
 
 #if COMPUTE
-    BinaryTree m_binary_tree;
-
     // Compute pipeline
     VkShaderModule   m_computeShader = VK_NULL_HANDLE;
     VkPipelineLayout m_computePipelineLayout = VK_NULL_HANDLE;
