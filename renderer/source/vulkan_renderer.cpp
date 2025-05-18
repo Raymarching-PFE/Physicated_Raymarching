@@ -143,8 +143,7 @@ void VulkanRenderer::InitVulkan()
     CreateDescriptorPool();
     CreateStorageImage();
     CreateDescriptorSets();
-    CreateSSBOBuffer();
-    CreateComputeDescriptorSets(); 
+    CreateComputeDescriptorSets();
     CreateCommandBuffers();
     CreateComputeCommandBuffers();
 #else
@@ -253,7 +252,7 @@ void VulkanRenderer::Cleanup()
     if (m_textureImageView != VK_NULL_HANDLE)
         vkDestroyImageView(m_device, m_textureImageView, nullptr);
 
-    DestroyMeshBuffers();
+    DestroyModelResources();
 
 #if COMPUTE
     DestroyBinaryTreeResources();
@@ -413,8 +412,6 @@ void VulkanRenderer::MainImGui()
 
         ImGui::SeparatorText("Models");
 
-        ImGui::Text("Number of points: %zu", 6);
-
 #if COMPUTE
         if (!m_modelPaths.empty())
         {
@@ -433,11 +430,15 @@ void VulkanRenderer::MainImGui()
             }
         }
         ImGui::Text("Number of points: %zu", m_vertexNb);
+#else
+        ImGui::Text("Number of points: %d", 6);
 #endif
 
         ShowCustomMetricsWindow();
         
         ImGui::SeparatorText("Settings");
+
+        ImGui::SliderFloat("Camera speed", &m_cameraSpeed, 0.1f, 3.f, "%.1f");
         
         ImGui::SliderFloat("Sphere radius", &m_sphereRadius, 0.00001f, 1.f, "%.5f");
         ImGui::SliderFloat("BlendingFactor", &m_blendingFactor, 0.00000f, 1.f);
@@ -1270,8 +1271,6 @@ std::vector<char> VulkanRenderer::ReadFile(const std::string& filename)
 // Buffers & Memory
 void VulkanRenderer::CreateVertexBuffer()
 {
-    DestroyMeshBuffers();
-
     const VkDeviceSize bufferSize = sizeof(m_vertices[0]) * m_vertices.size();
 
     VkBuffer stagingBuffer;
@@ -1293,8 +1292,6 @@ void VulkanRenderer::CreateVertexBuffer()
 
 void VulkanRenderer::CreateIndexBuffer()
 {
-    DestroyMeshBuffers();
-
     std::vector<uint32_t> quadIndices = { 0, 1, 2, 2, 3, 0 };
 
     const VkDeviceSize bufferSize = sizeof(m_indices[0]) * m_indices.size();
@@ -1908,6 +1905,7 @@ void VulkanRenderer::LoadModel(const std::string& path)
 
     m_binaryTree = BinaryTree(cloudPoints);
 
+    CreateSSBOBuffer();
 #endif
 
     CreateVertexBuffer();
@@ -1947,44 +1945,13 @@ void VulkanRenderer::DestroyModelResources()
         m_quadIndexBuffer = VK_NULL_HANDLE;
         m_quadIndexBufferMemory = VK_NULL_HANDLE;
     }
-}
 
-void VulkanRenderer::DestroyMeshBuffers()
-{
-    if (m_vertexBuffer != VK_NULL_HANDLE)
+    if (m_ssboBuffer != VK_NULL_HANDLE)
     {
-        vkDestroyBuffer(m_device, m_vertexBuffer, nullptr);
-        m_vertexBuffer = VK_NULL_HANDLE;
-    }
-
-    if (m_vertexBufferMemory != VK_NULL_HANDLE)
-    {
-        vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
-        m_vertexBufferMemory = VK_NULL_HANDLE;
-    }
-
-    if (m_indexBuffer != VK_NULL_HANDLE)
-    {
-        vkDestroyBuffer(m_device, m_indexBuffer, nullptr);
-        m_indexBuffer = VK_NULL_HANDLE;
-    }
-
-    if (m_indexBufferMemory != VK_NULL_HANDLE)
-    {
-        vkFreeMemory(m_device, m_indexBufferMemory, nullptr);
-        m_indexBufferMemory = VK_NULL_HANDLE;
-    }
-
-    if (m_quadIndexBuffer != VK_NULL_HANDLE)
-    {
-        vkDestroyBuffer(m_device, m_quadIndexBuffer, nullptr);
-        m_quadIndexBuffer = VK_NULL_HANDLE;
-    }
-
-    if (m_quadIndexBufferMemory != VK_NULL_HANDLE)
-    {
-        vkFreeMemory(m_device, m_quadIndexBufferMemory, nullptr);
-        m_quadIndexBufferMemory = VK_NULL_HANDLE;
+        vkDestroyBuffer(m_device, m_ssboBuffer, nullptr);
+        vkFreeMemory(m_device, m_ssboMemory, nullptr);
+        m_ssboBuffer = VK_NULL_HANDLE;
+        m_ssboMemory = VK_NULL_HANDLE;
     }
 }
 
@@ -2003,7 +1970,8 @@ float VulkanRenderer::GetDeltaTime()
 
 void VulkanRenderer::ProcessInput(GLFWwindow* window)
 {
-    float cameraSpeed = 2.5f * m_deltaTime;
+    float cameraSpeed = m_cameraSpeed * m_deltaTime;
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         m_cameraPos += cameraSpeed * m_cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)

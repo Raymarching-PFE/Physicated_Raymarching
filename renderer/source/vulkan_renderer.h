@@ -28,7 +28,6 @@ const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NA
 #endif
 
 
-
 inline VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     const auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -133,8 +132,6 @@ struct SwapChainSupportDetails
 struct alignas(16) SSBOData
 {
     alignas(16) GPUNode SSBONodes[MAX_NODES_SSBO];
-
-    //glm::vec4 SSBOSpheresArray[8];
 };
 
 struct UniformBufferObject
@@ -210,6 +207,7 @@ private:
 
     // ImGui
     bool m_vsyncEnabled = true;
+    float m_cameraSpeed = 2.0f;
 
     // Binary tree
     GPUNode myNodes[100];
@@ -432,8 +430,6 @@ private:
     void LoadModel(const std::string& path);
     void ReloadModel(const std::string& path);
     void DestroyModelResources();
-    void DestroyMeshBuffers();
-    //void LoadGeneratedPoint();
 
     // Inputs & Timings
     float GetDeltaTime();
