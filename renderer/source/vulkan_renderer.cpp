@@ -230,6 +230,11 @@ void VulkanRenderer::Cleanup()
 
     vkDestroyRenderPass(m_device, m_renderPass, nullptr);
 
+    if (m_ssboBuffer != VK_NULL_HANDLE)
+        vkDestroyBuffer(m_device, m_ssboBuffer, nullptr);
+    if (m_ssboMemory != VK_NULL_HANDLE)
+        vkFreeMemory(m_device, m_ssboMemory, nullptr);
+
     for (size_t j = 0; j < NUMBER_OF_UBO; ++j)
     {
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
