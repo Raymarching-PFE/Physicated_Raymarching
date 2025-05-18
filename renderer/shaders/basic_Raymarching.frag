@@ -66,7 +66,7 @@ Ray generateRay(vec2 uv)
     vec3 right = normalize(cross(forward, vec3(0.0, 1.0, 0.0)));
     vec3 up = normalize(cross(right, forward));
     float aspectRatio = 16.0 / 9.0;
-    vec3 rayDir = normalize(forward + uv.x * right * aspectRatio + uv.y * up);
+    vec3 rayDir = normalize(forward + uv.x * right * aspectRatio - uv.y * up);
 
     return Ray(ubo_cameraPos, rayDir);
 }
@@ -153,9 +153,15 @@ vec3 getColor(Ray ray, vec3 p, Material material)
     return color;
 }
 
+vec3 skyColor(vec3 dir)
+{
+    float t = 0.5 * (dir.y + 1.0);
+    return mix(vec3(0.4, 0.6, 0.9), vec3(0.7, 0.75, 0.8), t);
+}
+
 void main()
 {
-    vec2 uv = fragUV * 2.0 - 1.0;
+    vec2 uv = vec2(fragUV.x, 1.0 - fragUV.y) * 2.0 - 1.0;
     Ray ray = generateRay(uv);
     Material material;
     float dist = rayMarch(ray, material);
@@ -168,6 +174,6 @@ void main()
     }
     else
     {
-        outColor = vec4(0.0, 0.0, 0.0, 1.0);
+        outColor = vec4(skyColor(ray.direction), 1.0);
     }
 }

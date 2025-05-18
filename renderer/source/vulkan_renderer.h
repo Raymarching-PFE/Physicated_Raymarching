@@ -183,7 +183,7 @@ private:
 #endif
 
     // Sphere Size
-    float m_sphereRadius = 0.0000001f;
+    float m_sphereRadius = 0.3f;
 
     float m_blendingFactor = 0.002f;
     float m_far = 100;
@@ -193,7 +193,7 @@ private:
     bool m_randomColor = false;
     float m_reflectivity = 0.0f;
     glm::vec3 m_lightingDir = glm::vec3(1.0, -1.0, -1.0);
-    glm::vec3 m_objectColor = glm::vec3(1.0, 1.0, 1.0);
+    glm::vec3 m_objectColor = glm::vec3(1.0, 0.0, 0.0);
 
     // Camera
     glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, -3.0f);
@@ -377,9 +377,9 @@ private:
     void PickPhysicalDevice();
     void CreateLogicalDevice();
     bool IsDeviceSuitable(const VkPhysicalDevice device);
-    bool CheckDeviceExtensionSupport(const VkPhysicalDevice device);
+    static bool CheckDeviceExtensionSupport(const VkPhysicalDevice device);
     QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice device);
-    std::vector<const char*> GetRequiredExtensions();
+    static std::vector<const char*> GetRequiredExtensions();
     bool CheckValidationLayerSupport();
 
     // Swapchain
@@ -408,7 +408,6 @@ private:
     void CreateVertexBuffer();
     void CreateIndexBuffer();
     void CreateUniformBuffers();
-	void CreateSSBOBuffer();
     void CreateDescriptorPool();
     void CreateCommandBuffers();
     void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
@@ -448,8 +447,8 @@ private:
     void CreateComputeDescriptorSets();
     void CreateComputeCommandBuffers();
     void RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) const;
+	void CreateSSBOBuffer();
     void ComputeTransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkQueue queue, VkSemaphore waitOn, VkSemaphore signalOut, uint32_t index);
-    //void SendBinaryTreeToCompute();
     void DestroyBinaryTreeResources();
     #endif
 #pragma endregion

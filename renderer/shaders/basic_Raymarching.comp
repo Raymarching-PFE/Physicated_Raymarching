@@ -96,7 +96,7 @@ Ray generateRay(vec2 uv)
 
     float aspectRatio = 16.0 / 9.0;
 
-    vec3 rayDir = normalize(forward + uv.x * right * aspectRatio + uv.y * up);
+    vec3 rayDir = normalize(forward + uv.x * right * aspectRatio - uv.y * up);
     return Ray(ubo_cameraPos, rayDir);
 }
 
@@ -273,7 +273,7 @@ vec3 getNormal(vec3 p, vec3 rayOrigin, vec3 rayDir)
 
 vec3 getColor(Ray ray, vec3 p, Material material)
 {
-    if(ubo_lighting == 0)
+    if (ubo_lighting == 0)
         return material.color;
 
     vec3 color = vec3(0.0);
@@ -300,6 +300,12 @@ vec3 getColor(Ray ray, vec3 p, Material material)
     return color;
 }
 
+vec3 skyColor(vec3 dir)
+{
+    float t = 0.5 * (dir.y + 1.0);
+    return mix(vec3(0.4, 0.6, 0.9), vec3(0.7, 0.75, 0.8), t);
+}
+
 void main()
 {
     ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
@@ -320,6 +326,10 @@ void main()
     {
         vec3 p = ray.origin + ray.direction * dist;
         color = vec4(getColor(ray, p, material), 1.0);
+    }
+    else
+    {
+        color = vec4(skyColor(ray.direction), 1.0);
     }
 
     imageStore(img_output, pixelCoord, color);

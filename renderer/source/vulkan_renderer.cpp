@@ -12,8 +12,6 @@
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 
-//#include "binaryTree.h"
-
 
 void VulkanRenderer::Run()
 {
@@ -138,16 +136,10 @@ void VulkanRenderer::InitVulkan()
     CreateComputeDescriptorSetLayout();
     CreateGraphicsPipeline();
     CreateComputePipeline();
-
-    //SendBinaryTreeToCompute();
-
     CreateCommandPool();
     CreateFramebuffers();
     LoadModel(m_modelPaths[m_currentModelIndex]);
     CreateUniformBuffers();
-
-    // LoadGeneratedPoint();
-
     CreateDescriptorPool();
     CreateStorageImage();
     CreateDescriptorSets();
@@ -415,12 +407,15 @@ void VulkanRenderer::MainImGui()
 
     ImGui::NewFrame();
 
-    ImGui::Begin("Physicated Raymarching");
+    ImGui::Begin("PFE - MGP2");
 
         ProcessInput(m_window);
 
         ImGui::SeparatorText("Models");
 
+        ImGui::Text("Number of points: %zu", 6);
+
+#if COMPUTE
         if (!m_modelPaths.empty())
         {
             std::vector<const char*> modelNames;
@@ -438,6 +433,7 @@ void VulkanRenderer::MainImGui()
             }
         }
         ImGui::Text("Number of points: %zu", m_vertexNb);
+#endif
 
         ShowCustomMetricsWindow();
         
@@ -449,14 +445,16 @@ void VulkanRenderer::MainImGui()
         ImGui::SliderFloat("Far", &m_far, 0.00000f, 1000.f);
         ImGui::SliderFloat("Reflectivity", &m_reflectivity, 0.0f, 1.0f);
 
-#if COMPUTE
         ImGui::Checkbox("lighting", &m_lighting);
+
+#if COMPUTE
         ImGui::Checkbox("boxDebug", &m_boxDebug);
         ImGui::Checkbox("randomColor", &m_randomColor);
 #endif
 
+
         ImGui::SliderFloat3("lightDir", &m_lightingDir.x, -1.0f, 1.0f);
-        ImGui::SliderFloat3("objectColor", &m_objectColor.x, -1.0f, 1.0f);
+        ImGui::SliderFloat3("objectColor", &m_objectColor.x, 0.0f, 1.0f);
 
     ImGui::End();
 
@@ -1349,32 +1347,6 @@ void VulkanRenderer::CreateUniformBuffers()
     }
 }
 
-void VulkanRenderer::CreateSSBOBuffer()
-{
-    VkDeviceSize bufferSize = sizeof(GPUNode) * MAX_NODES_SSBO + sizeof(glm::vec4) * 8;
-
-    SSBOData myDataArray = {};
-
-    // 2. Remplis ici myDataArray.nodes[...] et myDataArray.spheres[...]
-    // Par exemple :
-    // for (int i = 0; i < 512; ++i) myDataArray.nodes[i] = ...;
-    // for (int i = 0; i < 8; ++i) myDataArray.spheres[i] = ...;
-
-    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)), myDataArray.SSBONodes);
-
-    // 3. Création du buffer Vulkan
-    CreateBuffer(bufferSize,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        m_ssboBuffer, m_ssboMemory);
-
-    // 4. Copie des données dans le buffer
-    void* data;
-    vkMapMemory(m_device, m_ssboMemory, 0, bufferSize, 0, &data);
-    memcpy(data, &myDataArray, sizeof(SSBOData));
-    vkUnmapMemory(m_device, m_ssboMemory);
-}
-
 void VulkanRenderer::CreateDescriptorPool()
 {
     // Constantes lisibles et ajustables
@@ -2052,15 +2024,16 @@ void VulkanRenderer::ProcessInput(GLFWwindow* window)
 
     if (!m_isCursorCaptured)
     {
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+        bool mousePressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+        bool wantCaptureMouse = ImGui::GetIO().WantCaptureMouse;
+
+        if (mousePressed && !wantCaptureMouse)
         {
-            if (!ImGui::IsAnyItemHovered() && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
-            {
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-                m_isCursorCaptured = true;
-            }
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            m_isCursorCaptured = true;
         }
     }
+
 }
 
 
@@ -2328,14 +2301,47 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
         throw std::runtime_error("Failed to begin recording compute command buffer!");
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
+    {
+#if defined(TRACY_ENABLE)
+        TracyVkCollect(m_computeTracyVkCtx, commandBuffer);
+        TracyVkNamedZone(m_computeTracyVkCtx, computeZone, commandBuffer, "Compute Dispatch", true);
+#endif
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout, 0, 1, &m_computeDescriptorSets[m_currentFrame], 0, nullptr);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipeline);
 
-    vkCmdDispatch(commandBuffer, m_swapChainExtent.width / 16, m_swapChainExtent.height / 16, 1);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout, 0, 1, &m_computeDescriptorSets[m_currentFrame], 0, nullptr);
+
+        vkCmdDispatch(commandBuffer, m_swapChainExtent.width / 16, m_swapChainExtent.height / 16, 1);
+    }
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
         throw std::runtime_error("Failed to record compute command buffer!");
+}
+
+void VulkanRenderer::CreateSSBOBuffer()
+{
+    VkDeviceSize bufferSize = sizeof(GPUNode) * MAX_NODES_SSBO + sizeof(glm::vec4) * 8;
+
+    SSBOData myDataArray = {};
+
+    // 2. Remplis ici myDataArray.nodes[...] et myDataArray.spheres[...]
+    // Par exemple :
+    // for (int i = 0; i < 512; ++i) myDataArray.nodes[i] = ...;
+    // for (int i = 0; i < 8; ++i) myDataArray.spheres[i] = ...;
+
+    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)), myDataArray.SSBONodes);
+
+    // 3. Création du buffer Vulkan
+    CreateBuffer(bufferSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_ssboBuffer, m_ssboMemory);
+
+    // 4. Copie des données dans le buffer
+    void* data;
+    vkMapMemory(m_device, m_ssboMemory, 0, bufferSize, 0, &data);
+    memcpy(data, &myDataArray, sizeof(SSBOData));
+    vkUnmapMemory(m_device, m_ssboMemory);
 }
 
 void VulkanRenderer::ComputeTransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkQueue queue, VkSemaphore waitOn, VkSemaphore signalOut, uint32_t index)
@@ -2470,95 +2476,4 @@ void VulkanRenderer::DestroyBinaryTreeResources()
         m_nodeDescriptorSetLayout = VK_NULL_HANDLE;
     }
 }
-//
-//void VulkanRenderer::SendBinaryTreeToCompute()
-//{
-//    DestroyBinaryTreeResources();
-//
-//    // Create fake data
-//    std::vector<glm::vec3> fakePoints = FakeDataGenerator(100, -1, 1);
-//    BinaryTree fakeTree(fakePoints);
-//
-//    // Create buffer to send
-//    VkBufferCreateInfo bufferInfo{};
-//    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-//    bufferInfo.size = sizeof(GPUNode) * fakeTree.GPUReadyBuffer.size();
-//    bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-//    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-//
-//    vkCreateBuffer(m_device, &bufferInfo, nullptr, &m_nodeBuffer);
-//
-//    // Allocate GPU memory
-//    VkMemoryRequirements memRequirements;
-//    vkGetBufferMemoryRequirements(m_device, m_nodeBuffer, &memRequirements);
-//
-//    VkMemoryAllocateInfo allocInfo{};
-//    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-//    allocInfo.allocationSize = memRequirements.size;
-//    allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits,
-//        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-//
-//    vkAllocateMemory(m_device, &allocInfo, nullptr, &m_nodeBufferMemory);
-//
-//    // Link to memory
-//    vkBindBufferMemory(m_device, m_nodeBuffer, m_nodeBufferMemory, 0);
-//
-//    // Send to GPU
-//    void* data;
-//    vkMapMemory(m_device, m_nodeBufferMemory, 0, fakeTree.GPUReadyBuffer.size(), 0, &data);
-//    memcpy(data, fakeTree.GPUReadyBuffer.data(), fakeTree.GPUReadyBuffer.size());
-//    vkUnmapMemory(m_device, m_nodeBufferMemory);
-//
-//    // Descriptor set layout
-//    VkDescriptorSetLayoutBinding nodeLayoutBinding{};
-//    nodeLayoutBinding.binding = 0;
-//    nodeLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-//    nodeLayoutBinding.descriptorCount = 1;
-//    nodeLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-//
-//    VkDescriptorBufferInfo bufferInfoD{};
-//    bufferInfoD.buffer = m_nodeBuffer;
-//    bufferInfoD.offset = 0;
-//    bufferInfoD.range = sizeof(GPUNode) * fakeTree.GPUReadyBuffer.size();
-//
-//    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-//    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-//    layoutInfo.bindingCount = 1;
-//    layoutInfo.pBindings = &nodeLayoutBinding;
-//
-//    vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_nodeDescriptorSetLayout);
-//
-//    // 2. Créer un pool + allouer
-//    VkDescriptorPoolSize poolSize{};
-//    poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-//    poolSize.descriptorCount = 1;
-//
-//    VkDescriptorPoolCreateInfo poolInfo{};
-//    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-//    poolInfo.poolSizeCount = 1;
-//    poolInfo.pPoolSizes = &poolSize;
-//    poolInfo.maxSets = 1;
-//
-//    vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_nodeDescriptorPool);
-//
-//    VkDescriptorSetAllocateInfo allocInfo_2{};
-//    allocInfo_2.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-//    allocInfo_2.descriptorPool = m_nodeDescriptorPool;
-//    allocInfo_2.descriptorSetCount = 1;
-//    allocInfo_2.pSetLayouts = &m_nodeDescriptorSetLayout;
-//
-//    VkDescriptorSet descriptorSet;
-//    vkAllocateDescriptorSets(m_device, &allocInfo_2, &descriptorSet);
-//
-//    VkWriteDescriptorSet write{};
-//    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-//    write.dstSet = descriptorSet;
-//    write.dstBinding = 0;
-//    write.dstArrayElement = 0;
-//    write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-//    write.descriptorCount = 1;
-//    write.pBufferInfo = &bufferInfoD;
-//
-//    vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
-//}
 #endif
