@@ -2009,7 +2009,7 @@ void VulkanRenderer::ProcessInput(GLFWwindow* window)
     {
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
         {
-            if (!ImGui::IsAnyItemHovered() && !ImGui::IsWindowHovered())
+            if (!ImGui::IsAnyItemHovered() && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
             {
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
                 m_isCursorCaptured = true;
