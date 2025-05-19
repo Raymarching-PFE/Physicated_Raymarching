@@ -1904,6 +1904,15 @@ void VulkanRenderer::LoadModel(const std::string& path)
 
     m_binaryTree = BinaryTree(cloudPoints);
 
+    std::cout << "sizeof(GPUNode): " << sizeof(GPUNode) << std::endl;
+    std::cout << "Total SSBO size: " << sizeof(GPUNode) * MAX_NODES_SSBO << " bytes" << std::endl;
+
+    VkPhysicalDeviceProperties props;
+    vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
+
+    std::cout << "maxStorageBufferRange: " << props.limits.maxStorageBufferRange << std::endl;
+
+
     CreateSSBOBuffer();
 #endif
 
@@ -2191,7 +2200,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         VkDescriptorBufferInfo ssboBufferInfo{};
         ssboBufferInfo.buffer = m_ssboBuffer;
         ssboBufferInfo.offset = 0;
-        ssboBufferInfo.range = sizeof(GPUNode) * MAX_NODES_SSBO + sizeof(glm::vec4) * 8;
+        ssboBufferInfo.range = sizeof(GPUNode) * MAX_NODES_SSBO;
 
         std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
@@ -2287,7 +2296,20 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
 
 void VulkanRenderer::CreateSSBOBuffer()
 {
-    VkDeviceSize bufferSize = sizeof(GPUNode) * MAX_NODES_SSBO + sizeof(glm::vec4) * 8;
+    VkPhysicalDeviceProperties props;
+    vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
+
+    //std::cout << "maxStorageBufferRange: " << props.limits.maxStorageBufferRange << std::endl;
+
+    size_t buffer_real_size = std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO));
+
+    if (sizeof(GPUNode) * MAX_NODES_SSBO > props.limits.maxStorageBufferRange)
+    {
+        std::cout << "too big" << std::endl;
+        return;
+    }
+
+    VkDeviceSize bufferSize = sizeof(GPUNode) * buffer_real_size;
 
     SSBOData myDataArray = {};
 
@@ -2296,7 +2318,7 @@ void VulkanRenderer::CreateSSBOBuffer()
     // for (int i = 0; i < 512; ++i) myDataArray.nodes[i] = ...;
     // for (int i = 0; i < 8; ++i) myDataArray.spheres[i] = ...;
 
-    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)), myDataArray.SSBONodes);
+    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + buffer_real_size, myDataArray.SSBONodes);
 
     // 3. Création du buffer Vulkan
     CreateBuffer(bufferSize,
