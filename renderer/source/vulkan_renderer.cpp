@@ -891,7 +891,7 @@ VkSurfaceFormatKHR VulkanRenderer::ChooseSwapSurfaceFormat(const std::vector<VkS
     return availableFormats[0];
 }
 
-VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+VkPresentModeKHR VulkanRenderer::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) const
 {
     if (!m_vsyncEnabled)
     {
@@ -1432,7 +1432,6 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[m_currentFrame], 0, nullptr);
         vkCmdDraw(commandBuffer, 6, 1, 0, 0);  // Quad complet
 
-        TracyVkNamedZone(m_graphicTracyVkCtx, imguiZone, commandBuffer, "Render ImGui", true);
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
         vkCmdEndRenderPass(commandBuffer);
@@ -2013,8 +2012,8 @@ void VulkanRenderer::CreateStorageImage()
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
     imageInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    imageInfo.extent.width = m_swapChainExtent.width;
-    imageInfo.extent.height = m_swapChainExtent.height;
+    imageInfo.extent.width = m_swapChainExtent.width * 2;
+    imageInfo.extent.height = m_swapChainExtent.height * 2;
     imageInfo.extent.depth = 1;
     imageInfo.mipLevels = 1;
     imageInfo.arrayLayers = 1;
@@ -2279,7 +2278,7 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_computePipelineLayout, 0, 1, &m_computeDescriptorSets[m_currentFrame], 0, nullptr);
 
-        vkCmdDispatch(commandBuffer, m_swapChainExtent.width / 16, m_swapChainExtent.height / 16, 1);
+        vkCmdDispatch(commandBuffer, (m_swapChainExtent.width * 2) / 16, (m_swapChainExtent.height * 2) / 16, 1);
     }
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
