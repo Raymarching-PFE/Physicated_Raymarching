@@ -30,16 +30,7 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, floa
 
 BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
 {
-   generatedPoints = pointCloudPoints;
-
-   // Get generation
-   // int generation = 0;
-   // while (pow(2, generation) < pointCloudPoints.size() / MAX_POINTS_PER_LEAVES)
-   //    generation++;
-
    int generation = std::ceil(std::log2(pointCloudPoints.size() / static_cast<double>(MAX_POINTS_PER_LEAVES)));
-
-   //std::cout << "Elements : " << pointCloudPoints.size() << ", Gen : " << generation << std::endl;
 
    // Create architecture from generation
    Node *root = new Node();
@@ -48,7 +39,6 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    root->boxSize = glm::vec3(0, 0, 0);
    root->left = nullptr;
    root->right = nullptr;
-   // root->generation = 0;
    CreateStructureNodes(0, generation, root, 1);
 
    // Get root box
@@ -57,41 +47,11 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    root->boxPos = rootbox[0];
    root->boxSize = rootbox[1];
 
-   //
-   // std::vector<float> min = {pointCloudPoints[0].x, pointCloudPoints[0].y, pointCloudPoints[0].z};
-   // std::vector<float> max = {pointCloudPoints[0].x, pointCloudPoints[0].y, pointCloudPoints[0].z};
-   //
-   // for (int i = 1; i < pointCloudPoints.size(); i++)
-   // {
-   //    for (int j = 0; j < 3; j++)
-   //    {
-   //       if (pointCloudPoints[i][j] < min[j])
-   //          min[j] = pointCloudPoints[i][j];
-   //       if (pointCloudPoints[i][j] > max[j])
-   //          max[j] = pointCloudPoints[i][j];
-   //    }
-   // }
-   // root->boxPos = glm::vec3(min[0], min[1], min[2]);
-   // root->boxSize = glm::vec3(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
-
-   // std::cout << "Box corner : [" << root->boxPos[0] << ", " << root->boxPos[1] << ", " << root->boxPos[2] <<
-   //       "], size : [" << root->boxSize[0] << ", " << root->boxSize[1] << ", " << root->boxSize[2] << "]" << std::endl;
-
    // Give values for structure nodes
    FillUpTreeRecursive(pointCloudPoints, root, 0);
 
    // view tree
    // PrintNodeRecursive(root);
-
-   // Node* result =  GetNodeFromMorton(6, root);
-   // PrintNode(result);
-
-   glm::vec3 nearestPoint = GetNearestPoint(glm::vec3(50, 50, 50), 1, 0, root);
-
-
-   //std::cout << "nearestPoint : " << nearestPoint[0] << ", " << nearestPoint[1] << ", " << nearestPoint[2] << std::endl;
-
-   // glm::vec3* pointsArray = FillGPUPointsArray();
 
    std::vector<Node> buffer = FillGPUArray(root, pointCloudPoints);
 

@@ -1912,7 +1912,6 @@ void VulkanRenderer::LoadModel(const std::string& path)
 
     std::cout << "maxStorageBufferRange: " << props.limits.maxStorageBufferRange << std::endl;
 
-
     CreateSSBOBuffer();
 #endif
 

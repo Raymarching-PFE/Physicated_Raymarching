@@ -43,8 +43,6 @@ public:
 
    ~BinaryTree();
 
-   std::vector<glm::vec3> generatedPoints;
-
    std::vector<GPUNode> GPUReadyBuffer;
 
    // double arrays system
@@ -67,7 +65,6 @@ private:
    glm::vec3* FillGPUPointsArray(std::vector<glm::vec3>& pointCloudPoints);
    std::vector<Node> FillGPUArray(Node* root, std::vector<glm::vec3>& pointCloudPoints);
    void FillGPUArrayRecursive(Node *node, std::vector<glm::vec3>& pointCloudPoints, std::vector<Node>& toReturn);
-
 
    std::vector<glm::vec3> GetBox(std::vector<glm::vec3> data);
 
