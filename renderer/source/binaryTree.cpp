@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include <bitset>
-
+#include <stack>
 
 std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, float max)
 {
@@ -30,6 +30,16 @@ std::vector<glm::vec3> FakeDataGenerator(int numberOfValues = 3, float min, floa
 
 BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
 {
+    // store the buffer for the points to render
+    GPUCloudPoints.resize(pointCloudPoints.size());
+    for (int i = 0; i < pointCloudPoints.size(); i++)
+    {
+        GPUCloudPoints[i].x = pointCloudPoints[i].x;
+        GPUCloudPoints[i].y = pointCloudPoints[i].y;
+        GPUCloudPoints[i].z = pointCloudPoints[i].z;
+        GPUCloudPoints[i].w = -1.0f;
+    }
+
    int generation = std::ceil(std::log2(pointCloudPoints.size() / static_cast<double>(MAX_POINTS_PER_LEAVES)));
 
    // Create architecture from generation
@@ -75,11 +85,24 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    for (int i = 0; i < buffer.size(); i++)
    {
       // Unchanged
-       GPUReadyBuffer[i].boxPos = glm::vec4(buffer[i].boxPos, -1);
+      GPUReadyBuffer[i].boxPos = glm::vec4(buffer[i].boxPos, -1);
       GPUReadyBuffer[i].boxSize = glm::vec4(buffer[i].boxSize, -1);
 
-      for(int j =0; j < 15; j++)
-        GPUReadyBuffer[i].cloudPoints[j] = glm::vec4(buffer[i].cloudPoints[j], -1);
+      // Find the indexes of the points in the original array
+      for (int j = 0; j < 15; j++)
+      {
+          for (int currentPoint = 0; currentPoint < pointCloudPoints.size(); currentPoint++)
+          {
+              if (pointCloudPoints[currentPoint] == buffer[i].cloudPoints[j])
+              {
+                  GPUReadyBuffer[i].cloudPoints[j] = currentPoint;
+                  break;
+              }
+          }
+      }
+
+      //for(int j =0; j < 15; j++)
+      //  GPUReadyBuffer[i].cloudPoints[j] = glm::vec4(buffer[i].cloudPoints[j], -1);
 
       // left/right -> int index
        if (buffer[i].left != nullptr)
@@ -108,6 +131,29 @@ BinaryTree::BinaryTree(std::vector<glm::vec3> &pointCloudPoints)
    //    //        std::cout << "x:" << GPUReadyBuffer[i].cloudPoints[j].x << "y:" << GPUReadyBuffer[i].cloudPoints[j].y << "z:" << GPUReadyBuffer[i].cloudPoints[j].z << std::endl;
    //    //    }
    //}
+
+   //delete of the node*
+   deleteTreeIterative(root);
+}
+
+void BinaryTree::deleteTreeIterative(Node* root)
+{
+    if (!root) return;
+
+    std::stack<Node*> stack;
+    stack.push(root);
+
+    while (!stack.empty()) {
+        Node* node = stack.top();
+        stack.pop();
+
+        if (node->left)
+            stack.push(node->left);
+        if (node->right)
+            stack.push(node->right);
+
+        delete node;
+    }
 }
 
 void BinaryTree::FillGPUArrayRecursive(Node *node, std::vector<glm::vec3> &pointCloudPoints,

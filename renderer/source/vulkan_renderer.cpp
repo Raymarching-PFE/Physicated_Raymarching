@@ -2300,24 +2300,22 @@ void VulkanRenderer::CreateSSBOBuffer()
 
     //std::cout << "maxStorageBufferRange: " << props.limits.maxStorageBufferRange << std::endl;
 
-    size_t buffer_real_size = std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO));
+    //size_t buffer_real_size = std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)) + std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT));
 
-    if (sizeof(GPUNode) * MAX_NODES_SSBO > props.limits.maxStorageBufferRange)
-    {
-        std::cout << "too big" << std::endl;
-        return;
-    }
+    //if (sizeof(GPUNode) * MAX_NODES_SSBO > props.limits.maxStorageBufferRange)
+    //{
+    //    std::cout << "too big" << std::endl;
+    //    return;
+    //}
 
-    VkDeviceSize bufferSize = sizeof(GPUNode) * buffer_real_size;
+    VkDeviceSize bufferSize = sizeof(GPUNode) * std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)) + sizeof(float)* 4 * std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT));
 
     SSBOData myDataArray = {};
 
-    // 2. Remplis ici myDataArray.nodes[...] et myDataArray.spheres[...]
-    // Par exemple :
-    // for (int i = 0; i < 512; ++i) myDataArray.nodes[i] = ...;
-    // for (int i = 0; i < 8; ++i) myDataArray.spheres[i] = ...;
+    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)), myDataArray.SSBONodes);
 
-    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + buffer_real_size, myDataArray.SSBONodes);
+    std::copy(m_binaryTree.GPUCloudPoints.begin(), m_binaryTree.GPUCloudPoints.begin() + std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT)), myDataArray.cloudPoints);
+
 
     // 3. Création du buffer Vulkan
     CreateBuffer(bufferSize,

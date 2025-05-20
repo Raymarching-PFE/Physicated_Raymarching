@@ -11,7 +11,7 @@ struct alignas(16) GPUNode {
 	glm::vec4 boxSize;        // .xyz used
 	glm::ivec4 children;      // .x = left, .y = right
 
-	glm::vec4 cloudPoints[16]; // .xyz = point, .w = unused
+	unsigned int cloudPoints[16];
 };
 
 struct Node
@@ -44,6 +44,7 @@ public:
    ~BinaryTree();
 
    std::vector<GPUNode> GPUReadyBuffer;
+   std::vector<glm::vec4> GPUCloudPoints;
 
    // double arrays system
    // the first one is the tree and the cloudpoints in the nodes are offset for the next array
@@ -89,6 +90,8 @@ private:
    bool CheckBoxSphereIntersection(Node *node, glm::vec3 point, float radius);
 
    std::vector<glm::vec3> GetPointsInBoxRecursive(Node* node, std::vector<glm::vec3> points);
+
+   void deleteTreeIterative(Node* root);
 
    // Quick sort algorythm
    int Partition(std::vector<float> &vec, int low, int high);

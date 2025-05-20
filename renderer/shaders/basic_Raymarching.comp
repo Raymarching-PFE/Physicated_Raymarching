@@ -1,6 +1,7 @@
 #version 450
 
-const int NUM_NODES = 2048;
+const int NUM_NODES = 4096;
+const int MAX_POINT = 32768;
 const float K_BLENDING_MAX_DISTANCE = 0.00001;
 
 struct Node
@@ -8,7 +9,7 @@ struct Node
     vec4 boxPos;
     vec4 boxSize;
     ivec4 children;
-    vec4 cloudPoints[16]; // .xyz used
+    int cloudPoints[16];
 };
 
 layout(local_size_x = 16, local_size_y = 16) in;
@@ -64,7 +65,8 @@ layout(std430, binding = 2) buffer MySSBO
 {
     Node SSBONodes[NUM_NODES];
 
-    //vec4 SSBOSpheresArray[8];
+    vec4 cloudPoints[MAX_POINT];
+
 } ssbo;
 
 
@@ -179,7 +181,8 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k, out int
             {
                 for (int i = 0; i < 16; ++i)
                 {
-                    vec3 cp = node.cloudPoints[i].xyz;
+                    vec3 cp = ssbo.cloudPoints[node.cloudPoints[i]].xyz;
+
                     float d = sphereSDF(p, cp, r);
 
                     // Applique smoothMin avec le blending courant
