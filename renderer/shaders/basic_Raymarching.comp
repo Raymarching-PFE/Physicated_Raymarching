@@ -255,7 +255,7 @@ float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material)
     float k = ubo_blendingFactor;
 
     float dist;
-    if(false)
+    if(true)
         dist = traverseBVH(rayOrigin, rayDir, p, r, k, id);
     else
         dist = naiveLoop(rayOrigin, rayDir, p, r, k, id);

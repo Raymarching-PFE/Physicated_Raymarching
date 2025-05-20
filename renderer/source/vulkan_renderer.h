@@ -182,6 +182,10 @@ private:
     TracyVkCtx m_computeTracyVkCtx = nullptr;
 #endif
 
+    // bufferCurrentSize
+    VkDeviceSize m_nodeBufferSize;
+    VkDeviceSize m_cloudBufferSize;
+
     // Sphere Size
     float m_sphereRadius = 0.3f;
 

@@ -133,17 +133,19 @@ void VulkanRenderer::InitVulkan()
 #if COMPUTE
     CreateTextureSampler();
     CreateDescriptorSetLayout();
-    CreateComputeDescriptorSetLayout();
+    CreateComputeDescriptorSetLayout();//descriptor for ssbo
     CreateGraphicsPipeline();
     CreateComputePipeline();
     CreateCommandPool();
     CreateFramebuffers();
-    LoadModel(m_modelPaths[m_currentModelIndex]);
     CreateUniformBuffers();
     CreateDescriptorPool();
     CreateStorageImage();
     CreateDescriptorSets();
-    CreateComputeDescriptorSets();
+
+    LoadModel(m_modelPaths[m_currentModelIndex]);
+    CreateComputeDescriptorSets();// ssbo creation
+
     CreateCommandBuffers();
     CreateComputeCommandBuffers();
 #else
@@ -221,6 +223,11 @@ void VulkanRenderer::Cleanup()
         vkDestroyBuffer(m_device, m_ssboBuffer, nullptr);
     if (m_ssboMemory != VK_NULL_HANDLE)
         vkFreeMemory(m_device, m_ssboMemory, nullptr);
+
+    if (m_ssboBuffer_points != VK_NULL_HANDLE)
+        vkDestroyBuffer(m_device, m_ssboBuffer_points, nullptr);
+    if (m_ssboMemory_points != VK_NULL_HANDLE)
+        vkFreeMemory(m_device, m_ssboMemory_points, nullptr);
 
     for (size_t j = 0; j < NUMBER_OF_UBO; ++j)
     {
@@ -2160,11 +2167,11 @@ void VulkanRenderer::CreateComputeDescriptorSetLayout()
     ssboLayoutBinding.pImmutableSamplers = nullptr;
 
     VkDescriptorSetLayoutBinding ssboLayoutBinding_points{};
-    ssboLayoutBinding.binding = 3; // Doit correspondre au shader
-    ssboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    ssboLayoutBinding.descriptorCount = 1;
-    ssboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    ssboLayoutBinding.pImmutableSamplers = nullptr;
+    ssboLayoutBinding_points.binding = 3; // Doit correspondre au shader
+    ssboLayoutBinding_points.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    ssboLayoutBinding_points.descriptorCount = 1;
+    ssboLayoutBinding_points.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    ssboLayoutBinding_points.pImmutableSamplers = nullptr;
 
     std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, imageLayoutBinding, ssboLayoutBinding, ssboLayoutBinding_points };
 
@@ -2205,12 +2212,12 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         VkDescriptorBufferInfo ssboBufferInfo{};
         ssboBufferInfo.buffer = m_ssboBuffer;
         ssboBufferInfo.offset = 0;
-        ssboBufferInfo.range = sizeof(GPUNode) * MAX_NODES_SSBO;
+        ssboBufferInfo.range = m_nodeBufferSize;
 
         VkDescriptorBufferInfo ssboBufferInfo_points{};
-        ssboBufferInfo.buffer = m_ssboBuffer_points;
-        ssboBufferInfo.offset = 0;
-        ssboBufferInfo.range = sizeof(glm::vec4) * MAX_POINT;
+        ssboBufferInfo_points.buffer = m_ssboBuffer_points;
+        ssboBufferInfo_points.offset = 0;
+        ssboBufferInfo_points.range = m_cloudBufferSize;
 
         std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
@@ -2248,6 +2255,8 @@ void VulkanRenderer::CreateComputeDescriptorSets()
 
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
+
+    std::cout << "c est bon, c est passer ici";
 }
 
 void VulkanRenderer::CreateComputeCommandBuffers()
@@ -2314,72 +2323,44 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
 
 void VulkanRenderer::CreateSSBOBuffer()
 {
-    //VkPhysicalDeviceProperties props;
-    //vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
-
-    //std::cout << "maxStorageBufferRange: " << props.limits.maxStorageBufferRange << std::endl;
-
-    //size_t buffer_real_size = std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)) + std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT));
-
-    //if (sizeof(GPUNode) * MAX_NODES_SSBO > props.limits.maxStorageBufferRange)
-    //{
-    //    std::cout << "too big" << std::endl;
-    //    return;
-    //}
-
-   /* VkDeviceSize bufferSize = sizeof(GPUNode) * std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)) + sizeof(float)* 4 * std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT));*/
-
-   /* SSBOData myDataArray = {};
-
-    std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)), myDataArray.SSBONodes);
-
-    std::copy(m_binaryTree.GPUCloudPoints.begin(), m_binaryTree.GPUCloudPoints.begin() + std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT)), myDataArray.cloudPoints);*/
-
-
-    // 3. Création du buffer Vulkan
-    /*CreateBuffer(bufferSize,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        m_ssboBuffer, m_ssboMemory);*/
-
-    //// 4. Copie des données dans le buffer
-    //void* data;
-    //vkMapMemory(m_device, m_ssboMemory, 0, bufferSize, 0, &data);
-    //memcpy(data, &myDataArray, sizeof(SSBOData));
-    //vkUnmapMemory(m_device, m_ssboMemory);
-
-
     // Double system
     size_t nodeCount = std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO));
     size_t pointCount = std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT));
 
-    VkDeviceSize nodeBufferSize = sizeof(GPUNode) * nodeCount;
-    VkDeviceSize cloudBufferSize = sizeof(glm::vec4) * pointCount;
+    m_nodeBufferSize = sizeof(GPUNode) * nodeCount;
+    m_cloudBufferSize = sizeof(glm::vec4) * pointCount;
 
     // Buffer 1: GPUNode[]
-    CreateBuffer(nodeBufferSize,
+    CreateBuffer(m_nodeBufferSize,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_ssboBuffer, m_ssboMemory);
 
     // Buffer 2: cloudPoints[]
-    CreateBuffer(cloudBufferSize,
+    CreateBuffer(m_cloudBufferSize,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_ssboBuffer_points, m_ssboMemory_points);
 
+    if (m_ssboBuffer == VK_NULL_HANDLE)
+    {
+        std::cerr << "Le buffer est null, il n'a pas été créé !" << std::endl;
+    }
+    if (m_ssboBuffer_points == VK_NULL_HANDLE)
+    {
+        std::cerr << "Le buffer est null, il n'a pas été créé !" << std::endl;
+    }
+
     // Nodes
     void* data;
-    vkMapMemory(m_device, m_ssboMemory, 0, nodeBufferSize, 0, &data);
-    memcpy(data, m_binaryTree.GPUReadyBuffer.data(), nodeBufferSize);
+    vkMapMemory(m_device, m_ssboMemory, 0, m_nodeBufferSize, 0, &data);
+    memcpy(data, m_binaryTree.GPUReadyBuffer.data(), m_nodeBufferSize);
     vkUnmapMemory(m_device, m_ssboMemory);
 
     // Cloud points
-    vkMapMemory(m_device, m_ssboMemory_points, 0, cloudBufferSize, 0, &data);
-    memcpy(data, m_binaryTree.GPUCloudPoints.data(), cloudBufferSize);
+    vkMapMemory(m_device, m_ssboMemory_points, 0, m_cloudBufferSize, 0, &data);
+    memcpy(data, m_binaryTree.GPUCloudPoints.data(), m_cloudBufferSize);
     vkUnmapMemory(m_device, m_ssboMemory_points);
-
-
 }
 
 void VulkanRenderer::ComputeTransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkQueue queue, VkSemaphore waitOn, VkSemaphore signalOut, uint32_t index)
