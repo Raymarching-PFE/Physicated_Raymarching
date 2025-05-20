@@ -225,7 +225,9 @@ private:
     GLFWwindow* m_window = nullptr;
 
     VkBuffer m_ssboBuffer = VK_NULL_HANDLE;
+    VkBuffer m_ssboBuffer_points = VK_NULL_HANDLE;
     VkDeviceMemory m_ssboMemory = VK_NULL_HANDLE;
+    VkDeviceMemory m_ssboMemory_points = VK_NULL_HANDLE;
     BinaryTree m_binaryTree;
 
     // Vulkan base

@@ -2201,7 +2201,12 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         ssboBufferInfo.offset = 0;
         ssboBufferInfo.range = sizeof(GPUNode) * MAX_NODES_SSBO;
 
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+        VkDescriptorBufferInfo ssboBufferInfo_points{};
+        ssboBufferInfo.buffer = m_ssboBuffer_points;
+        ssboBufferInfo.offset = 0;
+        ssboBufferInfo.range = sizeof(float) * 4 * MAX_POINT;
+
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
         // UBO
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -2226,6 +2231,14 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descriptorWrites[2].descriptorCount = 1;
         descriptorWrites[2].pBufferInfo = &ssboBufferInfo;
+
+        // SSBO points
+        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3].dstSet = m_computeDescriptorSets[i];
+        descriptorWrites[3].dstBinding = 2;
+        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrites[3].descriptorCount = 1;
+        descriptorWrites[3].pBufferInfo = &ssboBufferInfo;
 
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -2295,8 +2308,8 @@ void VulkanRenderer::RecordComputeCommandBuffer(VkCommandBuffer commandBuffer) c
 
 void VulkanRenderer::CreateSSBOBuffer()
 {
-    VkPhysicalDeviceProperties props;
-    vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
+    //VkPhysicalDeviceProperties props;
+    //vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
 
     //std::cout << "maxStorageBufferRange: " << props.limits.maxStorageBufferRange << std::endl;
 
@@ -2308,26 +2321,59 @@ void VulkanRenderer::CreateSSBOBuffer()
     //    return;
     //}
 
-    VkDeviceSize bufferSize = sizeof(GPUNode) * std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)) + sizeof(float)* 4 * std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT));
+   /* VkDeviceSize bufferSize = sizeof(GPUNode) * std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)) + sizeof(float)* 4 * std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT));*/
 
-    SSBOData myDataArray = {};
+   /* SSBOData myDataArray = {};
 
     std::copy(m_binaryTree.GPUReadyBuffer.begin(), m_binaryTree.GPUReadyBuffer.begin() + std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO)), myDataArray.SSBONodes);
 
-    std::copy(m_binaryTree.GPUCloudPoints.begin(), m_binaryTree.GPUCloudPoints.begin() + std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT)), myDataArray.cloudPoints);
+    std::copy(m_binaryTree.GPUCloudPoints.begin(), m_binaryTree.GPUCloudPoints.begin() + std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT)), myDataArray.cloudPoints);*/
 
 
     // 3. Création du buffer Vulkan
-    CreateBuffer(bufferSize,
+    /*CreateBuffer(bufferSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_ssboBuffer, m_ssboMemory);*/
+
+    //// 4. Copie des données dans le buffer
+    //void* data;
+    //vkMapMemory(m_device, m_ssboMemory, 0, bufferSize, 0, &data);
+    //memcpy(data, &myDataArray, sizeof(SSBOData));
+    //vkUnmapMemory(m_device, m_ssboMemory);
+
+
+    // Double system
+    size_t nodeCount = std::min(m_binaryTree.GPUReadyBuffer.size(), size_t(MAX_NODES_SSBO));
+    size_t pointCount = std::min(m_binaryTree.GPUCloudPoints.size(), size_t(MAX_POINT));
+
+    VkDeviceSize nodeBufferSize = sizeof(GPUNode) * nodeCount;
+    VkDeviceSize cloudBufferSize = sizeof(glm::vec4) * pointCount;
+
+    // Buffer 1: GPUNode[]
+    CreateBuffer(nodeBufferSize,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         m_ssboBuffer, m_ssboMemory);
 
-    // 4. Copie des données dans le buffer
+    // Buffer 2: cloudPoints[]
+    CreateBuffer(cloudBufferSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        m_ssboBuffer_points, m_ssboMemory_points);
+
+    // Nodes
     void* data;
-    vkMapMemory(m_device, m_ssboMemory, 0, bufferSize, 0, &data);
-    memcpy(data, &myDataArray, sizeof(SSBOData));
+    vkMapMemory(m_device, m_ssboMemory, 0, nodeBufferSize, 0, &data);
+    memcpy(data, m_binaryTree.GPUReadyBuffer.data(), nodeBufferSize);
     vkUnmapMemory(m_device, m_ssboMemory);
+
+    // Cloud points
+    vkMapMemory(m_device, m_ssboMemory_points, 0, cloudBufferSize, 0, &data);
+    memcpy(data, m_binaryTree.GPUCloudPoints.data(), cloudBufferSize);
+    vkUnmapMemory(m_device, m_ssboMemory_points);
+
+
 }
 
 void VulkanRenderer::ComputeTransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkQueue queue, VkSemaphore waitOn, VkSemaphore signalOut, uint32_t index)
