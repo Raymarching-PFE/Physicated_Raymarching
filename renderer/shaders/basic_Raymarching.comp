@@ -1,7 +1,7 @@
 #version 450
 
-const int NUM_NODES = 4096;
-const int MAX_POINT = 32768;
+const int NUM_NODES = 4096;//aim 8192
+const int MAX_POINT = 32768; //aim 65536
 const float K_BLENDING_MAX_DISTANCE = 0.00001;
 
 struct Node
@@ -227,13 +227,38 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k, out int
     return minDist;
 }
 
+float naiveLoop(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k, out int outId)
+{
+    float minDist = 1e5;
+    int bestId = -1;
+
+    for(int i = 0; i < ssbo_2.cloudPoints.length(); i++)
+    {
+        vec3 cp = ssbo_2.cloudPoints[i].xyz;
+
+        float d = sphereSDF(p, cp, r);
+
+        if(d < minDist)
+        {
+            minDist = d;
+            bestId = i;
+        }
+    }
+
+    return minDist;
+}
+
 float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material)
 {
     int id = -1;
     float r = ubo_sphereRadius;
     float k = ubo_blendingFactor;
 
-    float dist = traverseBVH(rayOrigin, rayDir, p, r, k, id);
+    float dist;
+    if(false)
+        dist = traverseBVH(rayOrigin, rayDir, p, r, k, id);
+    else
+        dist = naiveLoop(rayOrigin, rayDir, p, r, k, id);
 
     // Couleur en fonction de l'ID
     float uniqueNumber  = float((99 * id + 1) % 5) / 5.0;

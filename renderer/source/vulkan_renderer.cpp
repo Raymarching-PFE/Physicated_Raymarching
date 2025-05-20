@@ -2204,7 +2204,7 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         VkDescriptorBufferInfo ssboBufferInfo_points{};
         ssboBufferInfo.buffer = m_ssboBuffer_points;
         ssboBufferInfo.offset = 0;
-        ssboBufferInfo.range = sizeof(float) * 4 * MAX_POINT;
+        ssboBufferInfo.range = sizeof(glm::vec4) * MAX_POINT;
 
         std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
