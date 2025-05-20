@@ -195,6 +195,7 @@ private:
     bool m_lighting = true;
     bool m_boxDebug = false;
     bool m_randomColor = false;
+    bool m_activedBinaryTree = true;
     float m_reflectivity = 0.0f;
     glm::vec3 m_lightingDir = glm::vec3(1.0, -1.0, -1.0);
     glm::vec3 m_objectColor = glm::vec3(1.0, 0.0, 0.0);

@@ -458,6 +458,7 @@ void VulkanRenderer::MainImGui()
 #if COMPUTE
         ImGui::Checkbox("boxDebug", &m_boxDebug);
         ImGui::Checkbox("randomColor", &m_randomColor);
+        ImGui::Checkbox("active binarytree", &m_activedBinaryTree);
 #endif
 
 
@@ -1451,7 +1452,7 @@ void VulkanRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 void VulkanRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 {
     UniformBufferObject ubo{};
-    ubo.settings1 = glm::vec4(m_lighting, m_boxDebug, m_randomColor, 0);
+    ubo.settings1 = glm::vec4(m_lighting, m_boxDebug, m_randomColor, m_activedBinaryTree);
     ubo.settings2 = glm::vec4(m_sphereRadius, static_cast<float>(glfwGetTime()), m_blendingFactor, m_far);
     ubo.settings3 = glm::vec4(m_reflectivity, 0.0f, 0.0f, 0.0f);
     ubo.lightingDir = glm::vec4(m_lightingDir, 0.0f);

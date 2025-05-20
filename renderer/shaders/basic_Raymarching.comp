@@ -21,7 +21,7 @@ layout(set = 0, binding = 0, std140) uniform UniformBufferObject
 // x = lighting (int)
 // y = boxDebug (int)
 // z = randomColor (int)
-// w = unused
+// w = binaryTree (int)
 
 // Bloc de floats divers
     vec4 settings2;
@@ -255,7 +255,7 @@ float sceneSDF(vec3 rayOrigin, vec3 rayDir, vec3 p, out Material material)
     float k = ubo_blendingFactor;
 
     float dist;
-    if(true)
+    if(ubo.settings1.w == 1)
         dist = traverseBVH(rayOrigin, rayDir, p, r, k, id);
     else
         dist = naiveLoop(rayOrigin, rayDir, p, r, k, id);
