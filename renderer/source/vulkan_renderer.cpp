@@ -2159,8 +2159,14 @@ void VulkanRenderer::CreateComputeDescriptorSetLayout()
     ssboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     ssboLayoutBinding.pImmutableSamplers = nullptr;
 
+    VkDescriptorSetLayoutBinding ssboLayoutBinding_points{};
+    ssboLayoutBinding.binding = 3; // Doit correspondre au shader
+    ssboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    ssboLayoutBinding.descriptorCount = 1;
+    ssboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    ssboLayoutBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, imageLayoutBinding, ssboLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, imageLayoutBinding, ssboLayoutBinding, ssboLayoutBinding_points };
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -2235,10 +2241,10 @@ void VulkanRenderer::CreateComputeDescriptorSets()
         // SSBO points
         descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[3].dstSet = m_computeDescriptorSets[i];
-        descriptorWrites[3].dstBinding = 2;
+        descriptorWrites[3].dstBinding = 3;
         descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descriptorWrites[3].descriptorCount = 1;
-        descriptorWrites[3].pBufferInfo = &ssboBufferInfo;
+        descriptorWrites[3].pBufferInfo = &ssboBufferInfo_points;
 
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
