@@ -80,7 +80,7 @@ layout(std140, set = 0, binding = 3) buffer CloudPointsBuffer {
 const int MAX_STEPS = 128;
 //const float MAX_DIST = 100.0;
 const float EPSILON = 0.001;
-const int MAX_RECURSION_DEPTH = 1;
+const int MAX_RECURSION_DEPTH = 2;
 
 struct Ray
 {
@@ -160,6 +160,9 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k, out int
     float minDist = 1e5;
     int bestId = -1;
 
+    int leafList[MAX_STACK_SIZE/2];
+    float leafDistances[MAX_STACK_SIZE/2];
+    int leafCount = 0;
     while (stackPtr > 0)
     {
         int nodeIndex = stack[--stackPtr];
@@ -186,34 +189,99 @@ float traverseBVH(vec3 rayOrigin, vec3 rayDir, vec3 p, float r, float k, out int
             }
             else
             {
-                for (int i = 0; i < 16; ++i)
-                {
-                    vec3 cp = ssbo_2.cloudPoints[node.cloudPoints[i]].xyz;
-
-                    float d = sphereSDF(p, cp, r);
-
-                    // Applique smoothMin avec le blending courant
-                    float blended = smoothMin(minDist, d, k);
-
-                    // Si le current point a contribu� � r�duire la distance, on update l�ID
-                    if (blended < minDist)
-                    {
-                        minDist = blended;
-                        //bestId = nodeIndex * 16 + i;
-                        bestId = nodeIndex;
-                    }
-                }
+                // On calcule une distance "proxy" pour trier (ex: distance à la boîte)
+                vec3 boxCenter = node.boxPos.xyz + node.boxSize.xyz * 0.5;
+                float boxDist = length(boxCenter - rayOrigin);
+                
+                leafList[leafCount] = nodeIndex;
+                leafDistances[leafCount] = boxDist;
+                leafCount++;
             }
+            //if(ubo_boxDebug == 1)
+            //{
+            //    // show AABB
+            //    float d = boxSDF(p, ssbo.SSBONodes[nodeIndex].boxPos.xyz, ssbo.SSBONodes[nodeIndex].boxSize.xyz);
+            //    if (d < minDist)
+            //    {
+            //        minDist = d;
+            //        bestId = nodeIndex;
+            //    }
+            //}
+            //else
+            //{
+            //    for (int i = 0; i < 16; ++i)
+            //    {
+            //        vec3 cp = ssbo_2.cloudPoints[node.cloudPoints[i]].xyz;
+            //
+            //        float d = sphereSDF(p, cp, r);
+            //
+            //        // Applique smoothMin avec le blending courant
+            //        float blended = smoothMin(minDist, d, k);
+            //
+            //        // Si le current point a contribu� � r�duire la distance, on update l�ID
+            //        if (blended < minDist)
+            //        {
+            //            minDist = blended;
+            //            //bestId = nodeIndex * 16 + i;
+            //            bestId = nodeIndex;
+            //        }
+            //    }
+            //}
         }
         
         else
         {
-            // Empiler les enfants (droite puis gauche pour LIFO)
+            // Empiler les enfants
             if (node.children.y >= 1 && stackPtr < MAX_STACK_SIZE)
                 stack[stackPtr++] = node.children.y;
 
             if (node.children.x >= 1 && stackPtr < MAX_STACK_SIZE)
                 stack[stackPtr++] = node.children.x;
+        }
+    }
+
+    // Sort
+    // can be better
+    for (int i = 1; i < leafCount; ++i)
+    {
+        float keyDist = leafDistances[i];
+        int keyNode = leafList[i];
+
+        int j = i - 1;
+        while (j >= 0 && leafDistances[j] > keyDist)
+        {
+            leafDistances[j + 1] = leafDistances[j];
+            leafList[j + 1] = leafList[j];
+            j--;
+        }
+    
+        leafDistances[j + 1] = keyDist;
+        leafList[j + 1] = keyNode;
+    }
+
+
+    for (int i = 0; i < leafCount; ++i)
+    {
+        int nodeIndex = leafList[i];
+        Node node = ssbo.SSBONodes[nodeIndex];
+        
+        // box test for early exit
+        vec3 boxCenter = node.boxPos.xyz + node.boxSize.xyz * 0.5;
+        float distToBox = length(boxCenter - p);
+        if (distToBox - ubo_sphereRadius > minDist + length(node.boxPos.xyz + node.boxSize.xyz))
+            continue;
+
+        for (int j = 0; j < 16; j++)
+        {
+            vec3 cp = ssbo_2.cloudPoints[node.cloudPoints[j]].xyz;
+            float d = sphereSDF(p, cp, r);
+            float blended = smoothMin(minDist, d, k);
+
+            if (blended < minDist)
+            {
+                minDist = blended;
+                bestId = nodeIndex;
+            }
         }
     }
 

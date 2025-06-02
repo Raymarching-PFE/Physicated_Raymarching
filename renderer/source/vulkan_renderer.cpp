@@ -2256,8 +2256,6 @@ void VulkanRenderer::CreateComputeDescriptorSets()
 
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
-
-    std::cout << "c est bon, c est passer ici";
 }
 
 void VulkanRenderer::CreateComputeCommandBuffers()
