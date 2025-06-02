@@ -16,7 +16,7 @@ constexpr uint32_t WIDTH = 800;
 constexpr uint32_t HEIGHT = 600;
 constexpr int MAX_FRAMES_IN_FLIGHT = 1;
 
-constexpr int MAX_NODES_SSBO = 4096;
+constexpr int MAX_NODES_SSBO = 2048;
 constexpr int MAX_POINT = 32768;
 
 const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
