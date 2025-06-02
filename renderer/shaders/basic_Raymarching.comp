@@ -46,6 +46,12 @@ float sdSphere(vec3 p, float r) { return length(p) - r; }
 
 float sdRoundCube(in vec3 p, float r) { return lengthN(p, 8.0) - r; }
 
+float smoothMin(float a, float b, float k)
+{
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+}
+
 float mandelbulb(in vec3 p) 
 {
     vec3 w = p;
@@ -69,13 +75,25 @@ float sphereAndMandelbulb(in vec3 p, out vec3 col, out float ref, out float tran
     absorb = 0.5 * vec3(1.0, 2.0, 3.0);
 
     float sphereSDF = sdSphere(p, 1.0);
+    float sphere1SDF = sdSphere(p - vec3(1.0, 0.8, 0.0), 0.6);
+    float sphere2SDF = sdSphere(p - vec3(-1.0, 0.8, 0.0), 0.6);
 
     float scale = 0.8;
     float mandelbulbSDF = mandelbulb(p / scale) * scale;
-    //float s1 = sdSphere(p, 0.4);
 
-    float d = sphereSDF;
-    d = max(d, -mandelbulbSDF);
+     float k = 0.3;
+
+    float blendedSpheres = smoothMin(sphereSDF, sphere1SDF, k);
+    blendedSpheres = smoothMin(blendedSpheres, sphere2SDF, k);
+
+    float d = max(blendedSpheres, -mandelbulbSDF);
+
+    if (d == sphere1SDF) {
+        col = vec3(1.0, 0.5, 0.2); // orange
+    }
+    if (d == sphere2SDF) {
+        col = vec3(0.2, 0.8, 1.0); // bleu clair
+    }
 
     return d;
 }
@@ -177,7 +195,6 @@ vec3 render(in vec3 rayOrigin, in vec3 rayDirection)
 
         float directionModifier = isInside ? -1.0 : 1.0;
 
-        // Variables pour récupérer les propriétés du matériau touché
         vec3 absorbance, surfaceColor;
         float reflectivity, transparency, distanceTravelled;
         int marchSteps;
