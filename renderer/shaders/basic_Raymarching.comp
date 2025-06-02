@@ -69,11 +69,14 @@ float sphereAndMandelbulb(in vec3 p, out vec3 col, out float ref, out float tran
     absorb = 0.5 * vec3(1.0, 2.0, 3.0);
 
     float sphereSDF = sdSphere(p, 1.0);
-    float s  = 0.9;
-    float mandelbulbSDF = mandelbulb(p / s) * s;
+
+    float scale = 0.8;
+    float mandelbulbSDF = mandelbulb(p / scale) * scale;
     //float s1 = sdSphere(p, 0.4);
+
     float d = sphereSDF;
     d = max(d, -mandelbulbSDF);
+
     return d;
 }
 
@@ -151,6 +154,7 @@ vec3 skyColor(vec3 dir)
     return mix(vec3(0.7, 0.7, 1.0), vec3(0.3, 0.5, 1.0), t);
 }
 
+// based on mrange shader on shadertoy
 vec3 render(in vec3 rayOrigin, in vec3 rayDirection)
 {
     // main light
@@ -205,24 +209,23 @@ vec3 render(in vec3 rayOrigin, in vec3 rayDirection)
         float currentRefraction = isInside ? 1.0 / refractionIndex : refractionIndex;
         if (isInside) normal = -normal;
 
-        // Calcul des directions réfléchie et réfractée
+        // reflect and refract the ray direction
         vec3 reflectedDir = reflect(rayDirection, normal);
         vec3 refractedDir = refract(rayDirection, normal, currentRefraction);
 
-        // Calcul de l'éclairage direct (Lambert + ombrage simple)
+        // Direct lighting (Lambert)
         vec3 lightDir = normalize(lightPosition - hitPosition);
         float diffuse = max(dot(normal, lightDir), 0.0);
         float occlusion = 1.0 - float(marchSteps) / float(MAX_RAY_MARCHES);
         float lighting = diffuse * occlusion;
 
-        // Mélange entre la couleur de la surface et le ciel selon la réflexion
+        // Mix color between surface color and sky color based on reflectivity
         vec3 surfaceLighting = mix(
             lighting * surfaceColor,
             skyColor(reflectedDir),
             reflectivity
         );
 
-        // Atténuation par absorption si on est à l'intérieur
         vec3 absorption = vec3(1.0);
 
         // color accumulation depending of object refracted
@@ -267,12 +270,12 @@ vec3 getColor(in vec2 pixelNDC)
     return render(cameraPosition, rayDirection);
 }
 
-
+//based on mrange shader on shadertoy
 vec3 postProcess(in vec3 col, in vec2 q)
 {
-  col=pow(clamp(col,0.0,1.0),vec3(0.75));
-  col=col*0.6+0.4*col*col*(3.0-2.0*col);  // contrast
-  col=mix(col, vec3(dot(col, vec3(0.33))), -0.4);  // satuation
+  col=pow(clamp(col,0.0,1.0),vec3(0.75)); // gamma
+  col=col*0.6+0.4*col*col*(3.0-2.0*col); // contrast
+  col=mix(col, vec3(dot(col, vec3(0.33))), -0.4); // saturation
 
   return col;
 }
