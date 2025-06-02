@@ -77,7 +77,7 @@ layout(std140, set = 0, binding = 3) buffer CloudPointsBuffer {
 } ssbo_2;
 
 
-const int MAX_STEPS = 128;
+const int MAX_STEPS = 32;
 //const float MAX_DIST = 100.0;
 const float EPSILON = 0.001;
 const int MAX_RECURSION_DEPTH = 2;
