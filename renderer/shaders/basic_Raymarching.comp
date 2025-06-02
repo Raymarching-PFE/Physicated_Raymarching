@@ -11,8 +11,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 layout(set = 0, binding = 1, rgba32f) uniform writeonly image2D img_output;
 
 const int MAX_STEPS = 128;
-const float MAX_DIST = 5.0;
-const float EPSILON = 0.001;
+const float MAX_DIST = 100.0;
 const int MAX_RECURSION_DEPTH = 3;
 
 struct Ray {
@@ -27,104 +26,122 @@ struct Material {
     float ior;
 };
 
-mat3 rotateX(float angle) {
-    float c = cos(angle);
-    float s = sin(angle);
-    return mat3(
-        1.0, 0.0, 0.0,
-        0.0, c, -s,
-        0.0, s, c
+#define TOLERANCE       0.000001
+#define MAX_RAY_LENGTH  16.0
+#define MAX_BOUNCES     8
+#define MAX_RAY_MARCHES 90
+
+#define PI              3.141592654
+
+float maxComp(in vec3 p) { return max(p.x, max(p.y, p.z)); }
+
+float lengthN(in vec3 v, in float n) 
+{
+    v = abs(v);
+    v = pow(v, vec3(n));
+    return pow(v.x + v.y + v.z, 1.0 / n);
+}
+
+float sdSphere(vec3 p, float r) { return length(p) - r; }
+
+float sdRoundCube(in vec3 p, float r) { return lengthN(p, 8.0) - r; }
+
+float mandelbulb(in vec3 p) 
+{
+    vec3 w = p;
+    float m = dot(w, w);
+    float dz = 1.0;
+    dz = 8.0 * pow(sqrt(m), 7.0) * dz + 1.0;
+    float r = length(w);
+    float b = 8.0 * acos(w.y / r);
+    float a = 8.0 * atan(w.x, w.z);
+    vec3 v = vec3(sin(b) * sin(a), cos(b), sin(b) * cos(a));
+    w = p + pow(r, 8.0) * v;
+    m = dot(w, w);
+    return 0.25 * log(m) * sqrt(m) / dz;
+}
+
+float sphereAndMandelbulb(in vec3 p, out vec3 col, out float ref, out float trans, out vec3 absorb)
+{
+    col = vec3(0.3);
+    ref = 0.2;
+    trans = 0.9;
+    absorb = 0.5 * vec3(1.0, 2.0, 3.0);
+
+    float sphereSDF = sdSphere(p, 1.0);
+    float s  = 0.9;
+    float mandelbulbSDF = mandelbulb(p / s) * s;
+    //float s1 = sdSphere(p, 0.4);
+    float d = sphereSDF;
+    d = max(d, -mandelbulbSDF);
+    return d;
+}
+
+float sceneSDF(in vec3 p, out vec3 col, out float ref, out float trans, out vec3 absorb) 
+{
+    float i = sphereAndMandelbulb(p, col, ref, trans, absorb);
+
+    float rc1 = sdRoundCube(p - vec3(0.0, 0.0, -5.0), 2.0);
+    float rc2 = sdRoundCube(p - vec3(0.0, 0.0, 5.0), 2.0);
+    float rc3 = sdRoundCube(p - vec3(-5.0, 0.0, 0.0), 2.0);
+    float rc4 = sdRoundCube(p - vec3(5.0, 0.0, 0.0), 2.0);
+
+    float d = i;
+    vec3 localCol = col;
+    float localRef = ref;
+    float localTrans = trans;
+    
+    float dists[4] = float[4](rc1, rc2, rc3, rc4);
+    vec3 cols[4] = vec3[4](
+        vec3(1.0, 0.0, 0.0), // rc1 : rouge
+        vec3(0.0, 1.0, 0.0), // rc2 : vert
+        vec3(0.0, 0.0, 1.0), // rc3 : bleu
+        vec3(1.0, 1.0, 0.0)  // rc4 : jaune
     );
-}
-
-Ray generateRay(vec2 uv) {
-    vec3 right = normalize(cross(ubo.cameraFront, vec3(0.0, 1.0, 0.0)));
-    vec3 up = normalize(cross(right, ubo.cameraFront));
-
-    float fov = radians(90.0);
-    float aspectRatio = 16.0 / 9.0;
-
-    vec3 rayDir = normalize(ubo.cameraFront + uv.x * right * aspectRatio + uv.y * up);
-    return Ray(ubo.cameraPos, rayDir);
-}
-
-float smoothMin(float a, float b, float k) {
-    float h = max(k - abs(a - b), 0.0) / k;
-    return min(a, b) - h * h * h * k * (1.0 / 6.0);
-}
-
-float sphereSDF(vec3 p, vec3 center, float radius) {
-    return length(p - center) - radius;
-}
-
-float torusSDF(vec3 p, vec2 t) {
-    vec2 q = vec2(length(p.xz) - t.x, p.y);
-    return length(q) - t.y;
-}
-
-float sceneSDF(vec3 p, out Material material)
-{
-    // Positions des sphères
-    vec3 sphere1Pos = vec3(0.0, 0.0, -7.0);
-    vec3 sphere2Pos = vec3(0.95, 0.95, -7.0);
-    vec3 sphere3Pos = vec3(-0.95, 0.95, -7.0);
-
-    float r = 0.5;
-    float k = 0.75; // blending
-
-    // Distances SDF
-    float d1 = sphereSDF(p, sphere1Pos, 0.8);
-    float d2 = sphereSDF(p, sphere2Pos, r);
-    float d3 = sphereSDF(p, sphere3Pos, r);
-
-    // Smooth blend des 3 sphères
-    float d12 = smoothMin(d1, d2, k);
-    float dist = smoothMin(d12, d3, k);
-
-    // Attribution du matériau selon la sphère la plus proche
-    if (dist == d1) 
+    
+    for (int j = 0; j < 4; ++j) 
     {
-        material.color = vec3(0.8, 0.8, 0.8);
-        material.reflectivity = 0.2;
-        material.transparency = 0.0;
-        material.ior = 1.1;
-    } else if (dist == d2)
-    {
-        material.color = vec3(0.8, 0.8, 0.8);
-        material.reflectivity = 0.1;
-        material.transparency = 0.0;
-        material.ior = 1.3;
-    } else {
-        material.color = vec3(0.8, 0.8, 0.8);
-        material.reflectivity = 0.05;
-        material.transparency = 0.0;
-        material.ior = 1.5;
+        if (dists[j] < d) 
+        {
+            d = dists[j];
+            localCol = cols[j];
+            localRef = 0.2;
+            localTrans = 0.0;
+        }
     }
 
-    return dist;
+    col = localCol;
+    ref = localRef;
+    trans = localTrans;
+    return d;
 }
 
-float rayMarch(Ray ray, out Material material)
+float rayMarch(in float dmod, in vec3 ro, inout vec3 rd, float mint, float minstep, out int rep, out vec3 col, out float ref, out float trans, out vec3 absorb)
 {
-    float distance = 0.0;
-    for (int i = 0; i < MAX_STEPS; i++) {
-        vec3 p = ray.origin + ray.direction * distance;
-        float d = sceneSDF(p, material);
-        if (d < EPSILON) return distance;
-        distance += d;
-        if (distance > MAX_DIST) break;
-    }
-    return -1.0;
+  float t = mint;
+  for (int i = 0; i < MAX_RAY_MARCHES; i++)
+  {
+    float distance_ = sceneSDF(ro + rd*t, col, ref, trans, absorb);
+    float distance = dmod*distance_;
+    if (distance < TOLERANCE*t || t > MAX_RAY_LENGTH) break;
+    t += max(distance, minstep);
+    rep = i;
+  }
+  return t;
 }
 
-vec3 getNormal(vec3 p) 
+vec3 getNormal(in vec3 pos)
 {
-    vec2 e = vec2(EPSILON, 0.0);
-    Material dummyMaterial;
-    return normalize(vec3(
-        sceneSDF(p + e.xyy, dummyMaterial) - sceneSDF(p - e.xyy, dummyMaterial),
-        sceneSDF(p + e.yxy, dummyMaterial) - sceneSDF(p - e.yxy, dummyMaterial),
-        sceneSDF(p + e.yyx, dummyMaterial) - sceneSDF(p - e.yyx, dummyMaterial)
+  vec3 EPSILON = vec3(.0001,0.0,0.0);
+
+  vec3 col, nor, absorb;
+  float ref, trans;
+
+  // Approximate
+  return normalize(vec3(
+    sceneSDF(pos+EPSILON.xyy, col, ref, trans, absorb) - sceneSDF(pos-EPSILON.xyy, col, ref, trans, absorb),
+    sceneSDF(pos+EPSILON.yxy, col, ref, trans, absorb) - sceneSDF(pos-EPSILON.yxy, col, ref, trans, absorb),
+    sceneSDF(pos+EPSILON.yyx, col, ref, trans, absorb) - sceneSDF(pos-EPSILON.yyx, col, ref, trans, absorb)
     ));
 }
 
@@ -134,45 +151,130 @@ vec3 skyColor(vec3 dir)
     return mix(vec3(0.7, 0.7, 1.0), vec3(0.3, 0.5, 1.0), t);
 }
 
-vec3 getColor(Ray ray, vec3 p, Material material) 
+vec3 render(in vec3 rayOrigin, in vec3 rayDirection)
 {
-    vec3 color = vec3(0.0);
-    vec3 attenuation = vec3(1.0);
+    // main light
+    vec3 lightPosition = vec3(2.25, 4.5, 1.5);
 
-    for (int bounce = 0; bounce < MAX_RECURSION_DEPTH; ++bounce)
+    vec3 accumulatedColor = vec3(0.0);
+    vec3 throughput = vec3(1.0); // Atténuation
+
+    bool isInside = false;
+    float refractionIndex = 0.8;
+
+    // raymarching settings
+    float minDistance = 0.01;
+    float minStep = 0.001;
+
+    for (int bounce = 0; bounce < MAX_BOUNCES; ++bounce)
     {
-        vec3 normal = getNormal(p);
-        bool outside = dot(ray.direction, normal) < 0.0;
-        if (!outside) normal = -normal;
+        if (maxComp(throughput) < 0.01)
+            break;
 
-        // directional light
-        vec3 lightDir = normalize(vec3(1.0, -1.0, -1.0));
-        float diff = max(dot(normal, lightDir), 0.0);
-        vec3 directLight = clamp(diff * material.color, 0.0, 1.0);
+        float directionModifier = isInside ? -1.0 : 1.0;
 
-        // diffuse
-        color += attenuation * (1.0 - material.reflectivity - material.transparency) * directLight;
+        // Variables pour récupérer les propriétés du matériau touché
+        vec3 absorbance, surfaceColor;
+        float reflectivity, transparency, distanceTravelled;
+        int marchSteps;
 
-        // reflection and refraction
-        vec3 reflectDir = reflect(ray.direction, normal);
-        vec3 refractDir = refract(ray.direction, normal, outside ? (1.0 / material.ior) : material.ior);
+        // Ray marching to find the surface distance
+        distanceTravelled = rayMarch(
+            directionModifier, rayOrigin, rayDirection,
+            minDistance, minStep,
+            marchSteps, surfaceColor, reflectivity, transparency, absorbance
+        );
 
-        //type of bounce
-        bool useRefract = material.transparency > material.reflectivity && length(refractDir) > 0.001;
-        ray = Ray(p + EPSILON * (useRefract ? refractDir : reflectDir),
-                  useRefract ? refractDir : reflectDir);
+        vec3 hitPosition = rayOrigin + distanceTravelled * rayDirection;
 
-        float dist = rayMarch(ray, material);
-        if (dist < 0.0) {
-            color += attenuation * skyColor(ray.direction);
+        // if we touche the sky
+        if (distanceTravelled >= MAX_RAY_LENGTH)
+        {
+            accumulatedColor += throughput * skyColor(rayDirection);
             break;
         }
 
-        p = ray.origin + ray.direction * dist;
-        attenuation *= mix(vec3(1.0), material.color, 0.1); // légère absorption
+        // Calculation of the normal at the surface
+        vec3 normal = getNormal(hitPosition);
+
+        // Fresnel
+        float fresnel = pow(1.0 - abs(dot(normal, rayDirection)), 2.0);
+        reflectivity = mix(reflectivity, 1.0, fresnel);
+        transparency = mix(transparency, 0.0, fresnel);
+
+        float currentRefraction = isInside ? 1.0 / refractionIndex : refractionIndex;
+        if (isInside) normal = -normal;
+
+        // Calcul des directions réfléchie et réfractée
+        vec3 reflectedDir = reflect(rayDirection, normal);
+        vec3 refractedDir = refract(rayDirection, normal, currentRefraction);
+
+        // Calcul de l'éclairage direct (Lambert + ombrage simple)
+        vec3 lightDir = normalize(lightPosition - hitPosition);
+        float diffuse = max(dot(normal, lightDir), 0.0);
+        float occlusion = 1.0 - float(marchSteps) / float(MAX_RAY_MARCHES);
+        float lighting = diffuse * occlusion;
+
+        // Mélange entre la couleur de la surface et le ciel selon la réflexion
+        vec3 surfaceLighting = mix(
+            lighting * surfaceColor,
+            skyColor(reflectedDir),
+            reflectivity
+        );
+
+        // Atténuation par absorption si on est à l'intérieur
+        vec3 absorption = vec3(1.0);
+
+        // color accumulation depending of object refracted
+        accumulatedColor += (1.0 - transparency) * throughput * absorption * surfaceLighting;
+        throughput *= transparency * absorption;
+
+        // Setup next bounce
+        rayOrigin = hitPosition;
+        if (length(refractedDir) < 0.001)
+            rayDirection = reflectedDir;
+        else
+        {
+            rayDirection = refractedDir;
+            isInside = !isInside;
+        }
     }
 
-    return color;
+    return accumulatedColor;
+}
+
+
+// Color of the pixel depending of normalize coordinate
+vec3 getColor(in vec2 pixelNDC)
+{
+    vec3 cameraPosition = ubo.cameraPos;
+    vec3 cameraDir = ubo.cameraFront;
+
+    vec3 forward = normalize(cameraDir);
+    vec3 right = normalize(cross(forward, vec3(0.0, 1.0, 0.0)));
+    vec3 up = normalize(cross(right, forward));
+
+    float aspectRatio = 16.0 / 9.0;
+
+    // Build ray from normalize screen coord 
+    vec3 rayDirection = normalize(
+        forward +
+        pixelNDC.x * right * aspectRatio +
+        pixelNDC.y * up
+    );
+
+    // Update for the final color
+    return render(cameraPosition, rayDirection);
+}
+
+
+vec3 postProcess(in vec3 col, in vec2 q)
+{
+  col=pow(clamp(col,0.0,1.0),vec3(0.75));
+  col=col*0.6+0.4*col*col*(3.0-2.0*col);  // contrast
+  col=mix(col, vec3(dot(col, vec3(0.33))), -0.4);  // satuation
+
+  return col;
 }
 
 void main() 
@@ -186,18 +288,9 @@ void main()
     vec2 uv = (vec2(pixelCoord) / vec2(imageSize)) * 2.0 - 1.0;
     uv.y *= -1.0;
 
-    Ray ray = generateRay(uv);
-    Material material;
-    float dist = rayMarch(ray, material);
+    vec3 col = getColor(uv);
 
-    vec4 color = vec4(0.0);
-    if (dist > 0.0) 
-    {
-        vec3 p = ray.origin + ray.direction * dist;
-        color = vec4(getColor(ray, p, material), 1.0);
-    } 
-    else 
-        color = vec4(skyColor(ray.direction) + vec3(0.2, 0.2, 0.0), 1.0);
-
+    vec4 color = vec4(mix(postProcess(col, uv), vec3(1.0), 0.0), 1.0);
+    
     imageStore(img_output, pixelCoord, color);
 }
