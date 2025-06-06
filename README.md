@@ -1,20 +1,40 @@
+# Summary
+
+1. [Required components](#required-components)
+    - [CMake](#cmake)
+    - [Vulkan SDK](#vulkan-sdk)
+2. [Initialization](#initialization)
+3. [Spacial Partitioning](#spacial-partitioning)
+    - [General](#general)
+    - [Slice](#slice)
+    - [Nodes](#nodes)
+    - [Nearest neighbour](#nearest-neighbour)
+4. [Camera controls](#camera-controls)
+
 ## Required components
 
+---
+
 ### CMake
-The **CMake build-tools** are used to allow using any compiler and IDE.\
+The **CMake build-tools** are used to allow using any compiler and IDE.
 Install the **CMake build-tools** [here](https://cmake.org/download/).
 
 The **CMake integration tools** for your **IDE** are also required to be able to directly open the root directory and work from there.\
-\
-Ex: Install Visual Studio's **CMake integration tools** from the Visual Studio Installer:\
+
+Ex: Install Visual Studio's **CMake integration tools** from the Visual Studio Installer:
+
 ![VS_installCMake](Doc/Pictures/VS_install_CMakeIntegration.png)
 
 ### Vulkan SDK
-In order to link and compile the Vulkan example, the Vulkan SDK is required.\
+In order to link and compile the Vulkan example, the Vulkan SDK is required.
 /!\ When installing the Vulkan SDK, be sure to select the **Shader Toolchain Debug Symbols** to be able to link the GLSL shader compiler library (_libshaderc_combined_d.lib_) in debug:
+
 ![VkSDK_install](Doc/Pictures/VulkanSDKInstall.png)
 
+
 ## Initialization
+
+---
 
 Start by **cloning** the **repository**.
 ```
@@ -28,13 +48,7 @@ git submodule update --init --recursive
 ```
 
 Now the project is ready to be open directly from the **root directory** using your IDE in "_CMake mode_".
-# Summary
 
-1. [Spacial Partitioning](#spacial-partitioning)
-   - [General](#general)
-   - [Slice](#slice)
-   - [Nodes](#nodes)
-   - [Nearest neighbour](#nearest-neighbour)
 
 # Spacial Partitioning
 
@@ -70,5 +84,23 @@ But, there is a problem, like you can see on that picture.
 In some circumstance , the nn is not in the same box as the source point.
 To fix that issue, we need to check the distance between the nearest point 
 in the bax and check all the box around in range.
+
+
+# Camera controls
+
+---
+
+At the launch of the application the camera is in the loaded object, you need to move back to see it.
+
+Input           | Action
+-------         | ------
+W               | Move forward
+A               | Move left
+S               | Move backward
+D               | Move right
+Mouse movement  | Look around
+
+
+<br>
 
 [Head of page](#summary)
